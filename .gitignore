@@ -11,3 +11,5 @@ venv/
 
 gp_history.txt
 tmp*/
+
+*.egg-info/
