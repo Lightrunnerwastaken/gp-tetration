@@ -122,6 +122,15 @@ class FatouGP:
             return base
         return _to_gp_number(base, max(self.dps - 8, 30))
 
+    def _init_lines(self, base: GPValue) -> list[str]:
+        fatou_path = Path(self.fatou_gp).as_posix()
+        return [
+            f"default(realprecision, {self.dps});",
+            f'read("{fatou_path}");',
+            f"quietmode={self.quietmode};",
+            f"sexpinit({self._base_expr(base)},{self.nlim},{self.nskip},{self.looplim});",
+        ]
+
     def _run_initialized(
         self,
         base: GPValue,
@@ -130,14 +139,7 @@ class FatouGP:
     ) -> list[mp.mpc]:
         if digits is None:
             digits = max(self.dps - 8, 30)
-        fatou_path = self.fatou_gp.as_posix()
-        lines = [
-            f"\\\\p {self.dps}",
-            f'read("{fatou_path}")',
-            f"quietmode={self.quietmode};",
-            f"sexpinit({self._base_expr(base)},{self.nlim},{self.nskip},{self.looplim});",
-            'print("__BEGIN_RESULTS__")',
-        ]
+        lines = self._init_lines(base) + ['print("__BEGIN_RESULTS__")']
         for idx, expr in enumerate(expressions):
             lines.append(f"vv = ({expr});")
             lines.append(f'print("__RES__{idx}")')
