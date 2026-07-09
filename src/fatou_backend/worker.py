@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import queue
 import subprocess
+import sys
 import threading
 import time
 from pathlib import Path
@@ -65,10 +66,20 @@ class FatouGPWorker:
                 self._proc.wait(timeout=10)
         except Exception:
             pass
-        for stream in (self._proc.stdin, self._proc.stdout):
+        try:
+            if self._proc.stdin is not None:
+                self._proc.stdin.close()
+        except Exception:
+            pass
+        # the reader thread owns the stdout buffer lock while blocked in
+        # readline; only close the stream once the thread has seen EOF
+        reader = getattr(self, "_reader", None)
+        if reader is not None and reader.is_alive() and not sys.is_finalizing():
+            reader.join(timeout=5)
+        if reader is None or not reader.is_alive():
             try:
-                if stream is not None:
-                    stream.close()
+                if self._proc.stdout is not None:
+                    self._proc.stdout.close()
             except Exception:
                 pass
 
@@ -79,6 +90,8 @@ class FatouGPWorker:
         self.close()
 
     def __del__(self) -> None:
+        if sys.is_finalizing():
+            return  # interpreter teardown: daemon threads are frozen, OS reclaims
         self.close()
 
     # -- protocol ----------------------------------------------------------

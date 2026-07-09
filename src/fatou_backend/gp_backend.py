@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import os
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable, Sequence
 
 import mpmath as mp
+
+from .worker import FatouGPWorker, WorkerDied
 
 
 GPValue = mp.mpf | mp.mpc | float | complex | int | str
@@ -107,6 +109,10 @@ class FatouGP:
     nskip: int = 4
     looplim: int = 35
     quietmode: int = 1
+    persistent: bool = True
+    init_timeout: float = 3600.0
+    eval_timeout: float = 600.0
+    _workers: dict = field(default_factory=dict, init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         self.gp_exe = find_default_gp_exe() if self.gp_exe is None else Path(self.gp_exe)
@@ -126,6 +132,33 @@ class FatouGP:
             return base
         return _to_gp_number(base, max(self.dps - 8, 30))
 
+    def _spawn_worker(self, base: GPValue) -> FatouGPWorker:
+        return FatouGPWorker(
+            self.gp_exe,
+            self._init_lines(base),
+            init_timeout=self.init_timeout,
+            eval_timeout=self.eval_timeout,
+        )
+
+    def _worker_for(self, base: GPValue) -> FatouGPWorker:
+        key = self._base_expr(base)
+        worker = self._workers.get(key)
+        if worker is None or not worker.alive:
+            worker = self._spawn_worker(base)
+            self._workers[key] = worker
+        return worker
+
+    def close(self) -> None:
+        for worker in self._workers.values():
+            worker.close()
+        self._workers.clear()
+
+    def __enter__(self) -> "FatouGP":
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self.close()
+
     def _init_lines(self, base: GPValue) -> list[str]:
         fatou_path = Path(self.fatou_gp).as_posix()
         return [
@@ -143,6 +176,13 @@ class FatouGP:
     ) -> list[mp.mpc]:
         if digits is None:
             digits = max(self.dps - 8, 30)
+        if self.persistent:
+            try:
+                return self._worker_for(base).eval(expressions)
+            except WorkerDied:
+                self._workers.pop(self._base_expr(base), None)
+                return self._worker_for(base).eval(expressions)
+        # legacy one-shot path
         lines = self._init_lines(base) + ['print("__BEGIN_RESULTS__")']
         for idx, expr in enumerate(expressions):
             lines.append(f"vv = ({expr});")

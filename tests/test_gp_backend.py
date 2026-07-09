@@ -28,6 +28,10 @@ class FatouBackendTests(unittest.TestCase):
         )
         mp.dps = 80
 
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.gp.close()
+
     def test_sexp_e_half_matches_known_value(self) -> None:
         value = self.gp.sexp("e", mp.mpf("0.5"))
         self.assertLess(abs(value - mp.mpf("1.64635423375119458097")), mp.mpf("1e-18"))
