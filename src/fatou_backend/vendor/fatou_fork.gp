@@ -1188,6 +1188,10 @@ loop(kc,nlim,nskip,looplim) = {
   if (nlim==0,  nlim=70);
   if (nskip==0, nskip=6);
   if (looplim==0, if (limitp==0, looplim=precis-throwp, looplim=limitp));
+  /* exp-004: looplim is a digits GOAL; callers passing dps-20 silently lose
+     ~17 digits on slow-converging bases (e.g. b=e). Unless limitp requests a
+     speed cap, always aim for full working precision. */
+  if ((limitp==0) && (looplim < precis-throwp-2), looplim = precis-throwp-2);
   skipdec=precis-throws; /* start decrementing nskip here */
   if (thetamode, r=circr*ctr, r=circr);
   ct=0;

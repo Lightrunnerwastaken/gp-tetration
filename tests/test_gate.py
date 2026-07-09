@@ -21,8 +21,18 @@ RUN_SLOW = os.getenv("FATOU_BACKEND_RUN_SLOW") == "1"
 
 
 class GateTests(unittest.TestCase):
-    def test_fork_starts_byte_identical(self) -> None:
-        self.assertEqual(ORIGINAL.read_bytes(), FORK.read_bytes())
+    def test_fork_exists_and_reference_provenance(self) -> None:
+        # the fork legitimately diverges from the original once experiments
+        # are kept (first: exp-004); what must never change is that the
+        # frozen reference values were produced by the ORIGINAL fatou.gp
+        import hashlib
+        import json
+        self.assertTrue(FORK.exists())
+        meta = json.loads(
+            (REPO / "research" / "reference" / "values.json").read_text(encoding="utf-8")
+        )["meta"]
+        self.assertEqual(meta["fatou_sha256"],
+                         hashlib.sha256(ORIGINAL.read_bytes()).hexdigest())
 
     @unittest.skipUnless(RUN_SLOW, "Set FATOU_BACKEND_RUN_SLOW=1")
     def test_gate_passes_on_unmodified_fork(self) -> None:

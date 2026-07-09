@@ -88,11 +88,11 @@ Format pro Eintrag:
   (Digits-Ziel = volle Arbeitspraezision, ausser limitp fordert Speed-Cap)
 - **Gate:** PASS — e|80: 62.7 -> **79.4 digits (+16.7)**; alle anderen
   Gruppen unveraendert (79.5-80.0 / 199.8); Roundtrips unveraendert.
-- **Benchmark:** AUSSTEHEND (wartet auf freie Maschine; Deep-Referenzen
-  dps-1020 laufen im Hintergrund). Erwartung: digits/s steigt sogar
-  (e-Cases lagen unter dem Cap dps-10), Init-Kosten leicht hoeher.
-- **Entscheidung:** ausstehend (Keep-Regel b: Genauigkeit +16.7 erfuellt,
-  Speed-Check fehlt)
+- **Benchmark:** exp-004 (repeat 3) vs. m3-final, warm-Mediane:
+  GESAMT +15.2% (Schwelle 6.8%); e|80 +14.4% UND min digits 62.7->70 (Cap);
+  e|200 +88%/2|200 +38% (sub-ms-Timings, mit Vorsicht); 10|80/2|80 neutral.
+  Cold rep0 (frischer sexpinit) nicht langsamer als Original.
+- **Entscheidung:** **KEEP** (Regel a UND b gleichzeitig erfuellt)
 - **Learnings:** Wrapper-Bestellung looplim=max(35, dps-20) war die Ursache
   der e|80-Schwaeche. Roundtrip-Identitaet ueber alle Experimente bestaetigt
   erneut: nur Agreement-vs-Referenz misst echte Genauigkeit.
