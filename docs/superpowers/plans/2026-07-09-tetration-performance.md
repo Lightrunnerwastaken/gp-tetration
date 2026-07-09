@@ -436,8 +436,8 @@ Laufzeit: Minuten-Bereich; die dps-220-Gruppen sind die langsamsten. `--deep` (5
 
 - [ ] **Step 6: Stichprobe gegen bekannte Werte prüfen**
 
-Run: `python -c "import json; v=json.load(open('research/reference/values.json'))['values']; print(v['sexp|e|0.5|80']['real'][:22])"`
-Expected: beginnt mit `1.64635423375119458097` (bekannter Wert aus `tests/test_gp_backend.py`).
+Run: `python -c "import json; v=json.load(open('research/reference/values.json'))['values']; print(v['sexp|e|0.5|200']['real'][:22])"`
+Expected: beginnt mit `1.64635423375119458097` (bekannter Wert aus `tests/test_gp_backend.py`; `0.5` ist ein Precision-Case bei dps 200, kein Throughput-Argument).
 
 - [ ] **Step 7: Commit**
 
