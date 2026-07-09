@@ -109,6 +109,27 @@ Format pro Eintrag:
   die Maschine frei ist.
 - **Frontier-Ziel:** e|1000 auf ~980+ digits bringen = groesster einzelner
   Genauigkeits-Hebel im Projekt.
+- **Nachtrag (exp-004-deep):** Fork identisch zum Original auf 500/1000
+  (digits UND Init-Zeit) -> looplim bindet dort nicht; exp-004 bleibt keep
+  (neutral auf deep). Deep-Warm-Timings sind Einzel-Eval (1 Case/Gruppe,
+  ~10-40ms) -> fuer Speed-Aussagen dort groessere Batches noetig.
+  Verbose-Diagnose e|1020 + e|520 gestartet (quietmode=0 Konvergenz-Trace).
+- **Trace e|520 (Original, nlim=30, looplim=500):** Schleife stoppt am
+  nlim=30-Cap bei re=63.9 "decimal digits" (linear ~2.1 digits/Iter,
+  ctsamples waechst 20->536, thsamples 7->32). ABER Benchmark mass fuer
+  e|500 echte 478.8 digits Agreement -> **re ist das KONTUR-Residuum, nicht
+  die finale sexp-Genauigkeit** (renormslog/Downstream verhaelt sich anders).
+  Zusammen mit der Anomalie (nlim=50+looplim=100 -> 63.9 digits bei dps 80,
+  waehrend nlim=30+looplim=100 -> 79.5) ist die (nlim, looplim)->Genauigkeit
+  Landschaft NICHT monoton -> empirisch kartieren. Sweep bei dps 500 laeuft.
+- **Trace e|1020 == Trace e|520** (identische Trajektorie, Stopp n=30 bei
+  re=63.9): Kontur-Phase ist praezisions-agnostisch. Folgerung: e|500 mit
+  478.8 Agreement bei Kontur-Residuum 1e-64 => Agreement dps-vs-dps+20 kann
+  KORRELIERTE Fehler verdecken (gleiche Trajektorie beidseits); der e|1000-
+  Kollaps auf 66 digits muss DOWNSTREAM der Kontur-Phase entstehen
+  (Kandidat: Newton-Cap in betterest/invabel bei hoher Praezision).
+  Breakpoint-Sonde dps 600-900 laeuft; looplim bei dps 500 inert bestaetigt
+  (480 vs 520 -> identisch 478.8).
 - **Learnings:** Wrapper-Bestellung looplim=max(35, dps-20) war die Ursache
   der e|80-Schwaeche. Roundtrip-Identitaet ueber alle Experimente bestaetigt
   erneut: nur Agreement-vs-Referenz misst echte Genauigkeit.
