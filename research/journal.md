@@ -71,3 +71,28 @@ Format pro Eintrag:
   Sackgasse; Auto-Auswahl ist lokales Optimum. Naechste Familien:
   (A) Init-Staffelung im Fork (Iterationszahlen aus precis), (B) e|80-
   Ausreisser-Fix (gezielte Genauigkeit), (C) Deep-Referenzen dps 500/1000.
+
+---
+
+## exp-004 (2026-07-10) — looplim-Floor auf volle Arbeitspraezision
+- **Diagnose vorab:** e|80-Schwaeche ist BREIT (fast alle 32 Cases ~62.7),
+  nicht ein Ausreisser-Case. nlim irrelevant (40/60: keine Aenderung);
+  looplim=100 hebt auf 79.5. Codelektuere loop() Z.1179ff: `looplim` ist ein
+  DIGITS-ZIEL (`while (re<looplim ...)`, re = erreichte Dezimalstellen),
+  `nlim` der Iterations-Cap — Semantik invers zur Wrapper-Annahme! Der
+  Wrapper bestellt mit looplim=dps-20 nur 60 digits; Basis 2/10 ueberspringen
+  das Ziel im letzten Iterationsschritt (Glueck), Basis e stoppt praezise
+  beim Ziel. Anomalie am Rande: nlim=50+looplim=100 ergab nur 63.9 (?).
+- **Mutation:** fatou_fork.gp loop() nach Z.1190:
+  `if ((limitp==0) && (looplim < precis-throwp-2), looplim = precis-throwp-2);`
+  (Digits-Ziel = volle Arbeitspraezision, ausser limitp fordert Speed-Cap)
+- **Gate:** PASS — e|80: 62.7 -> **79.4 digits (+16.7)**; alle anderen
+  Gruppen unveraendert (79.5-80.0 / 199.8); Roundtrips unveraendert.
+- **Benchmark:** AUSSTEHEND (wartet auf freie Maschine; Deep-Referenzen
+  dps-1020 laufen im Hintergrund). Erwartung: digits/s steigt sogar
+  (e-Cases lagen unter dem Cap dps-10), Init-Kosten leicht hoeher.
+- **Entscheidung:** ausstehend (Keep-Regel b: Genauigkeit +16.7 erfuellt,
+  Speed-Check fehlt)
+- **Learnings:** Wrapper-Bestellung looplim=max(35, dps-20) war die Ursache
+  der e|80-Schwaeche. Roundtrip-Identitaet ueber alle Experimente bestaetigt
+  erneut: nur Agreement-vs-Referenz misst echte Genauigkeit.
