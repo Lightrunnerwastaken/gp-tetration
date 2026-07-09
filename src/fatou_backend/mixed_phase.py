@@ -167,6 +167,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--samples", type=int, default=256)
     parser.add_argument("--harmonics", type=int, default=3)
     parser.add_argument("--dps", type=int, default=80)
+    parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--gp-exe")
     parser.add_argument("--fatou-gp")
     parser.add_argument("--csv")
@@ -178,7 +179,8 @@ def main() -> None:
     if not args.all_pairs and (args.outer is None or args.inner is None):
         raise SystemExit("Use --all-pairs or specify both --outer and --inner.")
     mp.mp.dps = max(args.dps + 30, 100)
-    gp = FatouGP(gp_exe=args.gp_exe, fatou_gp=args.fatou_gp, dps=args.dps, looplim=max(35, args.dps - 20))
+    gp = FatouGP(gp_exe=args.gp_exe, fatou_gp=args.fatou_gp, dps=args.dps,
+                 looplim=max(35, args.dps - 20), n_workers=args.workers)
     pairs = PAIRS if args.all_pairs else [(args.outer, args.inner)]
     results: dict[tuple[str, str], ProfileResult] = {}
     for outer, inner in pairs:

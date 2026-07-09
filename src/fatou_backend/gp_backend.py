@@ -9,6 +9,7 @@ from typing import Iterable, Sequence
 import mpmath as mp
 
 from . import state_cache
+from .pool import FatouGPPool
 from .worker import FatouGPWorker, WorkerDied
 
 
@@ -114,7 +115,9 @@ class FatouGP:
     init_timeout: float = 3600.0
     eval_timeout: float = 600.0
     state_cache: bool = True
+    n_workers: int = 1
     _workers: dict = field(default_factory=dict, init=False, repr=False, compare=False)
+    _pools: dict = field(default_factory=dict, init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         self.gp_exe = find_default_gp_exe() if self.gp_exe is None else Path(self.gp_exe)
@@ -188,10 +191,21 @@ class FatouGP:
             self._workers[key] = worker
         return worker
 
+    def _pool_for(self, base: GPValue) -> FatouGPPool:
+        key = self._base_expr(base)
+        pool = self._pools.get(key)
+        if pool is None:
+            pool = FatouGPPool(lambda: self._spawn_worker(base), self.n_workers)
+            self._pools[key] = pool
+        return pool
+
     def close(self) -> None:
         for worker in self._workers.values():
             worker.close()
         self._workers.clear()
+        for pool in self._pools.values():
+            pool.close()
+        self._pools.clear()
 
     def __enter__(self) -> "FatouGP":
         return self
@@ -217,6 +231,8 @@ class FatouGP:
         if digits is None:
             digits = max(self.dps - 8, 30)
         if self.persistent:
+            if self.n_workers > 1 and len(expressions) >= 2 * self.n_workers:
+                return self._pool_for(base).eval(expressions)
             try:
                 return self._worker_for(base).eval(expressions)
             except WorkerDied:
