@@ -21,8 +21,12 @@ eingefrorenen Workload), ohne das Gate zu verletzen.
 4. Bei PASS: `python bench/benchmark.py --fatou src/fatou_backend/vendor/fatou_fork.gp
    --label exp-<NNN> --repeat 3` (warm-Median zaehlt; fuer Init-Experimente cold-Median
    mit frischem FATOU_CACHE_DIR).
-5. Behalten nur, wenn die Metrik um mehr als die Rausch-Schwelle aus
-   `research/noise.json` steigt; sonst revert.
+5. Keep-Regel (erweitert 2026-07-10 auf Nutzer-Direktive: Genauigkeit UND Speed):
+   behalten wenn ENTWEDER (a) digits/s um mehr als die Rausch-Schwelle aus
+   `research/noise.json` steigt und die Gate-worst-digits nicht sinken, ODER
+   (b) die Gate-worst-digits einer Gruppe messbar steigen (>=1 digit, z.B. der
+   e|80-Ausreisser) und digits/s nicht um mehr als die Rausch-Schwelle faellt.
+   Sonst revert.
 6. Journal-Eintrag IMMER (auch Fehlschlaege): Ergebnisdatei, Entscheidung, Learnings.
 7. Behaltene Mutation committen (`research: exp-<NNN> <kurzbeschreibung>`).
 
