@@ -19,17 +19,21 @@ def _first_existing(candidates: Iterable[Path]) -> Path | None:
     return None
 
 
+GP_EXE_CANDIDATES = (
+    Path(r"C:\Program Files\Pari64-2-17-3\gp.exe"),
+    # the NSIS installer is a 32-bit stub, so its default target is the x86 dir
+    Path(r"C:\Program Files (x86)\Pari64-2-17-3\gp.exe"),
+    Path(r"C:\Program Files (x86)\Pari32-2-17-3\gp.exe"),
+)
+
+
 def find_default_gp_exe() -> Path:
     env = os.getenv("FATOU_GP_EXE")
     if env:
         path = Path(env)
         if path.exists():
             return path
-    candidates = (
-        Path(r"C:\Program Files (x86)\Pari32-2-17-3\gp.exe"),
-        Path(r"C:\Program Files\Pari64-2-17-3\gp.exe"),
-    )
-    path = _first_existing(candidates)
+    path = _first_existing(GP_EXE_CANDIDATES)
     if path is None:
         raise FileNotFoundError("Could not locate gp.exe. Set FATOU_GP_EXE.")
     return path

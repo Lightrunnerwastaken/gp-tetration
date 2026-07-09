@@ -7,6 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from fatou_backend import FatouGP, find_default_fatou_gp, find_default_gp_exe
+from fatou_backend.gp_backend import GP_EXE_CANDIDATES
 
 
 class InitLinesTests(unittest.TestCase):
@@ -34,6 +35,16 @@ class InitLinesTests(unittest.TestCase):
     def test_init_lines_complex_base(self) -> None:
         lines = self.gp._init_lines("1+I")
         self.assertEqual(lines[3], "sexpinit(1+I,20,4,30);")
+
+
+class GpExeCandidateTests(unittest.TestCase):
+    def test_pari64_is_preferred(self) -> None:
+        self.assertIn("Pari64", str(GP_EXE_CANDIDATES[0]))
+        self.assertIn("Pari64", str(GP_EXE_CANDIDATES[1]))
+        self.assertIn("Pari32", str(GP_EXE_CANDIDATES[2]))
+
+    def test_default_gp_exe_resolves_to_pari64(self) -> None:
+        self.assertIn("Pari64", str(find_default_gp_exe()))
 
 
 if __name__ == "__main__":
