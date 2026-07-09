@@ -153,6 +153,19 @@ Format pro Eintrag:
   noetig -> per program.md ausserhalb des Loops zu entscheiden; wird dem
   Nutzer vorgelegt sobald das Dekorrelation-Experiment bestaetigt.
 - **Laufend:** truth(nlim=30/60) via Vergleich gegen nlim=110@540.
+- **Oracle-Versuch paulsen_tetration:** zu schwach — weicht ab digit 10 ab
+  (1.6463542333.. vs fatou 1.6463542337..; Kouznetsov-Literaturwert stuetzt
+  fatou auf ~14 digits). Kein Urteil ueber digit 66 moeglich.
+- **Sweep komplett:** nlim=45/60/100 ALLE exakt 64.2 vs nlim-30-Referenz
+  (drei Serienlaengen, konsistent) — Modell weiter gestaerkt. Init-Kosten
+  ~quadratisch in nlim (30:52s, 45:125s, 60:260s, 100:897s bei dps 500).
+- **Strukturelle Folge:** Der EINGEFRORENE Gate blockiert echte
+  e-Genauigkeitsverbesserungen: laengere Serie dekorreliert von der
+  nlim-30-Referenz -> e|200 wuerde ~64 statt geforderter 194.8 messen ->
+  FAIL. Gate/Referenzen sind auf korrelierten Illusionen kalibriert.
+  => Referenz-Regeneration (konvergierter Engine) + Rekalibrierung der
+  e-Schwellen noetig = MENSCH-ENTSCHEID (program.md). Entscheidungspaket
+  wird vorbereitet; bis dahin nur gate-sichere Speed-Experimente.
 - **Learnings:** Wrapper-Bestellung looplim=max(35, dps-20) war die Ursache
   der e|80-Schwaeche. Roundtrip-Identitaet ueber alle Experimente bestaetigt
   erneut: nur Agreement-vs-Referenz misst echte Genauigkeit.
