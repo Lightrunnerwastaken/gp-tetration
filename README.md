@@ -65,9 +65,32 @@ Schneller Standardlauf:
 python -m unittest discover -s tests -p "test_gp_backend.py" -v
 ```
 
-Mit Slow-Block:
+Mit Slow-Block (inkl. Gate-Laeufe, mehrere Minuten):
 
 ```powershell
 $env:FATOU_BACKEND_RUN_SLOW = "1"
 python -m unittest discover -s tests -v
 ```
+
+## Performance-Architektur
+
+- Persistente GP-Sessions sind Default (`FatouGP(persistent=False)` fuer den
+  alten One-Shot-Pfad). `gp.close()` oder Context-Manager beendet die Worker.
+- Der sexpinit-State wird pro (Basis, dps, Knobs, fatou-Hash) in
+  `~/.cache/fatou_backend/` gecacht (`FATOU_CACHE_DIR` uebersteuert;
+  `FatouGP(state_cache=False)` schaltet ab). Kaltstart dps 80: ~0.1s statt
+  Sekunden; dps 200: ~0.05s statt ~13s.
+- `FatouGP(n_workers=N)` bzw. `mixed_phase --workers N` parallelisiert grosse
+  Batches (ab 2*N Ausdruecken) ueber N Worker-Prozesse; lohnt ab ~1000
+  Ausdruecken pro Batch (3.6x bei N=4 auf 4000 warmen Evals).
+
+## Benchmark & Autoresearch-Loop
+
+- `python bench/benchmark.py --mode all --label <name>` misst verifizierte
+  korrekte Stellen pro Sekunde gegen `research/reference/values.json`
+  (eingefroren; erzeugt aus der Original-fatou.gp bei dps+20).
+- `python research/gate.py` prueft `fatou_fork.gp` gegen die eingefrorene
+  Referenz (Exit 0 = PASS). `research/gate.py` und `research/reference/`
+  sind unantastbar (Anti-Gaming).
+- Loop-Regeln: `research/program.md`; Historie: `research/journal.md`;
+  Rausch-Schwelle: `research/noise.json` (via `research/calibrate_noise.py`).
