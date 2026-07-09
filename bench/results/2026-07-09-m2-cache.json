@@ -1,0 +1,101 @@
+{
+ "meta": {
+  "label": "m2-cache",
+  "date": "2026-07-09T23:57:53",
+  "gp_exe": "C:\\Program Files (x86)\\Pari64-2-17-3\\gp.exe",
+  "fatou": "D:\\Users\\janis\\Documents\\Tetration\\gp-tetration\\src\\fatou_backend\\vendor\\fatou.gp",
+  "repeat": 1
+ },
+ "runs": [
+  {
+   "seconds": 0.09337930008769035,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 23988.18579595764,
+   "group": "throughput|10|80",
+   "mode": "cold",
+   "rep": 0
+  },
+  {
+   "seconds": 0.022752100019715726,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 98452.45045771329,
+   "group": "throughput|10|80",
+   "mode": "warm",
+   "rep": 0
+  },
+  {
+   "seconds": 0.08967199991457164,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 24979.92686829773,
+   "group": "throughput|2|80",
+   "mode": "cold",
+   "rep": 0
+  },
+  {
+   "seconds": 0.021711100009270012,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 103173.03126251478,
+   "group": "throughput|2|80",
+   "mode": "warm",
+   "rep": 0
+  },
+  {
+   "seconds": 0.09576060005929321,
+   "values": 32,
+   "min_correct_digits": 62.68472282059734,
+   "digits_per_second": 21163.975337705702,
+   "group": "throughput|e|80",
+   "mode": "cold",
+   "rep": 0
+  },
+  {
+   "seconds": 0.027979500009678304,
+   "values": 32,
+   "min_correct_digits": 62.68472282059734,
+   "digits_per_second": 72434.28143025213,
+   "group": "throughput|e|80",
+   "mode": "warm",
+   "rep": 0
+  },
+  {
+   "seconds": 0.05481629993300885,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 3466.122307273558,
+   "group": "precision|2|200",
+   "mode": "cold",
+   "rep": 0
+  },
+  {
+   "seconds": 0.003345099976286292,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 56799.498175518434,
+   "group": "precision|2|200",
+   "mode": "warm",
+   "rep": 0
+  },
+  {
+   "seconds": 0.05559270002413541,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 3417.7149143235,
+   "group": "precision|e|200",
+   "mode": "cold",
+   "rep": 0
+  },
+  {
+   "seconds": 0.0036999000003561378,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 51352.73925828032,
+   "group": "precision|e|200",
+   "mode": "warm",
+   "rep": 0
+  }
+ ]
+}

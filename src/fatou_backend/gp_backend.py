@@ -8,6 +8,7 @@ from typing import Iterable, Sequence
 
 import mpmath as mp
 
+from . import state_cache
 from .worker import FatouGPWorker, WorkerDied
 
 
@@ -112,6 +113,7 @@ class FatouGP:
     persistent: bool = True
     init_timeout: float = 3600.0
     eval_timeout: float = 600.0
+    state_cache: bool = True
     _workers: dict = field(default_factory=dict, init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
@@ -133,12 +135,50 @@ class FatouGP:
         return _to_gp_number(base, max(self.dps - 8, 30))
 
     def _spawn_worker(self, base: GPValue) -> FatouGPWorker:
+        if not self.state_cache:
+            return self._spawn_full(base)
+        key = state_cache.cache_key(
+            self._base_expr(base), self.dps, self.nlim, self.nskip,
+            self.looplim, self.fatou_gp, self.gp_exe)
+        bin_path = state_cache.cache_dir() / f"{key}.gpbin"
+        sidecar = state_cache.load_sidecar(bin_path)
+        if sidecar is not None:
+            worker = self._try_spawn_cached(base, bin_path, sidecar)
+            if worker is not None:
+                return worker
+            state_cache.drop_cache(bin_path)
+        worker = self._spawn_full(base)
+        try:
+            names = state_cache.discover_state_var_names(worker)
+            state_cache.dump_state(worker, names, bin_path)
+        except (RuntimeError, OSError):
+            state_cache.drop_cache(bin_path)  # cache is best-effort
+        return worker
+
+    def _spawn_full(self, base: GPValue) -> FatouGPWorker:
         return FatouGPWorker(
             self.gp_exe,
             self._init_lines(base),
             init_timeout=self.init_timeout,
             eval_timeout=self.eval_timeout,
         )
+
+    def _try_spawn_cached(self, base: GPValue, bin_path, sidecar) -> FatouGPWorker | None:
+        init = self._init_lines(base)
+        lines = init[:3] + state_cache.restore_lines(sidecar["names"], bin_path)
+        try:
+            worker = FatouGPWorker(
+                self.gp_exe, lines,
+                init_timeout=self.init_timeout, eval_timeout=self.eval_timeout)
+            anchor = worker.eval([state_cache.ANCHOR_EXPR])[0]
+        except (RuntimeError, OSError):
+            return None
+        expected = mp.mpc(mp.mpf(sidecar["anchor_real"]), mp.mpf(sidecar["anchor_imag"]))
+        tolerance = mp.mpf(10) ** (-(min(self.dps, 35)))
+        if abs(anchor - expected) > tolerance * max(1, abs(expected)):
+            worker.close()
+            return None
+        return worker
 
     def _worker_for(self, base: GPValue) -> FatouGPWorker:
         key = self._base_expr(base)
