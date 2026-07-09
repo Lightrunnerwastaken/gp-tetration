@@ -130,6 +130,29 @@ Format pro Eintrag:
   (Kandidat: Newton-Cap in betterest/invabel bei hoher Praezision).
   Breakpoint-Sonde dps 600-900 laeuft; looplim bei dps 500 inert bestaetigt
   (480 vs 520 -> identisch 478.8).
+
+---
+
+## Befund-2026-07-10-nlim — Arbeitsmodell: nlim ist die echte Praezisions-Drossel
+- **Messungen:** (1) Selbst-Paare e|600..e|900 ALLE exakt 65.9 digits;
+  (2) Sweep dps 500: nlim=30 -> \"478.8\" (korreliert), nlim=60 -> \"64.2\"
+  (dekorreliert die nlim=30-REFERENZ und zeigt DEREN wahren Fehler);
+  (3) Traces: Kontur-Phase stoppt bei n=nlim=30 mit ~536 Termen, ~2.1
+  digits/Iter fuer Basis e, praezisions-agnostisch.
+- **Modell:** Serienlaenge (nlim-gedeckelt) begrenzt die WAHRE Genauigkeit:
+  Basis e: ~2.1 digits/Iter * 30 = ~64-66 digits bei JEDEM dps. Hohe
+  Agreements (478.8, 79.4) zwischen gleich-konfigurierten Laeufen sind
+  KORRELIERTE Fehler (identische Trajektorien). Basis 2: ~32 digits/Iter *
+  30 = ~956 -> erklaert exakt 2|1000=956.3. Komplexe Basen konvergieren
+  schnell genug fuer volle Praezision bei dps 80.
+- **Konsequenz 1 (Genauigkeit):** nlim muss mit dem Digits-Ziel skalieren
+  (Basis-abhaengige Rate; fuer e ~dps/2.1 + Marge). Kandidat exp-005.
+- **Konsequenz 2 (KRITISCH, Mensch-Entscheid noetig):** research/reference/
+  values.json ist fuer BASIS E jenseits ~digit 66 vermutlich falsch (mit
+  nlim=30 erzeugt). Referenz-Regeneration mit konvergiertem Engine waere
+  noetig -> per program.md ausserhalb des Loops zu entscheiden; wird dem
+  Nutzer vorgelegt sobald das Dekorrelation-Experiment bestaetigt.
+- **Laufend:** truth(nlim=30/60) via Vergleich gegen nlim=110@540.
 - **Learnings:** Wrapper-Bestellung looplim=max(35, dps-20) war die Ursache
   der e|80-Schwaeche. Roundtrip-Identitaet ueber alle Experimente bestaetigt
   erneut: nur Agreement-vs-Referenz misst echte Genauigkeit.
