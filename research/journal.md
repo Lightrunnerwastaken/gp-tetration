@@ -93,6 +93,22 @@ Format pro Eintrag:
   e|200 +88%/2|200 +38% (sub-ms-Timings, mit Vorsicht); 10|80/2|80 neutral.
   Cold rep0 (frischer sexpinit) nicht langsamer als Original.
 - **Entscheidung:** **KEEP** (Regel a UND b gleichzeitig erfuellt)
+
+---
+
+## Befund-2026-07-10-deep — Original bei dps 1000 / Basis e KAPUTT
+- **Messung (baseline-deep, Original):**
+  - e|500: init 46s, warm 48-49k d/s, 478.8 digits (ok, knapp unter Ziel 480)
+  - 2|500: init 38s, 479.8 digits (ok)
+  - 2|1000: init 227s, 956.3 digits (unter Ziel 980)
+  - **e|1000: init 259s, nur 65.9 digits (!!)** — praktisch unbrauchbar
+- **Wichtig:** e|500 konvergiert mit denselben nlim=30 Iterationen sauber ->
+  bei dps 1000 bricht NICHT die Iterationszahl, sondern etwas anderes
+  (Kandidaten: ltht=18-Cap, thsamples-Formel, lctr-Matrixgroesse ~10k,
+  stiller theta-init-Fehler). Verbose-Diagnose (quietmode=0) noetig, sobald
+  die Maschine frei ist.
+- **Frontier-Ziel:** e|1000 auf ~980+ digits bringen = groesster einzelner
+  Genauigkeits-Hebel im Projekt.
 - **Learnings:** Wrapper-Bestellung looplim=max(35, dps-20) war die Ursache
   der e|80-Schwaeche. Roundtrip-Identitaet ueber alle Experimente bestaetigt
   erneut: nur Agreement-vs-Referenz misst echte Genauigkeit.
