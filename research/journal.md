@@ -203,6 +203,31 @@ Format pro Eintrag:
 
 ---
 
+## exp-006 (2026-07-10) — Praezisions-Staffelung frueher Iterationen [GEPARKT]
+- **Hypothese:** Iteration n traegt nur ~re digits Signal; fruehe Iterationen
+  bei reduzierter realprecision (re+Guard) sparen ~30% Init-Zeit.
+- **Profil vorab (dps 200, e):** initsch ~0.13s, KEINE teure Post-Phase;
+  Iterationen = 100% der Kosten, spaete dominieren (+0.92s bei 536 samples).
+  staylor-Extraktion ist naive DFT O(terms*samples); PARI fft() existiert
+  (Radix-2), aber ctsamples!=2^k -> Aufrunden verdoppelt sfunc-Sampling,
+  frisst den Gewinn. Deshalb Staffelung zuerst.
+- **Mutation:** default(realprecision, re+40) pro Iteration (v1), dann
+  raten-adaptiv re+40+3*(re-relast) (v2); Restore vor renormslog.
+- **Gate:** FAIL (v1: 65-71 auf schnellen Basen; v2: 68-77). Zwei Ursachen:
+  (a) schnelle Basen (10-30+ digits/Iter) brauchen groesseren Guard (echt),
+  (b) STRUKTURELL: Staffelung aendert Low-Order-Arithmetik -> Dekorrelation
+  von der korrelations-kalibrierten Referenz -> e|200 misst die Wahrheit
+  (~64-99) statt der Illusion (199.8) -> FAIL unabhaengig vom Guard.
+- **Entscheidung:** revert + GEPARKT bis Referenz-v2-Freigabe (danach ist
+  die e|200-Schwelle wahrheitsbasiert ~59 und derselbe Code passiert;
+  Guard-Tuning fuer schnelle Basen dann separat verifizieren).
+- **Learnings:** Das eingefrorene Gate blockiert inzwischen ZWEI Fronten
+  (echte e-Genauigkeit UND Low-Order-beruehrende Speed-Experimente). Die
+  Referenz-Entscheidung ist der Flaschenhals des gesamten Loops.
+  Nebenbefund: e|80 unter Staffelung 80.0 digits (kein Schaden fuer e).
+
+---
+
 ## Befund-2026-07-10-rate — Konvergenzrate faellt mit n (Modell-Korrektur)
 - v2 e|80: verifiziert 99.4 digits (32 Werte) OK.
 - v2 e|200 mit nlim=120: nur 193.1 verifiziert (Vorhersage 254) ->
