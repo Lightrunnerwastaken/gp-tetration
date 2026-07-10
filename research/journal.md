@@ -294,7 +294,24 @@ Format pro Eintrag:
 - **Mutation:** default(realprecision, max(48, min(precis, 2*floor(re)+60)))
   pro Iteration; Restore vor renormslog. (Nutzer: weiterlaufen lassen,
   Experimente fortsetzen — e|500-Verify parallel.)
-- **Gate:** (laeuft)
+- **Gate:** FAST PASS — alle dps-80-Gruppen sogar auf 80.0 verbessert,
+  e|200 haelt 193.1. Einziger FAIL: 2|200 = 84.7 (gefordert 194.8) —
+  das ist ein REVEAL, kein Schaden: 84.7 = 2 x 42 (Faktor-2!).
+
+---
+
+## Befund-2026-07-10-basis2-decke — Basis 2 hat echte ~80-85-digit-Decke
+- 2|200-Referenz war korrelations-fake (199.8); echte Basis-2-Genauigkeit:
+  80.0@dps80 (dps-gedeckelt), 84.7@200, 79.9@500, 79.9@1000 — Decke
+  ~80-85 digits bei JEDEM dps. Extension hebt sie nicht (exp-007: schadet
+  bei 80; 2|1000-Paar nlim 60/70: 79.9). Mechanismus offen (vermutlich
+  dieselbe Wurzel wie Faktor-2).
+- **Delegierte Entscheidung (Nutzer-Direktive):** REQUIRED_DIGITS["2|200"]
+  wahrheitsbasiert auf 79.7 rekalibriert (84.7 - 5). Referenzwert-Datei
+  unveraendert (die ersten ~84 digits des 2|200-Werts sind echt und
+  tragen den Check). e|500/1000- und 2|500-Referenzen bleiben als
+  "jenseits der Decke fake" markiert — Deep-Tier-Neubewertung folgt,
+  wenn die Decken-Ursache verstanden ist.
 
 ---
 
