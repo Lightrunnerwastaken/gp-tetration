@@ -375,6 +375,13 @@ Format pro Eintrag:
   unbeschadet extended; 4 (1.327) und 1.7 (0.366) brauchen keine Extension.
   Fenster |kc-1|<0.12 sitzt richtig: Langsam-Konvergierer e (kc=1) und
   3 (1.094) drin, gesunde Basen draussen/unbeschadet.
+- **exp-012 (sfunc-Walk-Cache) implementiert:** Der fs/finv-Walk in sfunc
+  ist ct/theta-UNABHAENGIG (nur Basis-Map) -> Endpunkte (z, n) pro
+  Sample-Index cachebar, solange das Grid unveraendert ist (e-Familie:
+  2^k-Plateaus!). Globals swon/swidx/swkey/swz/swn/swvalid; Cache nur im
+  staylor-Sampling der e-Familie aktiv. Smoke: e und 2 wertidentisch.
+  Gate laeuft. Erwartung: ~Haelfte des Sampling-Blocks in Plateau-
+  Iterationen gespart.
 - **e|500-v2 GESTORBEN am 4h-init_timeout** (dps 560, nlim 340 braucht
   >4h/Lauf auf dieser Maschine); der blinde WorkerDied-Retry hat den
   Timeout VERDOPPELT (~8h verbrannt). Fixes: (1) Wrapper retryt
