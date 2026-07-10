@@ -78,8 +78,8 @@ def main() -> None:
             }
         prov[f"{base}|{case_dps}"] = {
             "date": datetime.date.today().isoformat(),
-            "method": f"Original looplim=0 nlim={nlim_main} dps={ref_dps}; "
-                      f"Fehler-Vektor vs nlim={nlim_check}: {worst:.1f} digits",
+            "method": f"Original looplim=0 nlim={nlim_gen} dps={ref_dps}; "
+                      f"Fehler-Vektor vs dps={ref_dps+13}: {worst:.1f} digits",
         }
         VALUES.write_text(json.dumps(payload, indent=1), encoding="utf-8")
         print(f"[v4]   {len(cases)} Werte geschrieben", flush=True)
