@@ -132,8 +132,8 @@ class FatouGPWorker:
                     raise RuntimeError("PARI/GP error:\n" + "\n".join(errors))
                 return collected
             collected.append(line)
-            if "***" in line:
-                errors.append(line)
+            if "***" in line and "Warning" not in line:
+                errors.append(line)  # PARI warnings (e.g. parisizemax) are not errors
 
     def eval_raw(self, lines: list[str], sentinel: str, timeout: float) -> list[str]:
         self._send(lines + [f'print("{sentinel}")'])
