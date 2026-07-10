@@ -330,6 +330,22 @@ Format pro Eintrag:
 
 ---
 
+## exp-010 (2026-07-10) — Stall-Exit-Straffung
+- **Mutation:** `if ((n>3) && ((re-relast) < 0.1), nskip--);` nach
+  re-Berechnung.
+- **Gate:** PASS — alle Gruppen identisch oder besser (e|80 80.0,
+  e|200 haelt 193.1).
+- **Benchmark (gezielt):** e|200-Kaltinit 427s -> 400s (-6.3%),
+  Wert identisch auf 30 Stellen.
+- **Entscheidung:** **KEEP** (Regel b: Genauigkeit identisch, Timing besser).
+  VIERTER Keep.
+- **Naechster Schritt exp-011:** FFT-Extraktion in staylor (2^k-Padding
+  +3% bei ~2000 Samples; O(n^2)->O(n log n) auf dem Extraktions-Block).
+  Disziplin: erst Standalone-GP-Prototyp (Koeffizienten-Vergleich alt vs.
+  FFT auf 1e-30), dann Fork-Integration, dann Gate.
+
+---
+
 ## Befund-2026-07-10-basis2-decke — Basis 2 hat echte ~80-85-digit-Decke
 - 2|200-Referenz war korrelations-fake (199.8); echte Basis-2-Genauigkeit:
   80.0@dps80 (dps-gedeckelt), 84.7@200, 79.9@500, 79.9@1000 — Decke

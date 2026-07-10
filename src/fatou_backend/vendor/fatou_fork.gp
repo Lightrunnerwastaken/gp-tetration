@@ -1256,6 +1256,10 @@ loop(kc,nlim,nskip,looplim) = {
     if (me>re, re=me);
     re = -log(re)*rlog10;
     re=precision(re,9);
+    /* exp-010: near the plateau the loop burns full-cost iterations on
+       gains of <0.001 digits before nskip runs out (~3 x 10.4s at e|200).
+       Marginal gains spend a stall credit immediately. */
+    if ((n>3) && ((re-relast) < 0.1), nskip--);
     if (quietmode==0,
 /*    printf("%4d =loopcnt %5.1f decimal digits, %4d ctsamples,%4d %4d thsamples\n", n, re, ctsamples, stopterms, thsamples);*/
       print(n "=loopcnt "re" decimal digits, "ctsamples" ctsamples, "thsamples" thsamples");
