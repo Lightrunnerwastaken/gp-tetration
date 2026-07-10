@@ -272,6 +272,11 @@ Format pro Eintrag:
   thetamode trennt die Basen nicht (alle 1). Warum e-Kontur=Wahrheit und
   sonst 2x, und warum Ueber-Iteration zerstoert: OFFENE Forschungsfrage.
   -> exp-007d: Verlaengerung NUR fuer e-Familie (abs(kc-1)<1e-6).
+- **exp-007d: GATE PASS (voll):** e|80 79.5 (echt, +15.6), e|200 **193.1
+  (echt, +128.9)**; alle anderen Basen + Roundtrips exakt unveraendert.
+  Benchmark (Keep-Regel b, Speed-Check) folgt auf freier Maschine;
+  e|400-Sonde gestoppt (durch Faktor-2-Befund obsolet), e|500-v2 laeuft
+  weiter (bleibt korrekt: Referenzen werden mit ORIGINAL erzeugt).
 
 ---
 
