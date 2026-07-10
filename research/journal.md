@@ -424,6 +424,15 @@ Format pro Eintrag:
   exp-017-Design also: Standard-Paar fuer dps<=~90, (15/16, 8/9) fuer
   hoehere Ziele bei schnellen Basen; Kosten-Check noetig (19.5 statt
   4.3 Terme/digit -> Serien ~4.5x laenger, warm-Eval mit betroffen).
+- **exp-017 (Eskalation precis>120): Gate-FAIL 2|200=38.9** — Gate ruft
+  mit nlim=30; dichte Geometrie konvergiert langsamer -> Cap wuergt ab.
+- **exp-017b (Eskalation + Extension gekoppelt): Gate-FAIL 2|200=41.8**
+  (~exp-007-Zahl!) trotz teurem Lauf. Verdacht: exp-010-Stall-Straffung
+  ((re-relast)<0.1 -> nskip--) toetet die dichte Geometrie in ihrer
+  langsamen/oszillierenden Anfangsphase (Probe mit hartem nlim=60 lief
+  durch -> 113.9). Verbose-Trace des Gate-Setups laeuft zur Verifikation;
+  Fix-Kandidat 017c: Stall-Straffung bei geoesc lockern (Schwelle 0.01)
+  oder nskip-Startkredit erhoehen.
 - **e|500-v2 GESTORBEN am 4h-init_timeout** (dps 560, nlim 340 braucht
   >4h/Lauf auf dieser Maschine); der blinde WorkerDied-Retry hat den
   Timeout VERDOPPELT (~8h verbrannt). Fixes: (1) Wrapper retryt
