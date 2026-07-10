@@ -799,7 +799,8 @@ sfunc(z) = {
   local(y,y1,y2,zc,k0,n);
   if ((complextaylor==0) && (imag(z)<0), return(conj(sfunc(conj(z)))));
   zc=z;
-  y2 = abelest(z,ct);
+  /* exp-015: y2 (a full O(terms) series evaluation) is only used by the
+     theta branch below — compute it lazily there instead of eagerly. */
   /* exp-012: reuse the cached walk endpoint when sampling an unchanged
      grid (the walk uses only fs/finv — independent of ct/theta). */
   if (swon && swidx>0 && swvalid[swidx],
@@ -821,6 +822,7 @@ sfunc(z) = {
     y1 = abelest(z,ct) + n;
   ,
     z=zc;
+    y2 = abelest(zc,ct); /* exp-015: lazy — only the theta path needs it */
     /* use theta mapping if abs(y-circc)>(ir*circr) */
     if (imag(y2)>0,
       y1 = isuperf(z)+polcoeff(tht,0);
