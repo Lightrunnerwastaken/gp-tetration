@@ -1,0 +1,227 @@
+{
+ "meta": {
+  "label": "baseline-deep",
+  "date": "2026-07-10T00:47:11",
+  "gp_exe": "C:\\Program Files (x86)\\Pari64-2-17-3\\gp.exe",
+  "fatou": "D:\\Users\\janis\\Documents\\Tetration\\gp-tetration\\src\\fatou_backend\\vendor\\fatou.gp",
+  "repeat": 2
+ },
+ "runs": [
+  {
+   "seconds": 0.045598700060509145,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 4166.785451073635,
+   "group": "precision|2|200",
+   "mode": "cold",
+   "rep": 0
+  },
+  {
+   "seconds": 0.0022586999693885446,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 84119.18474122755,
+   "group": "precision|2|200",
+   "mode": "warm",
+   "rep": 0
+  },
+  {
+   "seconds": 0.037649699952453375,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 5046.520961387343,
+   "group": "precision|2|200",
+   "mode": "cold",
+   "rep": 1
+  },
+  {
+   "seconds": 0.0022391999373212457,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 84851.73513683506,
+   "group": "precision|2|200",
+   "mode": "warm",
+   "rep": 1
+  },
+  {
+   "seconds": 0.03816640004515648,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 4978.200715163128,
+   "group": "precision|e|200",
+   "mode": "cold",
+   "rep": 0
+  },
+  {
+   "seconds": 0.0028546000830829144,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 66559.23578437074,
+   "group": "precision|e|200",
+   "mode": "warm",
+   "rep": 0
+  },
+  {
+   "seconds": 0.03902430005837232,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 4868.761251727747,
+   "group": "precision|e|200",
+   "mode": "cold",
+   "rep": 1
+  },
+  {
+   "seconds": 0.0027584999334067106,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 68878.01507587949,
+   "group": "precision|e|200",
+   "mode": "warm",
+   "rep": 1
+  },
+  {
+   "seconds": 37.613300000084564,
+   "values": 1,
+   "min_correct_digits": 479.8284425752464,
+   "digits_per_second": 12.756882341463463,
+   "group": "precision|2|500",
+   "mode": "cold",
+   "rep": 0
+  },
+  {
+   "seconds": 0.007937800022773445,
+   "values": 1,
+   "min_correct_digits": 479.8284425752464,
+   "digits_per_second": 60448.542568296616,
+   "group": "precision|2|500",
+   "mode": "warm",
+   "rep": 0
+  },
+  {
+   "seconds": 0.05160730006173253,
+   "values": 1,
+   "min_correct_digits": 479.8284425752464,
+   "digits_per_second": 9297.685443750725,
+   "group": "precision|2|500",
+   "mode": "cold",
+   "rep": 1
+  },
+  {
+   "seconds": 0.008112699957564473,
+   "values": 1,
+   "min_correct_digits": 479.8284425752464,
+   "digits_per_second": 59145.345579783585,
+   "group": "precision|2|500",
+   "mode": "warm",
+   "rep": 1
+  },
+  {
+   "seconds": 46.034784699906595,
+   "values": 1,
+   "min_correct_digits": 478.7567675959253,
+   "digits_per_second": 10.399891532389347,
+   "group": "precision|e|500",
+   "mode": "cold",
+   "rep": 0
+  },
+  {
+   "seconds": 0.009936400107108057,
+   "values": 1,
+   "min_correct_digits": 478.7567675959253,
+   "digits_per_second": 48182.114491690416,
+   "group": "precision|e|500",
+   "mode": "warm",
+   "rep": 0
+  },
+  {
+   "seconds": 0.05529629997909069,
+   "values": 1,
+   "min_correct_digits": 478.7567675959253,
+   "digits_per_second": 8658.02536113553,
+   "group": "precision|e|500",
+   "mode": "cold",
+   "rep": 1
+  },
+  {
+   "seconds": 0.00971060001756996,
+   "values": 1,
+   "min_correct_digits": 478.7567675959253,
+   "digits_per_second": 49302.49075543041,
+   "group": "precision|e|500",
+   "mode": "warm",
+   "rep": 1
+  },
+  {
+   "seconds": 227.41875650000293,
+   "values": 1,
+   "min_correct_digits": 956.312372700465,
+   "digits_per_second": 4.205072560496797,
+   "group": "precision|2|1000",
+   "mode": "cold",
+   "rep": 0
+  },
+  {
+   "seconds": 0.030245900037698448,
+   "values": 1,
+   "min_correct_digits": 956.312372700465,
+   "digits_per_second": 31617.917519680967,
+   "group": "precision|2|1000",
+   "mode": "warm",
+   "rep": 0
+  },
+  {
+   "seconds": 0.09622090007178485,
+   "values": 1,
+   "min_correct_digits": 956.312372700465,
+   "digits_per_second": 9938.717804416874,
+   "group": "precision|2|1000",
+   "mode": "cold",
+   "rep": 1
+  },
+  {
+   "seconds": 0.030444099917076528,
+   "values": 1,
+   "min_correct_digits": 956.312372700465,
+   "digits_per_second": 31412.075748840114,
+   "group": "precision|2|1000",
+   "mode": "warm",
+   "rep": 1
+  },
+  {
+   "seconds": 258.6637333999388,
+   "values": 1,
+   "min_correct_digits": 65.86761602525344,
+   "digits_per_second": 0.25464573312800187,
+   "group": "precision|e|1000",
+   "mode": "cold",
+   "rep": 0
+  },
+  {
+   "seconds": 0.04086700000334531,
+   "values": 1,
+   "min_correct_digits": 65.86761602525344,
+   "digits_per_second": 1611.7555979118022,
+   "group": "precision|e|1000",
+   "mode": "warm",
+   "rep": 0
+  },
+  {
+   "seconds": 0.11796669999603182,
+   "values": 1,
+   "min_correct_digits": 65.86761602525344,
+   "digits_per_second": 558.3577062634549,
+   "group": "precision|e|1000",
+   "mode": "cold",
+   "rep": 1
+  },
+  {
+   "seconds": 0.04060659999959171,
+   "values": 1,
+   "min_correct_digits": 65.86761602525344,
+   "digits_per_second": 1622.09138479744,
+   "group": "precision|e|1000",
+   "mode": "warm",
+   "rep": 1
+  }
+ ]
+}

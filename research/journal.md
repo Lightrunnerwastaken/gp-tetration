@@ -277,6 +277,12 @@ Format pro Eintrag:
   Benchmark (Keep-Regel b, Speed-Check) folgt auf freier Maschine;
   e|400-Sonde gestoppt (durch Faktor-2-Befund obsolet), e|500-v2 laeuft
   weiter (bleibt korrekt: Referenzen werden mit ORIGINAL erzeugt).
+- **exp-007d KEEP (gepaarter A/B-Benchmark unter gleicher Last, repeat 2):**
+  GESAMT warm +15.2% (Schwelle 6.8%); e|80 warm +35% und min digits
+  62.7->70 (Cap); e|200 min digits 64.2->190 (Cap), warm -4% (Rauschen);
+  2|200 +44%, 10|80 +9%, 2|80 +3%. Einmal-Init e|200: 20s->497s unter Last
+  (danach State-Cache 1.9s) — ehrlicher Preis echter Praezision.
+  ZWEITER Keep des Loops; groesster Genauigkeits-Gewinn.
 
 ---
 

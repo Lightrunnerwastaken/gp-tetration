@@ -1192,6 +1192,9 @@ loop(kc,nlim,nskip,looplim) = {
      ~17 digits on slow-converging bases (e.g. b=e). Unless limitp requests a
      speed cap, always aim for full working precision. */
   if ((limitp==0) && (looplim < precis-throwp-2), looplim = precis-throwp-2);
+  /* exp-007b: see loop body — the iteration-cap raise is rate-adaptive
+     (only slow-converging bases get more iterations; fast bases degrade
+     when iterated past their plateau, so they keep the caller's cap). */
   skipdec=precis-throws; /* start decrementing nskip here */
   if (thetamode, r=circr*ctr, r=circr);
   ct=0;
@@ -1206,6 +1209,14 @@ loop(kc,nlim,nskip,looplim) = {
 
   while ((re<looplim) && (n<nlim) && (nskip>=0) && ((re>relast) || (nskip>0)),
     n++;
+    /* exp-007d: extend the iteration cap incrementally, but ONLY for the
+       base-e family (kc=log(log(b))+1=1). Measured: for b=e true accuracy
+       tracks the contour residual 1:1 and extension lifts it massively
+       (e|200: 64->193 true digits). For other bases truth ~ 2x contour-re
+       and iterating past the caller cap DESTROYS accuracy (2|80: 80->41.6
+       true) — they keep the caller's behavior exactly. */
+    if ((n>=nlim-1) && (limitp==0) && (re<looplim) && (abs(kc-1) < 1e-6),
+      nlim = nlim+20);
     ct=precision(ct,precis);
     ct=ct+rr;
     if (thetamode,
