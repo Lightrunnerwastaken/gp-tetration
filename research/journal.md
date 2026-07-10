@@ -175,6 +175,19 @@ Format pro Eintrag:
   erzeugt values_v2_proposed.json (e|80 + e|200, je mit Dekorrelations-
   Verifikation; e|500 per --dps500 spaeter). Eingefrorene Dateien bleiben
   bis zur Freigabe unangetastet.
+
+---
+
+## exp-005 (2026-07-10) — complextaylor=0 fuer reelle Basen
+- **Hypothese:** tht2 (zweite Theta-Serie) ist fuer reelle kc redundant;
+  Skip halbiert die Theta-Arbeit pro Init-Iteration -> schnellerer Init.
+- **Mutation:** loop() vor initsch(kc):
+  `if (imag(kc)==0, complextaylor=0, complextaylor=1);`
+- **Gate:** PASS — ALLE Werte identisch zu exp-004-Stand (reell wie
+  komplex); tht2 fuer reelle Basen bestaetigt redundant.
+- **Benchmark:** ausstehend (Init-Zeit-Vergleich mit frischem
+  FATOU_CACHE_DIR; wartet auf freie Maschine nach v2-Generierung)
+- **Entscheidung:** ausstehend
 - **Learnings:** Wrapper-Bestellung looplim=max(35, dps-20) war die Ursache
   der e|80-Schwaeche. Roundtrip-Identitaet ueber alle Experimente bestaetigt
   erneut: nur Agreement-vs-Referenz misst echte Genauigkeit.
