@@ -261,6 +261,17 @@ Format pro Eintrag:
   0.8+0.4i, 10 -> deren Referenzen sind REAL; der Kollaps unter 007/007b
   war ECHTE Ueber-Iterations-Degradation. -> exp-007c: inkrementelle
   Verlaengerung nur am Cap-Anschlag solange Gesamt-Rate < 5 und re<looplim.
+- **exp-007c: FAIL, wieder byte-identisch.** Trace-Aufloesung: Basis 2 hat
+  Kontur-Rate ~1.27/Iter (LANGSAMER als e!) -> Rate-Kriterium feuerte auch
+  fuer sie. Schluesselbefund **Faktor-2-Muster**: Basis 2 Wahrheit ~ 2x
+  Kontur-re (n=30-Exit: Kontur 41.2, echt 80.0); Basis e Wahrheit ~ 1x
+  Kontur-re. Erklaert vermutlich auch die "Wand": 2|500-1000 dekorreliert
+  79.9 = 2 x (nlim-30-Kontur ~40) — die Wand ist der nlim-Cap durch die
+  Faktor-2-Brille, kein separater Mechanismus! ABER: Verlaengerung fuer
+  Basis 2 zerstoert echt (41.6 < 80 gemessen gegen 80-true-Referenz).
+  thetamode trennt die Basen nicht (alle 1). Warum e-Kontur=Wahrheit und
+  sonst 2x, und warum Ueber-Iteration zerstoert: OFFENE Forschungsfrage.
+  -> exp-007d: Verlaengerung NUR fuer e-Familie (abs(kc-1)<1e-6).
 
 ---
 
