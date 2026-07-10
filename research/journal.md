@@ -466,6 +466,25 @@ Format pro Eintrag:
   (Differenz zweier ct-Staende milder nlim-Differenz, z.B. ct_28 vs
   ct_30, mit jeweils passendem rslog). Faktor-2-Wurzel bleibt OFFEN;
   alle Messwerkzeuge und Ausschluss-Ergebnisse dokumentiert.
+- **DURCHBRUCH (Fehler-Vektor-Test): sexp-Fehler = Kontur-Fehler, FAKTOR 1.**
+  delta_sexp(nlim28 vs 30, Basis 2@200) = 7.9e-40 == Kontur-Niveau des
+  schlechteren Standes (re_28=38.7). KASKADEN-KONSEQUENZEN:
+  (1) 2|200 ist real nur ~41 digits genau — die 84.7-Messung teilte den
+  SYSTEMATISCHEN Trunkierungsfehler beider nlim-30-Seiten und mass nur
+  Rundungs-Divergenz (Illusion Nr. 3a). Faktor-2-Muster war Artefakt.
+  (2) Die "Ueber-Iterations-Degradation" (exp-007: 41.6) war Illusion 3b:
+  Extension lieferte Kontur~199-Werte, die die ~41-true-REFERENZ
+  entlarvten. Extension schadet NIE — exp-007-statisch (alle Basen) war
+  die RICHTIGE Mutation, abgelehnt am fehlerhaften Massstab!
+  (3) dps-80-Werte bleiben gueltig (looplim-Exit: Kontur 79.5 = echte 80).
+  (4) Dekorrelations-Regel final: NUR der Fehler-Vektor-Test (Differenz
+  echter Iterations-Staende) misst Wahrheit; dps-Paare UND Arithmetik-
+  Divergenz teilen die Systematik.
+- **PLAN (delegierte Befugnis):** (a) 2|200-Referenz neu: Original mit
+  nlim hoch + looplim=0 @dps250, Konvergenz via Stand-Differenz-Test;
+  (b) values.json ersetzen + 2|200-Schwelle wahrheitsbasiert anheben;
+  (c) exp-007-statisch (Extension fuer alle Basen) erneut gaten -> der
+  Weg zu echten 200+ digits fuer ALLE Basen ist frei.
 - **e|500-v2 GESTORBEN am 4h-init_timeout** (dps 560, nlim 340 braucht
   >4h/Lauf auf dieser Maschine); der blinde WorkerDied-Retry hat den
   Timeout VERDOPPELT (~8h verbrannt). Fixes: (1) Wrapper retryt
