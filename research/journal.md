@@ -411,6 +411,19 @@ Format pro Eintrag:
   Decken-Kandidaten offen: Theta-Serien-Genauigkeit (thsamples-Formel),
   ircircr-Geometrie, superf-Seed-Genauigkeit. Naechster Test: thsamples
   bei Basis 2 kuenstlich erhoehen (tht_re_mult-Faktor) und Decke messen.
+- **DECKE GEBROCHEN (Geometrie!):** Ausschluss-Serie: thsamples x2.5 -> 83.2
+  (kein Effekt), superfk=16 -> 83.2 (kein Effekt). ABER konservatives
+  Kontur-Paar via initsch(kc, 8/9, 15/16): Basis 2 dekorreliert @200 =
+  **113.9 digits** (Decke war 84.7, +29!). Die Basis-2-Decke ist
+  GEOMETRISCH (Konturradius vs. Singularitaeten des theta-Mappings).
+  Eskalations-Test (19/20, 24/25) mit nlim=120 laeuft. Trade-off beachten:
+  dichteres ctr = mehr Terme/digit (bis 19.5 statt 4.3) = teurere Serien.
+  Fix-Kandidat exp-017: geometrie-adaptive Paar-Wahl nach Ziel-dps.
+  Eskalation (19/20, 24/25): FEHLSCHLAG — 0s-Inits + nur 66.7 digits
+  (lctr ~45 Terme/digit -> struktureller Bruch mit stillem Fallback).
+  exp-017-Design also: Standard-Paar fuer dps<=~90, (15/16, 8/9) fuer
+  hoehere Ziele bei schnellen Basen; Kosten-Check noetig (19.5 statt
+  4.3 Terme/digit -> Serien ~4.5x laenger, warm-Eval mit betroffen).
 - **e|500-v2 GESTORBEN am 4h-init_timeout** (dps 560, nlim 340 braucht
   >4h/Lauf auf dieser Maschine); der blinde WorkerDied-Retry hat den
   Timeout VERDOPPELT (~8h verbrannt). Fixes: (1) Wrapper retryt
