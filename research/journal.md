@@ -286,6 +286,18 @@ Format pro Eintrag:
 
 ---
 
+## exp-008 (2026-07-10) — Praezisions-Staffelung mit 2x-re-Guard
+- **Hypothese:** exp-006 scheiterte, weil der Guard (re+40) die ECHTE
+  Zustands-Praezision der Faktor-2-Basen (2x Kontur-re) abschnitt. Guard
+  = 2*re+60 respektiert sie; fruehe Iterationen guenstiger -> zielt auf
+  den neuen Schmerzpunkt 497s e|200-Init (nach 007d: n~120 Iterationen).
+- **Mutation:** default(realprecision, max(48, min(precis, 2*floor(re)+60)))
+  pro Iteration; Restore vor renormslog. (Nutzer: weiterlaufen lassen,
+  Experimente fortsetzen — e|500-Verify parallel.)
+- **Gate:** (laeuft)
+
+---
+
 ## MIGRATION 2026-07-10 — Referenz-v2 Option A (Nutzer-Freigabe im Chat)
 - 33 Basis-e-Eintraege in values.json durch dekorrelations-verifizierte
   v2-Werte ersetzt (Provenienz in meta.v2_correction).
