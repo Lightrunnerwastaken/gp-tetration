@@ -254,6 +254,13 @@ Format pro Eintrag:
   die alte Anomalie nlim=50+looplim=100 -> 63.9).
 - **Entscheidung:** revert -> exp-007b (raten-adaptiv: Cap-Anhebung nur wenn
   Rate bei n=6 < 5 digits/Iter; schnelle Basen behalten Caller-Cap).
+- **exp-007b: FAIL, byte-identisch zu 007** — auch schnelle Basen starten
+  langsam (< 5 digits/Iter frueh), beschleunigen erst spaeter -> n=6-Regel
+  feuerte fuer alle. Diskriminator-Messung: dekorrelierte Wahrheit der
+  schnellen Basen bei dps 80 = **80.0 digits (voll, echt)** fuer 2,
+  0.8+0.4i, 10 -> deren Referenzen sind REAL; der Kollaps unter 007/007b
+  war ECHTE Ueber-Iterations-Degradation. -> exp-007c: inkrementelle
+  Verlaengerung nur am Cap-Anschlag solange Gesamt-Rate < 5 und re<looplim.
 
 ---
 
