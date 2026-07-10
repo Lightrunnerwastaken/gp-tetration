@@ -13,8 +13,12 @@ class FatouGPPool:
     def __init__(self, spawn: Callable[[], FatouGPWorker], n_workers: int) -> None:
         if n_workers < 1:
             raise ValueError("n_workers must be >= 1")
-        self._workers = [spawn() for _ in range(n_workers)]
         self._executor = ThreadPoolExecutor(max_workers=n_workers)
+        # spawn the first worker alone so it populates the state cache; the
+        # remaining workers then restore from it and can spawn in parallel
+        first = spawn()
+        rest = [self._executor.submit(spawn) for _ in range(n_workers - 1)]
+        self._workers = [first] + [f.result() for f in rest]
 
     def eval(self, expressions: list[str]) -> list[mp.mpc]:
         n = len(self._workers)
