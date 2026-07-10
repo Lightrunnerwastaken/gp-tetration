@@ -405,6 +405,12 @@ Format pro Eintrag:
   nach dem matsolve direkt ausgeben (Basen 2 vs e, dps 200) — wenn
   ~1e-84 fuer Basis 2 -> Decke lokalisiert; Fix-Kandidat: iterative
   Nachverfeinerung der Loesung (residual correction, 1-2 Schritte).
+  KORREKTUR nach Code-Check: der grosse lctr-Solve (Z.690) liegt auf dem
+  matrixradius-SONDERPFAD (Prints erschienen in keinem Standard-Trace);
+  aktive matsolves (Z.489/540) sind 2x2-trivial. Hypothese (b) faellt.
+  Decken-Kandidaten offen: Theta-Serien-Genauigkeit (thsamples-Formel),
+  ircircr-Geometrie, superf-Seed-Genauigkeit. Naechster Test: thsamples
+  bei Basis 2 kuenstlich erhoehen (tht_re_mult-Faktor) und Decke messen.
 - **e|500-v2 GESTORBEN am 4h-init_timeout** (dps 560, nlim 340 braucht
   >4h/Lauf auf dieser Maschine); der blinde WorkerDied-Retry hat den
   Timeout VERDOPPELT (~8h verbrannt). Fixes: (1) Wrapper retryt
