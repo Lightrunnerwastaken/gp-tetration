@@ -41,12 +41,12 @@ REQUIRED_DIGITS: dict[str, float] = {
     "2|80": 74.4,
     "2+I|80": 74.5,
     "e|80": 58.9,
-    # 2|200 recalibrated 2026-07-10 (delegated decision, journal
-    # Befund-basis2-decke): base 2 has a TRUE accuracy ceiling of ~80-85
-    # digits at any dps with this engine (factor-2 pattern; extension does
-    # not lift it). The old 194.8 was correlated-illusion calibration; any
-    # decorrelating fork change reveals truth ~84.7.
-    "2|200": 79.7,
+    # 2|200 recalibrated AGAIN 2026-07-10 (error-vector breakthrough,
+    # journal): the "ceiling" and "factor-2" were measurement illusions;
+    # the reference is now a converged nlim=200 value proven to >=194
+    # digits by the error-vector method (delta vs nlim=150: 8.9e-195).
+    # Threshold 189 forces genuinely converged base-2 evaluation.
+    "2|200": 189.0,
     "e|200": 59.2,
 }
 # measured worst roundtrip on the original: 2.56e-87 (base e); frozen at *100

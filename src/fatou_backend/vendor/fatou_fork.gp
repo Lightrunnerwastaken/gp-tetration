@@ -1288,13 +1288,13 @@ loop(kc,nlim,nskip,looplim) = {
 
   while ((re<looplim) && (n<nlim) && (nskip>=0) && ((re>relast) || (nskip>0)),
     n++;
-    /* exp-007d: extend the iteration cap incrementally, but ONLY for the
-       base-e family (kc=log(log(b))+1=1). Measured: for b=e true accuracy
-       tracks the contour residual 1:1 and extension lifts it massively
-       (e|200: 64->193 true digits). For other bases truth ~ 2x contour-re
-       and iterating past the caller cap DESTROYS accuracy (2|80: 80->41.6
-       true) — they keep the caller's behavior exactly. */
-    if ((n>=nlim-1) && (limitp==0) && (re<looplim) && efam,
+    /* exp-018: extend the iteration cap for ALL bases until the looplim
+       goal is reached. exp-007d had restricted this to the e-family
+       because extended runs seemed to "degrade" fast bases — that was a
+       measurement illusion: they exposed the ~41-digit true error of the
+       old nlim-30 references (error-vector test, journal 2026-07-10;
+       sexp error == contour error, factor 1, for all bases). */
+    if ((n>=nlim-1) && (limitp==0) && (re<looplim),
       nlim = nlim+20);
     /* exp-008: early iterations carry limited signal, so run them at
        reduced working precision. The state's TRUE precision is up to

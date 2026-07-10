@@ -485,6 +485,16 @@ Format pro Eintrag:
   (b) values.json ersetzen + 2|200-Schwelle wahrheitsbasiert anheben;
   (c) exp-007-statisch (Extension fuer alle Basen) erneut gaten -> der
   Weg zu echten 200+ digits fuer ALLE Basen ist frei.
+- **exp-018-Gate: 2|200 = 194.3 PASS gegen die bewiesene Referenz** —
+  Extension-fuer-alle experimentell validiert. GLEICHZEITIG Illusion 3c:
+  dps-80-Gruppen der schnellen Basen FAILen mit Reveal-Zahlen (30-42),
+  weil auch bei dps 80 der nlim=30-Cap VOR looplim exitet (Basis 2
+  braucht n~63 fuer Kontur 79.5) -> ALLE dps-80-Referenzen der schnellen
+  Basen sind real nur ~30-42 digits; die 80.0-Dekorrelations-Pruefungen
+  teilten die nlim-30-Systematik (dps-Paare beweisen nichts — final
+  bestaetigt). SANIERUNG v4: alle schnellen-Basen-Referenzen konvergiert
+  (looplim=0, nlim non-binding) + Fehler-Vektor-verifiziert neu erzeugen;
+  bei ref_dps 100 billig. Danach Schwellen final wahrheitsbasiert.
 - **e|500-v2 GESTORBEN am 4h-init_timeout** (dps 560, nlim 340 braucht
   >4h/Lauf auf dieser Maschine); der blinde WorkerDied-Retry hat den
   Timeout VERDOPPELT (~8h verbrannt). Fixes: (1) Wrapper retryt
