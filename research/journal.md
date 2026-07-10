@@ -360,6 +360,14 @@ Format pro Eintrag:
   Luecke zur 45%-Projektion = 2^k-Padding-Kosten im Sampling; Sampling
   (sfunc-Auswertungen) ist jetzt der dominante Block -> exp-012-Kandidat:
   inkrementelle Sample-Updates via Theta-Delta.
+- **exp-013-Probe (Basen-Landkarte):** dekorrelierte Wahrheit @dps80:
+  1.5/5/7.4 = 80.0 (voll), **Basis 3 = 62.4** — kc=log(log(3))+1~1.094
+  liegt NAHE der e-Familie: Langsam-Konvergierer ausserhalb des engen
+  007d-Fensters (1e-6). Faktor-2/Decke betrifft weiterhin nur die
+  schnellen Basen und erst jenseits ~dps 85.
+- **exp-014 (Fenster-Weitung |kc-1|<0.12):** Basis 3: 62.4 -> **80.0**
+  echte digits (dekorreliert verifiziert); Fenster schliesst 2 (0.63)
+  und 10 (1.83) weiter aus. Gate: (laeuft).
 - **e|500-v2 GESTORBEN am 4h-init_timeout** (dps 560, nlim 340 braucht
   >4h/Lauf auf dieser Maschine); der blinde WorkerDied-Retry hat den
   Timeout VERDOPPELT (~8h verbrannt). Fixes: (1) Wrapper retryt
