@@ -5,12 +5,20 @@
 Verifizierte korrekte Stellen pro Sekunde maximieren (bench/benchmark.py auf dem
 eingefrorenen Workload), ohne das Gate zu verletzen.
 
-## Unantastbar (Anti-Gaming)
+## Unantastbar (Anti-Gaming) — Update 2026-07-10
 
-- `research/gate.py`, `research/reference/values.json`, `bench/workload.py`,
-  `bench/metrics.py`: NIEMALS aendern. Wenn eine Aenderung dort noetig scheint,
-  ist das ein Mensch-Entscheid ausserhalb des Loops -> Journal-Eintrag, stoppen.
-- Referenz ist immer die Original-`fatou.gp`; sie wird nie editiert.
+- Nutzer-Direktive (Chat, 2026-07-10): Migrationen/Entscheidungen an
+  Gate/Referenzen darf der Loop SELBST treffen, wenn sie nachweislich
+  hilfreich sind und die Leistung (Genauigkeit oder Speed) verbessern.
+- Die VERIFIKATIONS-Disziplin bleibt unveraendert Pflicht: Jede Referenz-
+  Aenderung braucht Dekorrelations-Verifikation (unabhaengige Laeufe mit
+  verschiedener Konfiguration muessen ueber die noetige Stellenzahl hinaus
+  uebereinstimmen), jede Gate-Schwellen-Aenderung muss wahrheitsbasiert
+  kalibriert und im Journal + einem DECISION-Dokument begruendet sein.
+  Schwellen duerfen nie unter das sinken, was der aktuelle Fork nachweislich
+  echt liefert (kein Selbst-Weichspuelen).
+- `bench/workload.py` und `bench/metrics.py` (die Messgroesse selbst)
+  bleiben eingefroren; Referenz ist immer die Original-`fatou.gp`.
 
 ## Experiment-Protokoll (ein Experiment = eine Mutation)
 
