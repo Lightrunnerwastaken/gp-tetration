@@ -370,6 +370,11 @@ Format pro Eintrag:
   und 10 (1.83) weiter aus. Gate: VOLL PASS (alle Gruppen Bestwerte).
 - **Entscheidung: KEEP (#6)** (Regel b: Basis 3 +17.6 echte digits, keine
   Verluste; Standard-Gruppen unberuehrt).
+- **kc-Landkarte komplett (Fork exp-014, dekorreliert @dps80):**
+  1.5/1.7/2.5/4/5/7.4 alle 80.0 echte digits; 2.5 (kc=0.913, IM Fenster)
+  unbeschadet extended; 4 (1.327) und 1.7 (0.366) brauchen keine Extension.
+  Fenster |kc-1|<0.12 sitzt richtig: Langsam-Konvergierer e (kc=1) und
+  3 (1.094) drin, gesunde Basen draussen/unbeschadet.
 - **e|500-v2 GESTORBEN am 4h-init_timeout** (dps 560, nlim 340 braucht
   >4h/Lauf auf dieser Maschine); der blinde WorkerDied-Retry hat den
   Timeout VERDOPPELT (~8h verbrannt). Fixes: (1) Wrapper retryt
