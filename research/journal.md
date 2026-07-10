@@ -315,6 +315,21 @@ Format pro Eintrag:
 
 ---
 
+## exp-009 (2026-07-10) — ctsamples-Cap 5*re+120 [REVERT]
+- **Profil e|200 (418s):** Rate konstant 2.1/Iter; ctsamples 1988 bei
+  re 203; letzte 10 Iterationen je ~10.4s; Stall-Exit verbrennt ~3
+  Voll-Iterationen.
+- **Gate:** FAIL — e-Gruppen auf ~49 digits: die ~1988 Terme sind ECHT
+  noetig (~9.8 Terme/digit fuer Basis e; die 4.3er-Schaetzung galt fuers
+  falsche ctr-Regime). stopterms overshootet NICHT. Revert.
+- **Learnings:** (1) Kein Fett im Sample-Budget. (2) Bei ~2000 Samples
+  kostet 2^k-Padding nur +3% -> FFT-Extraktion (O(n^2)->O(n log n),
+  ~170x auf dem Block) wird als exp-011 wieder aktiviert.
+  (3) exp-010 zuerst: Stall-Exit straffen (Mini-Gewinne <0.1 digit
+  kosten sofort nskip-Credit).
+
+---
+
 ## Befund-2026-07-10-basis2-decke — Basis 2 hat echte ~80-85-digit-Decke
 - 2|200-Referenz war korrelations-fake (199.8); echte Basis-2-Genauigkeit:
   80.0@dps80 (dps-gedeckelt), 84.7@200, 79.9@500, 79.9@1000 — Decke
