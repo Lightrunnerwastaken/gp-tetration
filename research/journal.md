@@ -193,6 +193,13 @@ Format pro Eintrag:
   Iteration). Speed-Experimente muessen dort ansetzen (z.B. inkrementelle
   Matrix-Updates, ctsamples-Wachstumsstrategie, weniger Iterationen durch
   besseren Startwert).
+- **Postmortem-Nachtrag:** Die Engine setzt complextaylor fuer reelle Basen
+  SELBST auf 0 (fatou_fork.gp Z.119/122) — exp-005 war redundant zur
+  vorhandenen Logik (verifiziert per Injektions-Probe: complextaylor==0
+  nach sexpinit auch ohne Mutation). staylor nutzt den Halbierungspfad
+  (samples/2 bei konjugierter Symmetrie) fuer reelle Basen also laengst.
+  Vorbereitet: research/tools/apply_reference_v2.py (Ein-Kommando-Migration
+  nach Freigabe von DECISION_reference_v2.md Option A).
 
 ---
 
