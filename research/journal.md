@@ -433,6 +433,19 @@ Format pro Eintrag:
   durch -> 113.9). Verbose-Trace des Gate-Setups laeuft zur Verifikation;
   Fix-Kandidat 017c: Stall-Straffung bei geoesc lockern (Schwelle 0.01)
   oder nskip-Startkredit erhoehen.
+- **AUFLOESUNG (Trace): Stall-These FALSCH, 113.9-Probe war ILLUSION.**
+  Trace: dichte Init laeuft sauber bis Kontur-re=199 (n=168, Rate ~1.2)
+  — und das Gate misst trotzdem 41.8. Der Gate-Vergleich (dichte vs.
+  alte Geometrie) ist bereits KREUZ-dekorreliert -> dichte Geometrie
+  liefert real ~42. Die 113.9-Probe verglich zwei Laeufe DERSELBEN
+  Geometrie (nur dps verschieden) -> korrelierte Eval-Fehler.
+  VERSCHAERFTE LEKTION: Dekorrelation braucht METHODEN-Diversitaet;
+  dps-Diversitaet allein reicht nicht.
+- **exp-017/b: REVERT.** Wichtigster Neben-Ertrag: Der ~84-Deckel der
+  schnellen Basen sitzt im EVAL-PFAD (sexp->invabel->betterest/abelest,
+  ircircr-Radien), NICHT in der Kontur-Serie (Kontur-re 199 hilft
+  nichts). Naechste Decken-Front: Eval-Pfad-Analyse (Newton-Toleranzen,
+  Radien-Entscheidungen, betterest-Konvergenz bei hohem dps).
 - **e|500-v2 GESTORBEN am 4h-init_timeout** (dps 560, nlim 340 braucht
   >4h/Lauf auf dieser Maschine); der blinde WorkerDied-Retry hat den
   Timeout VERDOPPELT (~8h verbrannt). Fixes: (1) Wrapper retryt
