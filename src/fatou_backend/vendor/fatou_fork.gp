@@ -22,7 +22,7 @@ efam=0; /* exp-011b: set by loop() — base-e family gets the fft extraction */
 /* exp-012: the fs/finv walk in sfunc depends only on the base map, NOT on
    the evolving ct/theta state — cache walk endpoints per sample index
    across loop iterations while the sampling grid is unchanged. */
-swon=0; swidx=0; swkey=0; swz=0; swn=0; swvalid=0;
+swon=0; swidx=0; swkey=0; swz=0; swn=0; swvalid=0; swb=0;
 quietmode=0;
 /* I added || (real(Period)>47) to handle speed for sexpinit(1.4494); takes the place of theta0lim=0.224 */
 theta0lim=0.0002; /* theta0lim=0.0224; */
@@ -815,7 +815,9 @@ sfunc(z) = {
       while (abs(y-circc)<abs(z-circc), z=y; y=finv(y); n++);
     );
     if (swon && swidx>0,
-      swz[swidx]=z; swn[swidx]=n; swvalid[swidx]=1;
+      swz[swidx]=z; swn[swidx]=n;
+      /* swvalid wird erst am Ende von sfunc gesetzt (exp-016: erst wenn
+         auch swb gespeichert ist) */
     );
   );
   if ((abs(z-circc)<ircircr)||(thetamode==0),
@@ -842,7 +844,15 @@ sfunc(z) = {
       y1 = y1 + subst(tht2,x,exp((y1-ztl)*-2*Pi*I));
     );
   );
-  y1 = y1 - abelest(zc,0);
+  /* exp-016: abelest(zc,0) uses only the base estimate (ct-independent)
+     at the raw grid point — cache it alongside the walk endpoints. */
+  if (swon && swidx>0 && swvalid[swidx],
+    y1 = y1 - swb[swidx];
+  ,
+    y = abelest(zc,0);
+    if (swon && swidx>0, swb[swidx]=y; swvalid[swidx]=1);
+    y1 = y1 - y;
+  );
   return([y1,n,z]);
 }
 
@@ -1159,6 +1169,7 @@ staylor( w,r,samples) = {
       swkey = [samples, w, r];
       swz = vector(samples);
       swn = vector(samples);
+      swb = vector(samples);
       swvalid = vector(samples);
     );
     swon = 1;

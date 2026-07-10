@@ -382,6 +382,14 @@ Format pro Eintrag:
   staylor-Sampling der e-Familie aktiv. Smoke: e und 2 wertidentisch.
   Gate laeuft. Erwartung: ~Haelfte des Sampling-Blocks in Plateau-
   Iterationen gespart.
+- **Keep-Treppe exp-012/015/016 (sfunc-Redundanzen, alle Gate-PASS auf
+  Bestwerten, Werte identisch):** 012 Walk-Cache -6.4% (359->336s),
+  015 lazy y2 -13.2% (340->295s), 016 Base-Est-Cache -4.3% (299->286s).
+  **Kumulativ e|200-Kaltinit seit 007d: 497 -> 286s (-42%) bei +129
+  echten digits.** sfunc-Kette abgeerntet (verbleibend nur der
+  ct-abhaengige Inside-abelest — nicht cachebar). Naechste grosse Fronten:
+  Faktor-2-Wurzel (Genauigkeit jenseits ~85 fuer schnelle Basen),
+  Deep-Tier-Referenzen (jetzt ~40% billiger).
 - **e|500-v2 GESTORBEN am 4h-init_timeout** (dps 560, nlim 340 braucht
   >4h/Lauf auf dieser Maschine); der blinde WorkerDied-Retry hat den
   Timeout VERDOPPELT (~8h verbrannt). Fixes: (1) Wrapper retryt
