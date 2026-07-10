@@ -228,6 +228,23 @@ Format pro Eintrag:
 
 ---
 
+## Befund-2026-07-10-wand — ZWEITE Praezisions-Wand jenseits ~dps 300
+- **2|1000-v2 INSUFFICIENT:** main dps=1060 nlim=60 (989s) vs verify
+  dps=1080 nlim=70 (2507s) stimmen nur auf **79.9 digits** ueberein
+  (noetig 1010). Auch Basis 2 kollabiert bei hohem dps — nlim ist dort
+  NICHT die Ursache (60/70 nicht bindend bei Rate ~32/Iter).
+- **Muster:** e-Selbst-Paare 600-900 konstant 65.9; 2-Paar bei ~1000: 79.9.
+  Dekorrelierte e-Verifikationen bis dps 270 sind dagegen ECHT (99.4/241.8).
+  => Es gibt eine zweite, nlim-unabhaengige Genauigkeits-Wand zwischen
+  ~dps 300 und ~dps 600 (Kandidaten: interne Taylor-Radien/Sample-Zahlen
+  in abelest/invabeltaylor/renormslog, ltht-Cap, subst-Pfad).
+- **Diskriminator laeuft:** e|500-v2 (dps 560/580). Zusatz-Probe: Basis 2
+  dekorreliert bei dps 500.
+- **Konsequenz fuers Entscheidungspaket:** v2-Werte fuer 80/200 sind solide;
+  500/1000-Tiers ERST nach Lokalisierung/Fix der Wand.
+
+---
+
 ## Befund-2026-07-10-rate — Konvergenzrate faellt mit n (Modell-Korrektur)
 - v2 e|80: verifiziert 99.4 digits (32 Werte) OK.
 - v2 e|200 mit nlim=120: nur 193.1 verifiziert (Vorhersage 254) ->
