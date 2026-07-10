@@ -18,6 +18,7 @@ fmode=0;
 invabeli=1/4;
 complextaylor=1;
 superfk=8;
+efam=0; /* exp-011b: set by loop() — base-e family gets the fft extraction */
 quietmode=0;
 /* I added || (real(Period)>47) to handle speed for sexpinit(1.4494); takes the place of theta0lim=0.224 */
 theta0lim=0.0002; /* theta0lim=0.0224; */
@@ -1121,8 +1122,13 @@ invabel_sexp(z) = {
 }
 
 staylor( w,r,samples) = {
-  local(rinv,s,t,x1,y,y0,y1,y2,st,z,tot,t_est,tcrc,halfsamples,wtaylor,terms);
+  local(rinv,s,t,x1,y,y0,y1,y2,st,z,tot,t_est,tcrc,halfsamples,wtaylor,terms,om,c0,mu,c1,G,coeffs);
   if (samples==0, samples=240);  /* no matter how many sample points, the default gie series size is 200 halfsamples */
+  /* exp-011b: the fft extraction needs a power-of-2 grid; the grid change
+     costs the factor-2 bases their delicate sample/terms co-evolution
+     (gate: 30-43 digits), so it applies ONLY to the base-e family where
+     the expensive long inits live. */
+  if (efam, z=1; while (z<samples, z=z*2); samples=z);
   terms=samples;
   if (complextaylor==0, samples=samples/2);
   t_est    = vector (samples,i,0);
@@ -1150,24 +1156,50 @@ staylor( w,r,samples) = {
   y2=0;
   st=0;
   tot=0;
-  for (s=1,terms,
-    tot=0;
-    for (t=1,samples,
-      t_est[t]=t_est[t]*conj(tcrc[t]);
-      if (complextaylor, tot=tot+t_est[t], tot=tot+real(t_est[t]) );
+  /* exp-011b: for the base-e family the rotation extraction (a plain DFT,
+     O(terms*samples)) is replaced by PARI's fft on the power-of-2 grid:
+       complex: coeff_s = (rinv^s/n) * conj(c0)^s * om^(-s) * G[(s%n)+1]
+       real:    coeff_s = (rinv^s/m) * Re(conj(c1)^s * mu^(-s) * G[(s%(2m))+1])
+     Verified identical to the rotation loop to machine precision
+     (research/tools/fft_extraction_proto.gp). All other bases keep the
+     original rotation loop (their accuracy depends on the unrounded grid). */
+  if (efam,
+    if (complextaylor,
+      om = exp(2*Pi*I/samples);
+      c0 = exp(-Pi*I*(1+1/samples));
+      G = fft(powers(om^(-1), samples-1), t_est);
+      coeffs = vector(terms, s, (rinv^s/samples) * conj(c0)^s * om^(-s) * G[(s%samples)+1]);
+    ,
+      mu = exp(Pi*I/samples);
+      c1 = exp(-Pi*I/(2*samples));
+      G = fft(powers(mu^(-1), 2*samples-1), concat(t_est, vector(samples, i, 0)));
+      coeffs = vector(terms, s, (rinv^s/samples) * real(conj(c1)^s * mu^(-s) * G[(s%(2*samples))+1]));
     );
-    tot=tot/samples;
-    tot=tot*(rinv)^s;
-    wtaylor=wtaylor+tot*x^s;
-    y2=y1;
-    y1=y0;
-    y0=abs(tot)*circr^s;
-    if ((s>40) && (st==0) && ((y0*0.99)>y1) && ((y0*0.99)>y2),
-      /* save st=stopterms for return            */
-      /* no longer used to limit number of terms */
-      /* z = polcoeff(wtaylor,s-1);              */
-      /* wtaylor = wtaylor - z*x^(s-1);          */
-      st=s;
+    wtaylor = Polrev(concat([0], coeffs));
+    for (s=1,terms,
+      y2=y1;
+      y1=y0;
+      y0=abs(coeffs[s])*circr^s;
+      if ((s>40) && (st==0) && ((y0*0.99)>y1) && ((y0*0.99)>y2),
+        st=s;
+      );
+    );
+  ,
+    for (s=1,terms,
+      tot=0;
+      for (t=1,samples,
+        t_est[t]=t_est[t]*conj(tcrc[t]);
+        if (complextaylor, tot=tot+t_est[t], tot=tot+real(t_est[t]) );
+      );
+      tot=tot/samples;
+      tot=tot*(rinv)^s;
+      wtaylor=wtaylor+tot*x^s;
+      y2=y1;
+      y1=y0;
+      y0=abs(tot)*circr^s;
+      if ((s>40) && (st==0) && ((y0*0.99)>y1) && ((y0*0.99)>y2),
+        st=s;
+      );
     );
   );
   if (st==0, st=terms);
@@ -1184,6 +1216,7 @@ loop(kc,nlim,nskip,looplim) = {
   );
   log10=log(10);
   rlog10=1/log10;
+  efam = (abs(kc-1) < 1e-6); /* exp-011b: fft extraction only for base-e family */
   initsch(kc);
   if (nlim==0,  nlim=70);
   if (nskip==0, nskip=6);

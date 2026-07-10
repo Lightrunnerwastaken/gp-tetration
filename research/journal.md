@@ -351,6 +351,15 @@ Format pro Eintrag:
   GP-Typfehler (t_POL in gtos — zu isolieren), reeller Branch
   Formel-Mismatch bei hohen s (~Magnitude -> Phase/Alias-Fehler).
   Naechster Tick: Minimal-Repro, termweiser Vergleich bei m=4.
+- **exp-011/011b (FFT-Extraktion):** Prototyp exakt (2.4e-71). Vollintegration
+  (011) zerstoerte Faktor-2-Basen (30-43 digits + log(0)-Crash — der
+  2^k-Grid-Wechsel bricht deren Sample/Terms-Koevolution); 011b beschraenkt
+  FFT+2^k auf die e-Familie (efam-Global aus loop()). Gate: VOLL PASS auf
+  Bestwerten (80.0-Sweep, 84.7, 193.1). A/B gezielt: e|200-Kaltinit
+  495s -> 392s (**-21%**), Werte identisch. **KEEP (#5).** Verbleibende
+  Luecke zur 45%-Projektion = 2^k-Padding-Kosten im Sampling; Sampling
+  (sfunc-Auswertungen) ist jetzt der dominante Block -> exp-012-Kandidat:
+  inkrementelle Sample-Updates via Theta-Delta.
 - **e|500-v2 GESTORBEN am 4h-init_timeout** (dps 560, nlim 340 braucht
   >4h/Lauf auf dieser Maschine); der blinde WorkerDied-Retry hat den
   Timeout VERDOPPELT (~8h verbrannt). Fixes: (1) Wrapper retryt
