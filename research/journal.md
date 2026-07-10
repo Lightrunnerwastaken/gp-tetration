@@ -390,6 +390,21 @@ Format pro Eintrag:
   ct-abhaengige Inside-abelest — nicht cachebar). Naechste grosse Fronten:
   Faktor-2-Wurzel (Genauigkeit jenseits ~85 fuer schnelle Basen),
   Deep-Tier-Referenzen (jetzt ~40% billiger).
+- **Hypothesen-Kette Faktor-2/Decke (naechster Forschungs-Tick):**
+  (a) re misst die UPDATE-Groesse der Iteration, nicht den Fehler; bei
+  quasi-linearer Konvergenz (e-Familie, Kontraktion nahe 1) ist
+  Fehler ~ Update (Faktor 1x), bei staerkerer Kontraktion waere
+  Fehler ~ Update^2 (2x digits) — passt zu Faktor-2, ABER erklaert die
+  starre ~80-85-Decke von Basis 2 nicht (mehr Iterationen muessten sie
+  quadratisch heben; beobachtet: 79.9 konstant, Extension schadet sogar).
+  (b) Deshalb Verdacht: Die Decke kommt aus der EINMALIGEN
+  initsch-Matrixloesung (m2 x = s2, lctr x lctr) — deren Loesung koennte
+  bei ~80-85 digits Genauigkeit liegen (Vandermonde-artige
+  Konditionierung!) und alles Downstream deckeln; e-Familie evtl. besser
+  konditioniert (anderes ircircr-Regime). TEST: Residuum ||m2 x - s2||
+  nach dem matsolve direkt ausgeben (Basen 2 vs e, dps 200) — wenn
+  ~1e-84 fuer Basis 2 -> Decke lokalisiert; Fix-Kandidat: iterative
+  Nachverfeinerung der Loesung (residual correction, 1-2 Schritte).
 - **e|500-v2 GESTORBEN am 4h-init_timeout** (dps 560, nlim 340 braucht
   >4h/Lauf auf dieser Maschine); der blinde WorkerDied-Retry hat den
   Timeout VERDOPPELT (~8h verbrannt). Fixes: (1) Wrapper retryt
