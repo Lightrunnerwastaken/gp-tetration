@@ -185,9 +185,14 @@ Format pro Eintrag:
   `if (imag(kc)==0, complextaylor=0, complextaylor=1);`
 - **Gate:** PASS — ALLE Werte identisch zu exp-004-Stand (reell wie
   komplex); tht2 fuer reelle Basen bestaetigt redundant.
-- **Benchmark:** ausstehend (Init-Zeit-Vergleich mit frischem
-  FATOU_CACHE_DIR; wartet auf freie Maschine nach v2-Generierung)
-- **Entscheidung:** ausstehend
+- **Benchmark:** Init-Median (frischer Cache, 3 Reps): e|80 3.27 vs 3.28s,
+  2|80 1.84 vs 1.84s, e|200 8.55 vs 8.54s — NULL Effekt.
+- **Entscheidung:** revert (kein Gewinn; einfacherer Code gewinnt)
+- **Learnings:** Theta-Serien (thsamples<=32) sind vernachlaessigbar; die
+  Init-Kosten dominiert der staylor/Matrix-Pfad (lctr x lctr Solve pro
+  Iteration). Speed-Experimente muessen dort ansetzen (z.B. inkrementelle
+  Matrix-Updates, ctsamples-Wachstumsstrategie, weniger Iterationen durch
+  besseren Startwert).
 
 ---
 
