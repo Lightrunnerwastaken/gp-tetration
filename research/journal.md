@@ -351,6 +351,13 @@ Format pro Eintrag:
   GP-Typfehler (t_POL in gtos — zu isolieren), reeller Branch
   Formel-Mismatch bei hohen s (~Magnitude -> Phase/Alias-Fehler).
   Naechster Tick: Minimal-Repro, termweiser Vergleich bei m=4.
+- **e|500-v2 GESTORBEN am 4h-init_timeout** (dps 560, nlim 340 braucht
+  >4h/Lauf auf dieser Maschine); der blinde WorkerDied-Retry hat den
+  Timeout VERDOPPELT (~8h verbrannt). Fixes: (1) Wrapper retryt
+  Init-Phase-Tode nicht mehr (nur Eval-Phase), (2) Deep-Tier-Referenzen
+  ZURUECKGESTELLT bis FFT-Extraktion die Init-Kosten ~halbiert; dann
+  Neuplanung (ggf. Referenz-Policy-Amendment: fork-erzeugte Referenz mit
+  dekorrelierter Original-Kreuzverifikation).
 
 ---
 

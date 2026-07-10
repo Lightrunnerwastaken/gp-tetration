@@ -236,8 +236,12 @@ class FatouGP:
         if self.persistent:
             if self.n_workers > 1 and len(expressions) >= 2 * self.n_workers:
                 return self._pool_for(base).eval(expressions)
+            # an init-phase death (e.g. init_timeout) must NOT be retried
+            # blindly — that pays the full init cost twice; only eval-phase
+            # deaths get one respawn attempt
+            worker = self._worker_for(base)
             try:
-                return self._worker_for(base).eval(expressions)
+                return worker.eval(expressions)
             except WorkerDied:
                 self._workers.pop(self._base_expr(base), None)
                 return self._worker_for(base).eval(expressions)
