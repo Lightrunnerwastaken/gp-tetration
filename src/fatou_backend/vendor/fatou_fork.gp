@@ -1217,6 +1217,12 @@ loop(kc,nlim,nskip,looplim) = {
        true) — they keep the caller's behavior exactly. */
     if ((n>=nlim-1) && (limitp==0) && (re<looplim) && (abs(kc-1) < 1e-6),
       nlim = nlim+20);
+    /* exp-008: early iterations carry limited signal, so run them at
+       reduced working precision. The state's TRUE precision is up to
+       2x the contour residual re (factor-2 bases like b=2), so the
+       guard must be 2*re + margin — the re+40 guard of exp-006 cut
+       real digits of the fast bases. Restored to full before renormslog. */
+    default(realprecision, max(48, min(precis, 2*floor(re) + 60)));
     ct=precision(ct,precis);
     ct=ct+rr;
     if (thetamode,
@@ -1255,6 +1261,7 @@ loop(kc,nlim,nskip,looplim) = {
       print(n "=loopcnt "re" decimal digits, "ctsamples" ctsamples, "thsamples" thsamples");
     );
   );
+  default(realprecision, precis);  /* exp-008: restore full precision */
   ctd = deriv(ct);
   if ((quietmode<0) && ((n%4)<>0) ,print());
   rslog=renormslog(ct);

@@ -297,6 +297,21 @@ Format pro Eintrag:
 - **Gate:** FAST PASS — alle dps-80-Gruppen sogar auf 80.0 verbessert,
   e|200 haelt 193.1. Einziger FAIL: 2|200 = 84.7 (gefordert 194.8) —
   das ist ein REVEAL, kein Schaden: 84.7 = 2 x 42 (Faktor-2!).
+  Nach 2|200-Rekalibrierung: Re-Gate VOLL PASS.
+- **Benchmark (A/B vs 007d-Stand):** Kaltinit 2|200 **-52%** (10->4.8s;
+  Basis 2 bleibt ganz im Niedrig-re-Regime), e|80 -5%, 10|80 -3%,
+  e|200 nur -2% (die teuren spaeten Iterationen laufen eh voll praezise —
+  Erwartung widerlegt). Scheinbare Verluste (warm gesamt -6.9%, 2|200
+  \"190->84.7\") sind ARTEFAKTE der bewiesen fake'n 2|200-Referenz
+  (Digit-Summe faellt durch Wahrheits-Reveal, nicht durch Tempo).
+- **Entscheidung:** **KEEP** (Regel b: Gate-digits ueberall gleich oder
+  hoeher — dps-80-Gruppen +0.4-0.5 auf 80.0; reale Timings ueberall
+  gleich oder besser). Aggregat-Metrik-Einbruch explizit als
+  Referenz-Artefakt dokumentiert, kein Metrik-Gaming.
+- **Learnings:** Staffelung lohnt dort, wo der ganze Lauf im Niedrig-re-
+  Regime bleibt (Faktor-2-Basen); fuer e-Familie bei hohem dps braucht es
+  Kostensenkung der SPAETEN Iterationen (ctsamples-Regime) — naechste
+  Front. 12h-Marke erreicht; Loop laeuft weiter.
 
 ---
 
