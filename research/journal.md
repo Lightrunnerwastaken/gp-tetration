@@ -166,6 +166,15 @@ Format pro Eintrag:
   => Referenz-Regeneration (konvergierter Engine) + Rekalibrierung der
   e-Schwellen noetig = MENSCH-ENTSCHEID (program.md). Entscheidungspaket
   wird vorbereitet; bis dahin nur gate-sichere Speed-Experimente.
+- **BESTAETIGT (Dekorrelation gegen nlim=110@540):** truth(nlim=30)=64.2,
+  truth(nlim=60)=127.3 digits — Vorhersage 2.1*nlim auf 1% getroffen.
+  Rate Basis e = ~2.12 echte digits/Iteration. Init ~quadratisch in nlim
+  (110@540: 1259s). Echte e-Tetration: 500 digits ~ nlim 240 (~1.7h),
+  1000 digits ~ nlim 475 (mehrere Stunden, einmalig dank State-Cache).
+- **Entscheidungspaket laeuft:** research/tools/make_reference_v2.py
+  erzeugt values_v2_proposed.json (e|80 + e|200, je mit Dekorrelations-
+  Verifikation; e|500 per --dps500 spaeter). Eingefrorene Dateien bleiben
+  bis zur Freigabe unangetastet.
 - **Learnings:** Wrapper-Bestellung looplim=max(35, dps-20) war die Ursache
   der e|80-Schwaeche. Roundtrip-Identitaet ueber alle Experimente bestaetigt
   erneut: nur Agreement-vs-Referenz misst echte Genauigkeit.
