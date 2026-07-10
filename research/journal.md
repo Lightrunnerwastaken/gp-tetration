@@ -198,6 +198,14 @@ Format pro Eintrag:
   Lineare Extrapolation war optimistisch; hohe Ziele (500/1000 digits)
   brauchen ueberproportional mehr Iterationen. Retry e|200 mit 170/250
   laeuft; Rate-Kurve wird aus den Verify-Ergebnissen mitgeschaetzt.
+- **KORREKTUR (Retry-Ergebnis):** nlim=170/250 lieferte IDENTISCHE Zeiten
+  und identische 193.1 wie 120/180 -> nlim war nicht bindend! Die Schleife
+  exitet am looplim=precis-throwp (Kontur-re ~220 bei dps 220). WAHRE
+  Genauigkeit = Kontur-re MINUS skalenabhaengiger Gap: ~0 bei re 64,
+  ~0.6 bei re 100, ~27 bei re 220. Fuer X echte digits: ARBEITSPRAEZISION
+  ~ X + throwp + gap(X) + Marge; nlim nur als Cap >~ re/2 halten.
+  Kosten O(precis^2)-ish ueber die Iterationszahl. exp-004-Richtung
+  (looplim-Floor) damit voll bestaetigt. Retry 2: main dps 250/verify 270.
 - **Learnings:** Wrapper-Bestellung looplim=max(35, dps-20) war die Ursache
   der e|80-Schwaeche. Roundtrip-Identitaet ueber alle Experimente bestaetigt
   erneut: nur Agreement-vs-Referenz misst echte Genauigkeit.
