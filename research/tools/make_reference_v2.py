@@ -33,28 +33,34 @@ OUT_PATH = REPO / "research" / "reference" / "values_v2_proposed.json"
 RATE_E = 2.1  # measured true digits per iteration for base e
 
 
-def converged_run(dps: int, nlim: int, expressions: list[str]) -> list[mp.mpc]:
+def converged_run(dps: int, nlim: int, expressions: list[str],
+                  base: str = "e") -> list[mp.mpc]:
     gp = FatouGP(gp_exe=find_default_gp_exe(), fatou_gp=find_default_fatou_gp(),
                  dps=dps, nlim=nlim, nskip=4, looplim=0, init_timeout=4 * 3600.0)
     try:
-        return gp.eval_batch("e", expressions)
+        return gp.eval_batch(base, expressions)
     finally:
         gp.close()
 
 
 def main() -> None:
-    # (case-dps filter, ref_dps, nlim main, verify dps, verify nlim)
+    # (base, case-dps filter, ref_dps, nlim main, verify dps, verify nlim)
     tiers = [
-        (80, 100, 60, 120, 90),
+        ("e", 80, 100, 60, 120, 90),
         # retry 2: the loop self-terminates at contour-re ~ precis-throwp;
         # TRUE accuracy lags contour-re by a scale-dependent gap (~27 at
         # dps 220). nlim>=~130 is non-binding; raise WORKING dps instead.
-        (200, 250, 220, 270, 260),
+        ("e", 200, 250, 220, 270, 260),
     ]
     if "--dps500" in sys.argv:
         # corrected model: loop exits at contour ~ precis-throwp; truth lags
         # by a scale gap -> main working dps 560 for >=510 true digits
-        tiers = [(500, 560, 340, 580, 360)]
+        tiers = [("e", 500, 560, 340, 580, 360)]
+    if "--base2-1000" in sys.argv:
+        # base 2 converges ~32 digits/iter; nlim=30 capped it at ~956 true
+        # digits, the frozen 2|1000 reference claims 1020 -> regenerate with
+        # non-binding nlim and raised working dps
+        tiers = [("2", 1000, 1060, 60, 1080, 70)]
     values: dict[str, dict[str, str]] = {}
     verification: dict[str, float] = {}
     existing = {}
@@ -63,24 +69,24 @@ def main() -> None:
         existing = payload.get("values", {})
         verification = payload.get("verification_digits", {})
 
-    for case_dps, ref_dps, nlim_main, ver_dps, ver_nlim in tiers:
-        cases = [c for c in all_cases(deep=True) if c.base == "e" and c.dps == case_dps]
+    for base, case_dps, ref_dps, nlim_main, ver_dps, ver_nlim in tiers:
+        cases = [c for c in all_cases(deep=True) if c.base == base and c.dps == case_dps]
         expressions = [f"{c.kind}({c.arg})" for c in cases]
         needed = case_dps + 10  # ref must be true to case_dps + margin
         mp.mp.dps = ver_dps + 60
         t = time.perf_counter()
-        print(f"[v2] e|{case_dps}: main run dps={ref_dps} nlim={nlim_main} "
+        print(f"[v2] {base}|{case_dps}: main run dps={ref_dps} nlim={nlim_main} "
               f"({len(cases)} exprs) ...", flush=True)
-        main_vals = converged_run(ref_dps, nlim_main, expressions)
+        main_vals = converged_run(ref_dps, nlim_main, expressions, base=base)
         print(f"[v2]   main done ({time.perf_counter()-t:.0f}s); verify run "
               f"dps={ver_dps} nlim={ver_nlim} ...", flush=True)
         t = time.perf_counter()
-        ver_vals = converged_run(ver_dps, ver_nlim, expressions)
+        ver_vals = converged_run(ver_dps, ver_nlim, expressions, base=base)
         print(f"[v2]   verify done ({time.perf_counter()-t:.0f}s)", flush=True)
         worst = min(correct_digits(m, v, cap=ref_dps)
                     for m, v in zip(main_vals, ver_vals))
         status = "OK" if worst >= needed else "INSUFFICIENT"
-        print(f"[v2] e|{case_dps}: verified to {worst:.1f} digits "
+        print(f"[v2] {base}|{case_dps}: verified to {worst:.1f} digits "
               f"(needed {needed}) -> {status}", flush=True)
         if worst < needed:
             continue
