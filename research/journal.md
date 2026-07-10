@@ -459,6 +459,13 @@ Format pro Eintrag:
   wenn <<1e-50: Kompensation bestaetigt; Konsequenz waere, dass ECHTE
   200 digits fuer schnelle Basen eine sauber konvergierte Kontur brauchen
   (Extension ohne Degradation — deren Ursache dann die letzte Frage).
+  ERGEBNIS: Daempfung nur ~45x (2.2e-52) — KEINE quadratische
+  Ausloeschung; einfache Kompensations-These NICHT bestaetigt.
+  Verfeinerung: echte Kontur-Fehler sind strukturierte Fourier-Reste,
+  kein glattes x^2 — sauberer Test braeuchte einen echten Fehler-Vektor
+  (Differenz zweier ct-Staende milder nlim-Differenz, z.B. ct_28 vs
+  ct_30, mit jeweils passendem rslog). Faktor-2-Wurzel bleibt OFFEN;
+  alle Messwerkzeuge und Ausschluss-Ergebnisse dokumentiert.
 - **e|500-v2 GESTORBEN am 4h-init_timeout** (dps 560, nlim 340 braucht
   >4h/Lauf auf dieser Maschine); der blinde WorkerDied-Retry hat den
   Timeout VERDOPPELT (~8h verbrannt). Fixes: (1) Wrapper retryt
