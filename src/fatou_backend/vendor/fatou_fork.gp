@@ -19,6 +19,10 @@ invabeli=1/4;
 complextaylor=1;
 superfk=8;
 efam=0; /* exp-011b: set by loop() — base-e family gets the fft extraction */
+/* exp-012: the fs/finv walk in sfunc depends only on the base map, NOT on
+   the evolving ct/theta state — cache walk endpoints per sample index
+   across loop iterations while the sampling grid is unchanged. */
+swon=0; swidx=0; swkey=0; swz=0; swn=0; swvalid=0;
 quietmode=0;
 /* I added || (real(Period)>47) to handle speed for sexpinit(1.4494); takes the place of theta0lim=0.224 */
 theta0lim=0.0002; /* theta0lim=0.0224; */
@@ -796,12 +800,22 @@ sfunc(z) = {
   if ((complextaylor==0) && (imag(z)<0), return(conj(sfunc(conj(z)))));
   zc=z;
   y2 = abelest(z,ct);
-  y = fs(z);
-  n=0;
-  while (abs(y-circc)<abs(z-circc), z=y;y=fs(z);n--;);
-  if (n==0,
-    y=finv(z);
-    while (abs(y-circc)<abs(z-circc), z=y; y=finv(y); n++);
+  /* exp-012: reuse the cached walk endpoint when sampling an unchanged
+     grid (the walk uses only fs/finv — independent of ct/theta). */
+  if (swon && swidx>0 && swvalid[swidx],
+    z = swz[swidx];
+    n = swn[swidx];
+  ,
+    y = fs(z);
+    n=0;
+    while (abs(y-circc)<abs(z-circc), z=y;y=fs(z);n--;);
+    if (n==0,
+      y=finv(z);
+      while (abs(y-circc)<abs(z-circc), z=y; y=finv(y); n++);
+    );
+    if (swon && swidx>0,
+      swz[swidx]=z; swn[swidx]=n; swvalid[swidx]=1;
+    );
   );
   if ((abs(z-circc)<ircircr)||(thetamode==0),
     y1 = abelest(z,ct) + n;
@@ -1136,10 +1150,22 @@ staylor( w,r,samples) = {
   if (r==0,r=1);
   rinv = 1/r;
 
+  /* exp-012: enable the sfunc walk cache while sampling an unchanged grid
+     (e-family only; grid identity = [samples, w, r]). */
+  if (efam,
+    if (swkey != [samples, w, r],
+      swkey = [samples, w, r];
+      swz = vector(samples);
+      swn = vector(samples);
+      swvalid = vector(samples);
+    );
+    swon = 1;
+  );
   if (complextaylor,
     for(s=1, samples,
       x1=-1+-1/(samples)+(2*s/samples);
       tcrc[s]=exp(Pi*I*x1); /* -Pi to Pi */
+      swidx = s;
       t_est[s]=sfunc(w+r*tcrc[s]*exp(I*argc))[1];
     );
   ,
@@ -1147,9 +1173,12 @@ staylor( w,r,samples) = {
     for(s=1, samples,
       x1=-1/(2*samples)+(s/samples);
       tcrc[s]=exp(Pi*I*x1);
+      swidx = s;
       t_est[s]=sfunc(w+r*tcrc[s])[1];
     );
   );
+  swon = 0;
+  swidx = 0;
   wtaylor=0;
   y0=0;
   y1=0;
