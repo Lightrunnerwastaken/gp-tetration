@@ -52,7 +52,9 @@ def main() -> None:
         (200, 250, 220, 270, 260),
     ]
     if "--dps500" in sys.argv:
-        tiers = [(500, 520, 260, 540, 330)]
+        # corrected model: loop exits at contour ~ precis-throwp; truth lags
+        # by a scale gap -> main working dps 560 for >=510 true digits
+        tiers = [(500, 560, 340, 580, 360)]
     values: dict[str, dict[str, str]] = {}
     verification: dict[str, float] = {}
     existing = {}
