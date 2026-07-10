@@ -168,7 +168,8 @@ class FatouGP:
 
     def _try_spawn_cached(self, base: GPValue, bin_path, sidecar) -> FatouGPWorker | None:
         init = self._init_lines(base)
-        lines = init[:3] + state_cache.restore_lines(sidecar["names"], bin_path)
+        # everything except the final sexpinit line, then restore cached state
+        lines = init[:-1] + state_cache.restore_lines(sidecar["names"], bin_path)
         try:
             worker = FatouGPWorker(
                 self.gp_exe, lines,
@@ -216,6 +217,8 @@ class FatouGP:
     def _init_lines(self, base: GPValue) -> list[str]:
         fatou_path = Path(self.fatou_gp).as_posix()
         return [
+            # converged high-dps series overflow the default PARI stack
+            "default(parisizemax, 2147483648);",
             f"default(realprecision, {self.dps});",
             f'read("{fatou_path}");',
             f"quietmode={self.quietmode};",

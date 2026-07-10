@@ -23,18 +23,19 @@ class InitLinesTests(unittest.TestCase):
 
     def test_init_lines_order_and_content(self) -> None:
         lines = self.gp._init_lines("e")
-        self.assertEqual(lines[0], "default(realprecision, 50);")
-        self.assertTrue(lines[1].startswith('read("'))
-        self.assertTrue(lines[1].endswith('");'))
-        self.assertIn("fatou.gp", lines[1])
-        self.assertNotIn("\\", lines[1])  # as_posix, keine Backslashes
-        self.assertEqual(lines[2], "quietmode=1;")
-        self.assertEqual(lines[3], "sexpinit(exp(1),20,4,30);")
-        self.assertEqual(len(lines), 4)
+        self.assertEqual(lines[0], "default(parisizemax, 2147483648);")
+        self.assertEqual(lines[1], "default(realprecision, 50);")
+        self.assertTrue(lines[2].startswith('read("'))
+        self.assertTrue(lines[2].endswith('");'))
+        self.assertIn("fatou.gp", lines[2])
+        self.assertNotIn("\\", lines[2])  # as_posix, keine Backslashes
+        self.assertEqual(lines[3], "quietmode=1;")
+        self.assertEqual(lines[4], "sexpinit(exp(1),20,4,30);")
+        self.assertEqual(len(lines), 5)
 
     def test_init_lines_complex_base(self) -> None:
         lines = self.gp._init_lines("1+I")
-        self.assertEqual(lines[3], "sexpinit(1+I,20,4,30);")
+        self.assertEqual(lines[4], "sexpinit(1+I,20,4,30);")
 
 
 class GpExeCandidateTests(unittest.TestCase):
