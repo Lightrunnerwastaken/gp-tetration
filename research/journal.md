@@ -245,6 +245,20 @@ Format pro Eintrag:
 
 ---
 
+## MIGRATION 2026-07-10 — Referenz-v2 Option A (Nutzer-Freigabe im Chat)
+- 33 Basis-e-Eintraege in values.json durch dekorrelations-verifizierte
+  v2-Werte ersetzt (Provenienz in meta.v2_correction).
+- gate.py REQUIRED_DIGITS rekalibriert (wahrheitsbasiert): e|80 58.9
+  (Fork misst echt 63.9), e|200 59.2 (echt 64.2). Wieder EINGEFROREN.
+- Verifikation: Gate PASS, Slow-Gate-Tests (pass+sabotage) gruen,
+  Schnell-Suite 48 gruen.
+- Genauigkeits-Front ist FREI: Verbesserungen der echten e-Genauigkeit
+  (z.B. nlim-Skalierung im Fork) sind jetzt gate-messbar (Keep-Regel b).
+  exp-006 (Staffelung) entparkt. Deep-Tiers (500/1000) warten auf
+  Wand-Lokalisierung.
+
+---
+
 ## Befund-2026-07-10-rate — Konvergenzrate faellt mit n (Modell-Korrektur)
 - v2 e|80: verifiziert 99.4 digits (32 Werte) OK.
 - v2 e|200 mit nlim=120: nur 193.1 verifiziert (Vorhersage 254) ->

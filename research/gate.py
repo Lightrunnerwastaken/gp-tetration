@@ -29,18 +29,20 @@ from fatou_backend import FatouGP, find_default_gp_exe
 REFERENCE_PATH = REPO / "research" / "reference" / "values.json"
 DEFAULT_FORK = REPO / "src" / "fatou_backend" / "vendor" / "fatou_fork.gp"
 
-# calibrated 2026-07-10 on the unmodified original (see --calibrate):
-# required = measured worst - 5 safety digits; e|80 is a known engine outlier
-# (one edge case agrees to only ~62.7 digits even in the original)
+# calibrated 2026-07-10 on the unmodified original (see --calibrate);
+# base-e groups RE-calibrated 2026-07-10 after the human-approved v2
+# reference correction (DECISION_reference_v2.md Option A): the old e-values
+# beyond digit ~64 were correlated-error artifacts of the nlim=30 engine;
+# against TRUE references the engine delivers ~64 digits for base e.
 REQUIRED_DIGITS: dict[str, float] = {
     "0.8+0.4*I|80": 75.0,
     "1+I|80": 74.4,
     "10|80": 74.4,
     "2|80": 74.4,
     "2+I|80": 74.5,
-    "e|80": 57.6,
+    "e|80": 58.9,
     "2|200": 194.8,
-    "e|200": 194.8,
+    "e|200": 59.2,
 }
 # measured worst roundtrip on the original: 2.56e-87 (base e); frozen at *100
 ROUNDTRIP_MAX = mp.mpf("3e-85")

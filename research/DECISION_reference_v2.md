@@ -1,3 +1,4 @@
+# [ENTSCHIEDEN 2026-07-10: Option A — vom Nutzer im Chat freigegeben und umgesetzt]
 # Entscheidung nötig: Basis-e-Referenzwerte sind jenseits ~digit 64 falsch
 
 Stand: 2026-07-10, Autoresearch-Loop (Details + Messreihen: `research/journal.md`)

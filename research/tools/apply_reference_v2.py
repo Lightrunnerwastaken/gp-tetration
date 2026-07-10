@@ -50,10 +50,8 @@ def main() -> None:
     print(f"[apply_v2] replaced {len(replaced)} base-e entries in values.json")
 
     # step 2: measure current fork against corrected references
-    import mpmath as mp
-    from research.gate import measure_agreement  # type: ignore
     sys.path.insert(0, str(REPO / "research"))
-    from gate import measure_agreement, DEFAULT_FORK  # noqa: F811
+    from gate import measure_agreement, DEFAULT_FORK
     agreement, errors = measure_agreement(DEFAULT_FORK)
     for line in errors:
         print(line)
