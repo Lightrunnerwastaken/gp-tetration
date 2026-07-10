@@ -1216,7 +1216,11 @@ loop(kc,nlim,nskip,looplim) = {
   );
   log10=log(10);
   rlog10=1/log10;
-  efam = (abs(kc-1) < 1e-6); /* exp-011b: fft extraction only for base-e family */
+  /* exp-014: slow convergence (~2 digits/iter) affects a NEIGHBORHOOD of
+     base e (e.g. b=3, kc~1.094, capped at 62.4 true digits), not just
+     kc==1. Widened window still excludes the fragile fast bases
+     (b=2: kc~0.63, b=10: kc~1.83). */
+  efam = (abs(kc-1) < 0.12);
   initsch(kc);
   if (nlim==0,  nlim=70);
   if (nskip==0, nskip=6);
@@ -1248,7 +1252,7 @@ loop(kc,nlim,nskip,looplim) = {
        (e|200: 64->193 true digits). For other bases truth ~ 2x contour-re
        and iterating past the caller cap DESTROYS accuracy (2|80: 80->41.6
        true) — they keep the caller's behavior exactly. */
-    if ((n>=nlim-1) && (limitp==0) && (re<looplim) && (abs(kc-1) < 1e-6),
+    if ((n>=nlim-1) && (limitp==0) && (re<looplim) && efam,
       nlim = nlim+20);
     /* exp-008: early iterations carry limited signal, so run them at
        reduced working precision. The state's TRUE precision is up to

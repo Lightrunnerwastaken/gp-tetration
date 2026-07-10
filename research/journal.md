@@ -367,7 +367,9 @@ Format pro Eintrag:
   schnellen Basen und erst jenseits ~dps 85.
 - **exp-014 (Fenster-Weitung |kc-1|<0.12):** Basis 3: 62.4 -> **80.0**
   echte digits (dekorreliert verifiziert); Fenster schliesst 2 (0.63)
-  und 10 (1.83) weiter aus. Gate: (laeuft).
+  und 10 (1.83) weiter aus. Gate: VOLL PASS (alle Gruppen Bestwerte).
+- **Entscheidung: KEEP (#6)** (Regel b: Basis 3 +17.6 echte digits, keine
+  Verluste; Standard-Gruppen unberuehrt).
 - **e|500-v2 GESTORBEN am 4h-init_timeout** (dps 560, nlim 340 braucht
   >4h/Lauf auf dieser Maschine); der blinde WorkerDied-Retry hat den
   Timeout VERDOPPELT (~8h verbrannt). Fixes: (1) Wrapper retryt
