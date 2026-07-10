@@ -495,6 +495,13 @@ Format pro Eintrag:
   bestaetigt). SANIERUNG v4: alle schnellen-Basen-Referenzen konvergiert
   (looplim=0, nlim non-binding) + Fehler-Vektor-verifiziert neu erzeugen;
   bei ref_dps 100 billig. Danach Schwellen final wahrheitsbasiert.
+- **FINAL-GATE VOLL PASS (alles echt): exp-018 KEEP (#10).**
+  Alle dps-80-Gruppen 80.0 echte digits (gegen 99.4-100.0-bewiesene
+  v4-Referenzen); 2|200 = 194.3 echt (heute frueh real ~41!); e|200 193.1.
+  Das Mess-System (Referenzen + Gate) ist erstmals durchgehend
+  wahrheitsbasiert; Extension gilt fuer alle Basen. Ehrlicher Preis:
+  Gate-Lauf jetzt ~25-40 min (echte Konvergenz aller Gruppen), Inits
+  einmalig teurer — State-Cache amortisiert.
 - **e|500-v2 GESTORBEN am 4h-init_timeout** (dps 560, nlim 340 braucht
   >4h/Lauf auf dieser Maschine); der blinde WorkerDied-Retry hat den
   Timeout VERDOPPELT (~8h verbrannt). Fixes: (1) Wrapper retryt
