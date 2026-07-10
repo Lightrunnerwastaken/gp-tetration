@@ -188,6 +188,16 @@ Format pro Eintrag:
 - **Benchmark:** ausstehend (Init-Zeit-Vergleich mit frischem
   FATOU_CACHE_DIR; wartet auf freie Maschine nach v2-Generierung)
 - **Entscheidung:** ausstehend
+
+---
+
+## Befund-2026-07-10-rate — Konvergenzrate faellt mit n (Modell-Korrektur)
+- v2 e|80: verifiziert 99.4 digits (32 Werte) OK.
+- v2 e|200 mit nlim=120: nur 193.1 verifiziert (Vorhersage 254) ->
+  marginale Rate im Bereich 60->120 nur ~1.1 digits/Iter (statt 2.1).
+  Lineare Extrapolation war optimistisch; hohe Ziele (500/1000 digits)
+  brauchen ueberproportional mehr Iterationen. Retry e|200 mit 170/250
+  laeuft; Rate-Kurve wird aus den Verify-Ergebnissen mitgeschaetzt.
 - **Learnings:** Wrapper-Bestellung looplim=max(35, dps-20) war die Ursache
   der e|80-Schwaeche. Roundtrip-Identitaet ueber alle Experimente bestaetigt
   erneut: nur Agreement-vs-Referenz misst echte Genauigkeit.

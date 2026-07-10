@@ -46,7 +46,9 @@ def main() -> None:
     # (case-dps filter, ref_dps, nlim main, verify dps, verify nlim)
     tiers = [
         (80, 100, 60, 120, 90),
-        (200, 220, 120, 240, 180),
+        # retry: rate decays with n (marginal ~1.1 digits/iter beyond 60),
+        # nlim=120 verified only 193.1 < 210 -> raise to 170/250
+        (200, 220, 170, 240, 250),
     ]
     if "--dps500" in sys.argv:
         tiers = [(500, 520, 260, 540, 330)]
