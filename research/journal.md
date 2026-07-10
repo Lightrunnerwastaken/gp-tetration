@@ -343,6 +343,14 @@ Format pro Eintrag:
   +3% bei ~2000 Samples; O(n^2)->O(n log n) auf dem Extraktions-Block).
   Disziplin: erst Standalone-GP-Prototyp (Koeffizienten-Vergleich alt vs.
   FFT auf 1e-30), dann Fork-Integration, dann Gate.
+- **Split-Messung (instrumentierter Lauf, spaete Iterationen e|200):**
+  Sampling ~4.4-5.6s, Extraktion+Rest ~4-5s pro Iteration (~50/50).
+  FFT-Extraktion projiziert e|200-Init 400s -> ~230-250s. thsamples
+  waechst auf 90+ bei dps 200 (nicht 32-gedeckelt wie bei dps 80).
+- **exp-011 Prototyp WIP** (scratchpad/fft_proto.gp): komplexer Branch
+  GP-Typfehler (t_POL in gtos — zu isolieren), reeller Branch
+  Formel-Mismatch bei hohen s (~Magnitude -> Phase/Alias-Fehler).
+  Naechster Tick: Minimal-Repro, termweiser Vergleich bei m=4.
 
 ---
 
