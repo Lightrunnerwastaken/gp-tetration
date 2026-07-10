@@ -245,6 +245,18 @@ Format pro Eintrag:
 
 ---
 
+## exp-007 (2026-07-10) — nlim = ceil(looplim) statisch [VERWORFEN -> 007b]
+- **Gate:** Basis e SPEKTAKULAER: e|80 79.5 (+15.6), e|200 **193.1 (+129
+  echte digits)** — der Genauigkeits-Fix wirkt. ABER alle schnellen Basen
+  kollabiert (komplex 30-36, 10|80 36.2, 2|80 41.6, 2|200 41.8):
+  Ueber-Iteration jenseits des Plateaus destabilisiert den Kontur-Zustand.
+  Sheldonisons nlim=30 war der Schutz der schnellen Basen (erklaert auch
+  die alte Anomalie nlim=50+looplim=100 -> 63.9).
+- **Entscheidung:** revert -> exp-007b (raten-adaptiv: Cap-Anhebung nur wenn
+  Rate bei n=6 < 5 digits/Iter; schnelle Basen behalten Caller-Cap).
+
+---
+
 ## MIGRATION 2026-07-10 — Referenz-v2 Option A (Nutzer-Freigabe im Chat)
 - 33 Basis-e-Eintraege in values.json durch dekorrelations-verifizierte
   v2-Werte ersetzt (Provenienz in meta.v2_correction).
