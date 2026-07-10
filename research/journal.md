@@ -446,6 +446,19 @@ Format pro Eintrag:
   ircircr-Radien), NICHT in der Kontur-Serie (Kontur-re 199 hilft
   nichts). Naechste Decken-Front: Eval-Pfad-Analyse (Newton-Toleranzen,
   Radien-Entscheidungen, betterest-Konvergenz bei hohem dps).
+- **Eval-Pfad-Analyse (Faktor-2-Wurzel, Stand):** Messungen Basis 2@200:
+  invabel-Evalpunkt bei 0.405*circr (INNERHALB Sampling 0.56) — Serien-
+  Extrapolation als Deckel widerlegt; Serie nur 304 Terme (nlim-30-Exit).
+  KOMPENSATIONS-THESE: Faktor-2 = Fehlerkompensation 1. Ordnung — sexp =
+  invabel(z - rslog), rslog wird aus DERSELBEN fehlerhaften Abel-Funktion
+  kalibriert (renormslog(ct)) -> korrelierte Fehler heben sich linear,
+  Rest O(err^2) = doppelte digits. Direkter rslog-Stoertest zeigt
+  Sensitivitaet ~1 (widerlegt nichts: Stoerung war UNkorreliert).
+  RICHTIGER TEST (naechster Tick): ct-Serie stoeren (z.B. +1e-50*x^2),
+  rslog NEU via renormslog(ct) kalibrieren, dann delta_sexp messen —
+  wenn <<1e-50: Kompensation bestaetigt; Konsequenz waere, dass ECHTE
+  200 digits fuer schnelle Basen eine sauber konvergierte Kontur brauchen
+  (Extension ohne Degradation — deren Ursache dann die letzte Frage).
 - **e|500-v2 GESTORBEN am 4h-init_timeout** (dps 560, nlim 340 braucht
   >4h/Lauf auf dieser Maschine); der blinde WorkerDied-Retry hat den
   Timeout VERDOPPELT (~8h verbrannt). Fixes: (1) Wrapper retryt
