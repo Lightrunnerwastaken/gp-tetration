@@ -583,3 +583,15 @@ Format pro Eintrag:
   Gap-Modell im Deep-Bereich guenstiger als bei dps 220 (dort 193 echt).
   Faustregel neu: echte digits ~ dps - 6 (statt dps - 27) bei dps 300.
 - Probe dps 400 laeuft (Erwartung ~390+ echte digits).
+
+---
+
+## Engine-Diversitaet-2026-07-11 — Fork bei 500 digits korrekt (staerkste Beweisform)
+- Fork-Racer e|dps520 (alle 10 Keeps) fertig nach ~5.4h: kontur_re 496.39.
+- **Cross-Check vs Original-Referenz (dps 533, >=497 bewiesen): 495 digits
+  Uebereinstimmung.** Zwei verschiedene Engines, verschiedene Tiefen ->
+  e|500-Referenz engine-divers bestaetigt; Keep-Stack korrumpiert Deep-Tier
+  NICHT (FFT-Extraktion, Staffelung, Caches alle sauber bei dps 520).
+- Faktor-1-Modell haelt im Deep-Bereich: Kontur 496.3 ~ gemessene 495.
+- Speed-Indiz: Fork ~5.4h vs Original ~8h/Lauf (beide Mischlast) -> ~1.4x.
+- In meta.v5_correction.engine_diversity_check dokumentiert.

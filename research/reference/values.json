@@ -116,7 +116,13 @@
    "proven_digits": {
     "sexp|e|0.5|500": 497.0
    },
-   "old_first_divergence_digit": 63
+   "old_first_divergence_digit": 63,
+   "engine_diversity_check": {
+    "date": "2026-07-11",
+    "fork_dps520_vs_original_dps533_agreement_digits": 495,
+    "fork_kontur_re": 496.39,
+    "note": "Fork-Engine (10 Keeps) vs Original-Engine, verschiedene dps: 495 digits Uebereinstimmung. Staerkste Beweisform; validiert Keep-Stack bei Deep-Tier. Fork-Laufzeit ~5.4h vs Original ~8h pro Lauf (Mischlast)."
+   }
   }
  },
  "values": {
