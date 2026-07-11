@@ -789,3 +789,12 @@ Format pro Eintrag:
 
 - Wasserlinie Keep#15: **dps 300 = 237.6s (4.0 min), 294 digits — 6.8x
   seit heute Morgen.** dps-520-Headline-Lauf gestartet.
+
+---
+
+## MEILENSTEIN 2026-07-11 — 500-digit-Klasse in 35 Minuten
+- **dps 520 mit 15 Keeps: 2095.7s = 34.9 min, 495 echte digits (bewiesen
+  gegen v5-Referenz), 293 Iter, Grid 3840, kontur 496.2.**
+- Heute Morgen: ~5.4h (Fork-Racer, 10 Keeps) -> **9.3x an einem Tag.**
+- Gemessen UNTER LAST (Original-2|500-Marathon parallel). Nutzer-Ziel
+  <30 min: fehlen ~1.17x -> exp-027 (inkrementelle Extraktion) laeuft an.
