@@ -842,3 +842,25 @@ Format pro Eintrag:
 - Diagnose-Lauf (fatou_diag_band.gp) misst jetzt die Band-Struktur des
   Diffs (Kopf- UND Schwanz-Grenze): falls schmales Band -> strukturelle
   Band-Extraktion moeglich (Samples ~ Bandbreite statt Grid).
+
+---
+
+## Anker-Crash + exp-030/031 (2026-07-12) — dps-1020-Blocker gefunden und behoben
+- dps-1020-Ankerlauf CRASHTE bei Iteration 190 (re 326, Grid 2304):
+  **"not enough memory" in bluedft** — Karatsuba-Poly-Mult (Grad ~4600,
+  ~730-digit-Koeffizienten) sprengt den 2GB-PARI-Stack. GP bricht das
+  Statement ab und laeuft weiter -> ren=Garbage, sexp-Folgefehler
+  (rslog blieb t_POL). dps 520 war knapp unter der Schwelle.
+- Diff-Poly ist VOLLBANDIG (Diagnose band=[1,deg] auf allen Stufen) ->
+  keine Band-Extraktion moeglich; O(digits^2)-Kern steht in dieser
+  Algorithmus-Familie. Konstante druecken + Blocker beseitigen.
+- **exp-030**: Chirp-Caches (Extraktions-Mapping conj(c0)^s*om^-s*rinv^s
+  pro Stretch; bluedft-Chirps in 2-Slot-Cache) — Potenzen (~11 Mults/Term
+  JEDE Iteration) nur noch einmal pro Stretch.
+- **exp-031**: bluedft-Konvolution via pow2-FFT statt Poly-Mult (Prototyp
+  research/tools/bluestein_fft_proto.gp: relerr 1e-208 @dps200, 2-3x
+  schneller, ~26MB statt >2GB) + b-Seiten-FFT gecacht (nur noch 2 FFTs
+  pro Aufruf). Behebt den 1020er-Memory-Crash strukturell.
+- Anker-Zwischendaten (bis re 326 @dps1020): pro Iter tsmp 6.2s,
+  text 3.1s, tth 1.4s — Extraktion+Sampling ~90%.
+- A/B dps 300 (030+031 kombiniert) laeuft.
