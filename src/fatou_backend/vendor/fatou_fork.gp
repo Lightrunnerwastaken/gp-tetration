@@ -23,6 +23,8 @@ efam=0; /* exp-011b: set by loop() — base-e family gets the fft extraction */
    the evolving ct/theta state — cache walk endpoints per sample index
    across loop iterations while the sampling grid is unchanged. */
 swon=0; swidx=0; swkey=0; swz=0; swn=0; swvalid=0; swb=0;
+/* exp-021: incremental ct-Horner state */
+icct=0; icvals=0; icA=0; ickey=0; icdct=0; icdig=60; icfull=1;
 quietmode=0;
 /* I added || (real(Period)>47) to handle speed for sexpinit(1.4494); takes the place of theta0lim=0.224 */
 theta0lim=0.0002; /* theta0lim=0.0224; */
@@ -795,6 +797,31 @@ renormslog(ct) = {
   return(z);
 }
 
+/* exp-021: abelest(zz,ct) for sampling — the ct-Horner dominates warm
+   sample cost (1.87ms of 1.88ms at dps 220 / 2561 terms). Between passes
+   ct changes only by ~10^-re, so evaluate the DIFF polynomial at reduced
+   precision (additive update, no cancellation) against a cached per-sample
+   value. Full recompute whenever the grid changes (ickey mismatch). */
+icabel(zz) = {
+  local(h, A);
+  if (swon && swidx>0,
+    if (icfull,
+      A = rlnlm*(log(I*(zz-L))-Pi*I/2) + rlnlm2*(log(-I*(zz-L2))+Pi*I/2) + sfunczero;
+      h = subst(ct, x, (zz-circc));
+      icA[swidx] = A;
+      icvals[swidx] = h;
+    ,
+      h = icvals[swidx] + subst(icdct, x, precision(zz-circc, icdig));
+      icvals[swidx] = h;
+      A = icA[swidx];
+    );
+    h = A + h;
+    if ((imag(h)==0) && (complextaylor==0), h=real(h));
+    return(h);
+  );
+  return(abelest(zz, ct));
+}
+
 sfunc(z) = {
   local(y,y1,y2,zc,k0,n);
   if ((complextaylor==0) && (imag(z)<0), return(conj(sfunc(conj(z)))));
@@ -821,10 +848,10 @@ sfunc(z) = {
     );
   );
   if ((abs(z-circc)<ircircr)||(thetamode==0),
-    y1 = abelest(z,ct) + n;
+    y1 = icabel(z) + n;
   ,
     z=zc;
-    y2 = abelest(zc,ct); /* exp-015: lazy — only the theta path needs it */
+    y2 = icabel(zc); /* exp-015: lazy — only the theta path needs it */
     /* use theta mapping if abs(y-circc)>(ir*circr) */
     if (imag(y2)>0,
       y1 = isuperf(z)+polcoeff(tht,0);
@@ -1195,6 +1222,25 @@ staylor( w,r,samples) = {
       swvalid = vector(samples);
     );
     swon = 1;
+    /* exp-021: prepare incremental pass — diff of ct vs the previously
+       sampled ct, evaluated at reduced precision (digits needed = working
+       precision minus the diff's scale, +40 margin). */
+    icfull = 1;
+    if ((ickey == [samples, w, r]) && (type(icct) == "t_POL"),
+      icdct = ct - icct;
+      icsc = vecmax(apply(abs, Vec(icdct)));
+      if (icsc > 0,
+        icdig = max(30, default(realprecision) + ceil(log(icsc)/log(10)) + 40);
+        icdct = precision(icdct, icdig);
+        icfull = 0;
+      );
+    );
+    if (icfull,
+      icvals = vector(samples);
+      icA = vector(samples);
+    );
+    ickey = [samples, w, r];
+    icct = ct;
   );
   if (complextaylor,
     for(s=1, samples,

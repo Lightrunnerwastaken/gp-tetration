@@ -675,3 +675,21 @@ Format pro Eintrag:
 - Laufende Messung: research/tools/sfunc_micro.gp (fs/log/exp/ct-Horner/
   tht-subst/abelest/sfunc-cold einzeln nach konvergiertem dps-220-Init).
   exp-021-Design wartet auf diese Fakten.
+
+---
+
+## exp-021 (2026-07-11) — Inkrementeller ct-Horner: KEEP (#12)
+- Mikrobench-Fakten (dps 220, ct 2561 Terme): warmer Sample = ct-Horner
+  1.87ms (Logs ~0); sfunc-Kaltwalk 10.8ms (~190 fs-Schritte); Low-Prec-
+  Horner 2.4x schneller (overhead-gebunden, NICHT mult-gebunden — Modell
+  korrigiert).
+- Mutation (efam/swon-gated): icabel() ersetzt abelest(*,ct) im Sampling.
+  Pro Grid-Stufe: voller Horner + Log-Teil einmal cachen; danach pro Pass
+  nur das Diff-Polynom dct=ct-ct_prev (Skala ~10^-re) auf icdig =
+  dps - re + 40 Digits auswerten und additiv updaten (auslöschungsfrei).
+  Reset bei Grid-Wechsel (ickey).
+- A/B gepaart dps 220: 368.8s -> 320.0s = **1.152x (13.2%)**, Werte
+  BIT-IDENTISCH. Weniger als projiziert: exp-008-Staffelung ueberlappt
+  (icdig ~ re+100 vs Arbeits-dps 2re+60 mid-run).
+- Gate: FULL PASS (identische Zahlen wie exp-020-Gate). Suite 45 passed.
+- Kumulativ heute (dps 220): 461.2s (vor exp-020) -> 320.0s = **1.44x**.
