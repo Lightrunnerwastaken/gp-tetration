@@ -786,3 +786,6 @@ Format pro Eintrag:
   leicht andere st-Ko-Evolution.
 - Gate: FULL PASS. Suite 45 passed.
 - **Kumulativ heute dps 220: 461.2s -> 89.0s = 5.18x.**
+
+- Wasserlinie Keep#15: **dps 300 = 237.6s (4.0 min), 294 digits — 6.8x
+  seit heute Morgen.** dps-520-Headline-Lauf gestartet.
