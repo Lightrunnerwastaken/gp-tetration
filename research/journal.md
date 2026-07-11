@@ -622,3 +622,19 @@ Format pro Eintrag:
   (Iterationen ueberspringen), exp-020 exakte Grids (Bluestein) gegen
   Power-of-2-Verlust. Fernziel-Hebel: Newton-Kantorovich (digits verdoppeln
   statt +2.1/Iter) und Residuen-Auswertung (Praezisions-Leiter).
+
+---
+
+## exp-019 (2026-07-11) — Aitken-Delta^2 auf ct-Koeffizienten: REVERT
+- Mutation: alle 6 Iterationen Aitken-Extrapolation ueber die letzten drei
+  ct-Iterierten (Fenster re in [40, looplim-10]), rr danach neu berechnet.
+- A/B dps 150 (paarweise, gleiche Last): aitk0 81.7s/72 Iter vs aitk1
+  77.9s/71 Iter, beide ~147 echte digits -> 4.6% < Rauschschwelle, REVERT.
+- **Mechanismus-Erkenntnis (wertvoll):** Die Kontur-Iteration ist KEINE
+  Kontraktion mit dominantem Mode in festem Raum, sondern eine
+  informationslimitierte Serien-Erweiterung: jede Iteration erzeugt ~2
+  digits durch NEUES Sampling (st waechst ~9 Terme/digit mit). Extrapolation
+  kann ungesampelte Information nicht erzeugen -> Iterationszahl ist durch
+  den Informationsfluss gepinnt. Beschleunigung => Sample-Pass verbilligen
+  (Grid exakt statt Power-of-2 = exp-020; sfunc-Kosten) oder Newton-artige
+  Schritte mit mehr Informationsgewinn pro Pass (Forschung).
