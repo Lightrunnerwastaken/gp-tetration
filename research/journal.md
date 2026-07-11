@@ -735,3 +735,7 @@ Format pro Eintrag:
   Basen unveraendert. ctrmul-Scan-Knopf bleibt (Default 1).
 - Gate: FULL PASS. Suite 45 passed, 3 skipped.
 - **Kumulativ heute dps 220: 461.2s -> ~259s = 1.78x** (exp-020+021+023).
+
+- **Wasserlinie dps 300 mit Keeps #11-13: 811.9s (13.5 min), 294 digits,
+  175 Iter, Grid 2304. Morgen-Baseline 1606s -> 1.98x an einem Tag.**
+  Hochrechnung dps 520: ~2.7-3h (war 5.4h) -> fuer <30min fehlen ~5-6x.
