@@ -661,3 +661,17 @@ Format pro Eintrag:
   8192), identische 294 echte digits, 143 Iter. Hochrechnung dps 520:
   ~3.7h statt 5.4h. Fuer <30min fehlen weitere ~7x -> sfunc-Kosten/Call
   und Newton-Track.
+
+---
+
+## Vorarbeit exp-021 (2026-07-11) — sfunc-Kostenmodell pruefen
+- Zweig-Zaehlung dps 150 (research/tools/fatou_profile2.gp): 66% direkter
+  abelest-Pfad, 34% Theta-Pfad. Beide enthalten den ct-Horner an FIXEN
+  Punkten pro Grid-Stufe -> inkrementelle Evaluation (dct ~ 10^-re,
+  additiv, keine Ausloeschung) waere anwendbar.
+- ABER Mikro-Test: subst() bei 2000 Termen ist bei dps 300 vs dps 60
+  GLEICH schnell (15 vs 16ms/50 Calls) -> interpreter-overhead-gebunden,
+  nicht mult-gebunden. Kostenmodell "Horner dominiert" ist verdaechtig.
+- Laufende Messung: research/tools/sfunc_micro.gp (fs/log/exp/ct-Horner/
+  tht-subst/abelest/sfunc-cold einzeln nach konvergiertem dps-220-Init).
+  exp-021-Design wartet auf diese Fakten.
