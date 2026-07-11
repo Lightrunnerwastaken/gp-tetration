@@ -821,3 +821,14 @@ Format pro Eintrag:
 - Tages-Keeps #11-16: 256er-Grids+Bluestein, inkrementeller ct-Horner,
   Sampling-Radius 0.9, isuperf-Cache (2.24x!), Theta-Quantisierung+Caches,
   inkrementelle Extraktion. Alle Gate FULL PASS, alle digits-verifiziert.
+
+---
+
+## exp-028 (2026-07-12) — 512er-Quantum-Retest nach Keeps 14-16: REVERT
+- Hypothese: Kalt-Paesse relativ teurer geworden (warme Iter 3x billiger
+  seit exp-022) -> groesseres Quantum koennte jetzt gewinnen.
+- A/B gepaart dps 300: 200.6s (base, 256er) -> 221.4s (512er) = 10%
+  LANGSAMER. End-Grid-Overshoot (3072 vs 2304) dominiert weiterhin.
+  256er-Quantum zweifach bestaetigt.
+- Nebenbefund: dps-300-Wasserlinie mit Keep #16 = **200.6s (3.3 min)**.
+- dps-1020-Ankerlauf (instrumentiert) laeuft fuer die Skalierungs-Analyse.
