@@ -595,3 +595,11 @@ Format pro Eintrag:
 - Faktor-1-Modell haelt im Deep-Bereich: Kontur 496.3 ~ gemessene 495.
 - Speed-Indiz: Fork ~5.4h vs Original ~8h/Lauf (beide Mischlast) -> ~1.4x.
 - In meta.v5_correction.engine_diversity_check dokumentiert.
+
+- Probe dps 400: **382 echte digits** (~83 min unter Last). Kurve komplett:
+  220->193, 300->294, 400->382, 520->495. Modell: echte digits ~ dps - 24
+  + Ueberschuss 0..+20 (Iterations-Quantisierung; Exit bei re>=looplim,
+  looplim ~ dps-24). Fuer X garantierte digits: dps ~ X+30 bestellen.
+- Zeitskalierung Deep-Tier steil: 18min/83min/5.4h fuer dps 300/400/520
+  (Mischlast) -> Speed-Hebel ist Zeit pro Iteration (Serie/sfunc), nicht
+  Praezisions-Bestellung. Naechster Angriffspunkt nach 2|500-Abschluss.
