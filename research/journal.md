@@ -603,3 +603,22 @@ Format pro Eintrag:
 - Zeitskalierung Deep-Tier steil: 18min/83min/5.4h fuer dps 300/400/520
   (Mischlast) -> Speed-Hebel ist Zeit pro Iteration (Serie/sfunc), nicht
   Praezisions-Bestellung. Naechster Angriffspunkt nach 2|500-Abschluss.
+
+---
+
+## Profiling-2026-07-11 — Deep-Tier-Zeitverteilung (research/tools/fatou_profile.gp)
+- Instrumentierte Fork-Kopie, dps 300 (1606s Last) + dps 220 (Feinprofil).
+- **staylor = 92% der Gesamtzeit; davon ~98% die sfunc-Sampling-Schleife.**
+  FFT-Extraktion (exp-011b) ist erledigt (~0.2s/Iter vs 12s Sampling).
+- stopterms waechst linear: ~9 Terme/Digit (re 105 -> st 933, re 205 ->
+  st 1945). Power-of-2-Rundung (efam-FFT-Grid) verschwendet bis ~2x:
+  re 217 braucht ~2170 Terme -> Grid 4096 (2048 sfunc-Calls statt ~1086).
+  Ratchet bestaetigt: length(ct) zwingt Folge-Iterationen aufs grosse Grid;
+  letzte Iteration dps300 lief auf Grid 8192.
+- Konvergenz strikt linear ~2.05 digits/Iter (144 Iter fuer 294 digits).
+- Instrumentierung validiert: Profil-Lauf liefert identische 294 echte
+  digits wie saubere Probe.
+- Abgeleitete Experimente: exp-019 Aitken-Delta^2 auf ct-Koeffizienten
+  (Iterationen ueberspringen), exp-020 exakte Grids (Bluestein) gegen
+  Power-of-2-Verlust. Fernziel-Hebel: Newton-Kantorovich (digits verdoppeln
+  statt +2.1/Iter) und Residuen-Auswertung (Praezisions-Leiter).
