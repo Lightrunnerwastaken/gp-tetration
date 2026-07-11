@@ -32,6 +32,10 @@ swisf=0; swisfv=0;
 /* exp-026: theta-grid quantization + per-index superf cache + incremental
    abelest for thfunc (same program as exp-020/021/024, theta side) */
 thon=0; thidx=0; thskey=0; thsw=0; thswv=0; thicv=0; thicA=0; thfull=1; thdct=0; thdig=60;
+/* exp-027: incremental extraction — the DFT is linear, so transform only
+   the t_est diff (scale ~10^-re) at reduced precision and add to the
+   previous pass's coefficients */
+exkey=0; extest=0; excoef=0;
 quietmode=0;
 /* I added || (real(Period)>47) to handle speed for sexpinit(1.4494); takes the place of theta0lim=0.224 */
 theta0lim=0.0002; /* theta0lim=0.0224; */
@@ -1340,23 +1344,49 @@ staylor( w,r,samples) = {
      (research/tools/fft_extraction_proto.gp). All other bases keep the
      original rotation loop (their accuracy depends on the unrounded grid). */
   if (efam,
+    /* exp-027: on an unchanged grid, extract only the diff of the samples
+       at reduced precision (the transform is linear); full extract at
+       stretch starts. exdig from the diff's scale like exp-021. */
+    exin = t_est;
+    exinc = 0;
+    if ((exkey == [samples, w, r]) && (type(extest) == "t_VEC"),
+      exin = vector(length(t_est), i, t_est[i] - extest[i]);
+      exsc = vecmax(apply(abs, exin));
+      if (exsc > 0,
+        exdig = max(30, default(realprecision) + ceil(log(exsc)/log(10)) + 40);
+        exp0 = default(realprecision);
+        default(realprecision, exdig);
+        exin = vector(length(exin), i, precision(exin[i], exdig));
+        exinc = 1;
+      , exinc = -1);
+    );
+    if (exinc >= 0,
     if (complextaylor,
       om = exp(2*Pi*I/samples);
       c0 = exp(-Pi*I*(1+1/samples));
       if (2^valuation(samples,2)==samples,
-        G = fft(powers(om^(-1), samples-1), t_est)
+        G = fft(powers(om^(-1), samples-1), exin)
       ,
-        G = bluedft(t_est));
+        G = bluedft(exin));
       coeffs = vector(terms, s, (rinv^s/samples) * conj(c0)^s * om^(-s) * G[(s%samples)+1]);
     ,
       mu = exp(Pi*I/samples);
       c1 = exp(-Pi*I/(2*samples));
       if (2^valuation(samples,2)==samples,
-        G = fft(powers(mu^(-1), 2*samples-1), concat(t_est, vector(samples, i, 0)))
+        G = fft(powers(mu^(-1), 2*samples-1), concat(exin, vector(samples, i, 0)))
       ,
-        G = bluedft(concat(t_est, vector(samples, i, 0))));
+        G = bluedft(concat(exin, vector(samples, i, 0))));
       coeffs = vector(terms, s, (rinv^s/samples) * real(conj(c1)^s * mu^(-s) * G[(s%(2*samples))+1]));
     );
+    );
+    if (exinc == 1,
+      default(realprecision, exp0);
+      coeffs = vector(terms, s, excoef[s] + coeffs[s]);
+    );
+    if (exinc == -1, coeffs = excoef);
+    exkey = [samples, w, r];
+    extest = t_est;
+    excoef = coeffs;
     wtaylor = Polrev(concat([0], coeffs));
     for (s=1,terms,
       y2=y1;

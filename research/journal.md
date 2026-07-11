@@ -798,3 +798,15 @@ Format pro Eintrag:
 - Heute Morgen: ~5.4h (Fork-Racer, 10 Keeps) -> **9.3x an einem Tag.**
 - Gemessen UNTER LAST (Original-2|500-Marathon parallel). Nutzer-Ziel
   <30 min: fehlen ~1.17x -> exp-027 (inkrementelle Extraktion) laeuft an.
+
+---
+
+## exp-027 KEEP (#16) — Inkrementelle Extraktion
+- Mutation (efam): Extraktion (fft/bluedft + Chirp-Mapping) ist LINEAR ->
+  auf unveraendertem Grid nur den t_est-Diff (Skala ~10^-re) auf exdig =
+  dps - re + 40 digits transformieren und zu excoef addieren; voller
+  Transform am Stufenstart. default(realprecision) fuer den Diff-Transform
+  temporaer gesenkt (chirps/powers rechnen dann echt billig).
+- A/B gepaart dps 220: 87.3s -> **73.3s = 1.192x**, volle 191 digits.
+- Gate: FULL PASS. Suite 45 passed.
+- **Kumulativ heute dps 220: 461.2s -> 73.3s = 6.29x.**
