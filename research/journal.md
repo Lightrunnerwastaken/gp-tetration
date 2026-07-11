@@ -810,3 +810,14 @@ Format pro Eintrag:
 - A/B gepaart dps 220: 87.3s -> **73.3s = 1.192x**, volle 191 digits.
 - Gate: FULL PASS. Suite 45 passed.
 - **Kumulativ heute dps 220: 461.2s -> 73.3s = 6.29x.**
+
+---
+
+## ZIEL ERREICHT (2026-07-12 00:30) — 500 digits unter 30 Minuten
+- **dps 520 mit 16 Keeps: 1485.8s = 24.8 min, 495 echte digits (bewiesen
+  gegen v5-Referenz). Unter Last (2|500-Marathon parallel).**
+- Ausgangspunkt gestern Morgen: ~5.4h -> **13.1x in ~36 Stunden Loop.**
+- Nutzer-Ziel "500 digits < 30 min compute" ERREICHT mit Reserve.
+- Tages-Keeps #11-16: 256er-Grids+Bluestein, inkrementeller ct-Horner,
+  Sampling-Radius 0.9, isuperf-Cache (2.24x!), Theta-Quantisierung+Caches,
+  inkrementelle Extraktion. Alle Gate FULL PASS, alle digits-verifiziert.
