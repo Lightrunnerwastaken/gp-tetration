@@ -707,3 +707,19 @@ Format pro Eintrag:
 - Neuer Knopf fuer exp-023: ctrmul (Sampling-Radius-Skalierung nach
   initsch) — Radius-Scan lauft (0.90/0.95/1.05/1.10 @ dps150); Hypothese:
   Konvergenzrate (digits/Iter) haengt an der Kontur-Geometrie.
+
+- exp-021 dps-300-Bestaetigung: 1134.7s -> 974.7s = 1.164x (waechst mit
+  Tiefe), 294 digits identisch. Kumulativ dps 300 heute: 1606 -> 975s = 1.65x.
+
+---
+
+## exp-023 (2026-07-11) — Sampling-Radius-Scan (ctrmul-Knopf, Basis e)
+- dps 150-Kurve (alle 147 echte digits!): 0.75: 59.3s/136 Iter/768 |
+  0.80: 54.0/115/768 | **0.85: 49.8/98/1024** | 0.90: 51.2/87/1024 |
+  0.95: 55.1/79/1280 | 1.00: ~60/72/1536 | 1.05: 82.5/73/1792 |
+  1.10: 124.2/78/2560.
+- Struktur: kleinerer Radius -> langsamere Rate (mehr Iter), aber
+  ueberproportional kleineres Grid (weniger Terme/Digit). Produkt-Optimum
+  bei ctr_eff ~ 0.68 (= 0.85 * 0.8). Wand unter 0.80 (Iter-Explosion).
+- Verifikation dps 220 laeuft (0.85/0.90/1.00 gepaart) — Optimum koennte
+  tiefenabhaengig sein.
