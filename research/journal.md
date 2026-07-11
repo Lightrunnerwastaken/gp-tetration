@@ -693,3 +693,17 @@ Format pro Eintrag:
   (icdig ~ re+100 vs Arbeits-dps 2re+60 mid-run).
 - Gate: FULL PASS (identische Zahlen wie exp-020-Gate). Suite 45 passed.
 - Kumulativ heute (dps 220): 461.2s (vor exp-020) -> 320.0s = **1.44x**.
+
+---
+
+## exp-022 (2026-07-11) — 512er-Quantum oberhalb 2048: REVERT
+- Idee: Kalt-Walk-Paesse (11s/Grid-Wechsel, ~28% der Stufenkosten)
+  halbieren durch groebere Grid-Stufen.
+- A/B gepaart dps 220: 306.6s (base=021) -> 317.0s = **3.4% LANGSAMER**.
+  End-Grid 3072 statt 2560: die Rundungs-Verschwendung trifft genau die
+  teuersten spaeten Iterationen und frisst die Kalt-Pass-Ersparnis.
+- Learnings: Stufen-Analyse muss END-Grid-Overshoot gewichten; Kalt-Walk-
+  Front geparkt (Warm-Start ueber Grid-Wechsel waere Orbit-fremd).
+- Neuer Knopf fuer exp-023: ctrmul (Sampling-Radius-Skalierung nach
+  initsch) — Radius-Scan lauft (0.90/0.95/1.05/1.10 @ dps150); Hypothese:
+  Konvergenzrate (digits/Iter) haengt an der Kontur-Geometrie.
