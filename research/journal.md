@@ -559,3 +559,17 @@ Format pro Eintrag:
 - **Learnings:** Wrapper-Bestellung looplim=max(35, dps-20) war die Ursache
   der e|80-Schwaeche. Roundtrip-Identitaet ueber alle Experimente bestaetigt
   erneut: nur Agreement-vs-Referenz misst echte Genauigkeit.
+
+---
+
+## Referenz-v5 (2026-07-11) — Erste bewiesene e|500-Referenz (Marathon-Ergebnis)
+- Original-Engine-Marathon (sequentiell dps 520 + dps 533, ~16h Wandzeit)
+  abgeschlossen: kontur_e533 = 514.8.
+- **Fehler-Vektor (520 vs 533): 1.748e-497** -> der dps-533-Wert
+  sexp_e(0.5) hat >= 497 bewiesene digits. Erster bewiesener Deep-Tier-Wert.
+- Alter v1-Eintrag sexp|e|0.5|500 divergierte ab Digit 63 (gleiche
+  ~64-digit-Systematik wie die alte e|200-Referenz) -> ersetzt,
+  Provenienz in meta.v5_correction (delegierte Entscheidung).
+- Noch offen im 4-Wege-Rennen: Original 2|500 (dps 520+533), Fork-Racer
+  e|520 + 2|520 (Engine-Diversitaet als Zusatz-Beweis; Original laeuft
+  weiter, nicht abgebrochen — Nutzer-Direktive).
