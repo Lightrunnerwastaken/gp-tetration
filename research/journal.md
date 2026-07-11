@@ -768,3 +768,8 @@ Format pro Eintrag:
   Grid waechst JEDE Iteration (thsamples ~ re*0.43) -> nichts cachebar.
 - => exp-026: Theta-Grid auf 64er-Stufen quantisieren (efam, n==1) +
   superf-per-Index-Cache + inkrementeller abelest (thdct). A/B laeuft.
+
+- **Wasserlinien Keep#14: dps 300 = 341s (5.7 min, 294 digits), dps 400 =
+  1077s (18 min, 383 digits; nachmittags 83 min = 4.6x).** Hochrechnung
+  dps 520 ~55 min; mit exp-026 (1.28x im A/B) ~45 min -> 30-min-Ziel fuer
+  500 digits in Reichweite (~1.5-2x fehlen).
