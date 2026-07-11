@@ -26,9 +26,7 @@ efam=0; /* exp-011b: set by loop() — base-e family gets the fft extraction */
 swon=0; swidx=0; swkey=0; swz=0; swn=0; swvalid=0; swb=0;
 /* exp-021: incremental ct-Horner state */
 icct=0; icvals=0; icA=0; ickey=0; icdct=0; icdig=60; icfull=1;
-/* exp-024: isuperf/isuperf2 at the raw grid point depend only on the base
-   map — cache per sample index within a grid stretch (flag 1/2 = branch) */
-swisf=0; swisfv=0;
+pcdir=0; pcth=0;
 quietmode=0;
 /* I added || (real(Period)>47) to handle speed for sexpinit(1.4494); takes the place of theta0lim=0.224 */
 theta0lim=0.0002; /* theta0lim=0.0224; */
@@ -852,19 +850,15 @@ sfunc(z) = {
     );
   );
   if ((abs(z-circc)<ircircr)||(thetamode==0),
+    pcdir++;
     y1 = icabel(z) + n;
   ,
     z=zc;
     y2 = icabel(zc); /* exp-015: lazy — only the theta path needs it */
     /* use theta mapping if abs(y-circc)>(ir*circr) */
     if (imag(y2)>0,
-      if (swon && swidx>0 && swisfv[swidx]==1,
-        y1 = swisf[swidx];
-      ,
-        y1 = isuperf(z);
-        if (swon && swidx>0, swisf[swidx]=y1; swisfv[swidx]=1);
-      );
-      y1 = y1 + polcoeff(tht,0);
+      pcth++;
+      y1 = isuperf(z)+polcoeff(tht,0);
       while (abs(y1-y2)>abs(y1-y2+Period), y1=y1+Period);
       while (abs(y1-y2)>abs(y1-y2-Period), y1=y1-Period);
       y1=y1-polcoeff(tht,0);
@@ -872,13 +866,8 @@ sfunc(z) = {
       n = I;
       y1 = y1 + subst(tht,x,exp((y1-zth)*2*Pi*I));
     ,
-      if (swon && swidx>0 && swisfv[swidx]==2,
-        y1 = swisf[swidx];
-      ,
-        y1 = isuperf2(z);
-        if (swon && swidx>0, swisf[swidx]=y1; swisfv[swidx]=2);
-      );
-      y1 = y1 + polcoeff(tht2,0);
+      pcth++;
+      y1 = isuperf2(z)+polcoeff(tht2,0);
       while (abs(y1-y2)>abs(y1-y2+Period2), y1=y1+Period2);
       while (abs(y1-y2)>abs(y1-y2-Period2), y1=y1-Period2);
       y1=y1-polcoeff(tht2,0);
@@ -1232,12 +1221,11 @@ staylor( w,r,samples) = {
   if (efam,
     if (swkey != [samples, w, r],
       swkey = [samples, w, r];
+      print("PROF coldpass grid=", samples);
       swz = vector(samples);
       swn = vector(samples);
       swb = vector(samples);
       swvalid = vector(samples);
-      swisf = vector(samples);
-      swisfv = vector(samples);
     );
     swon = 1;
     /* exp-021: prepare incremental pass — diff of ct vs the previously
@@ -1278,6 +1266,7 @@ staylor( w,r,samples) = {
   );
   swon = 0;
   swidx = 0;
+  profsmp=gettime();
   wtaylor=0;
   y0=0;
   y1=0;
@@ -1336,6 +1325,7 @@ staylor( w,r,samples) = {
       );
     );
   );
+  profext=gettime();
   if (st==0, st=terms);
   wtaylor=precision(wtaylor,precis);
   if (complextaylor, wtaylor=subst(wtaylor,x,x*exp(-argc*I)));
@@ -1387,6 +1377,7 @@ loop(kc,nlim,nskip,looplim) = {
 
   while ((re<looplim) && (n<nlim) && (nskip>=0) && ((re>relast) || (nskip>0)),
     n++;
+    gettime();
     /* exp-018: extend the iteration cap for ALL bases until the looplim
        goal is reached. exp-007d had restricted this to the e-family
        because extended runs seemed to "degrade" fast bases — that was a
@@ -1416,6 +1407,7 @@ loop(kc,nlim,nskip,looplim) = {
       );
     );
 
+    proftth=gettime();
     ctsamples = floor((stopterms+20)*1.03);
     ctsamples = 4*floor(ctsamples/4);
     if ((re<relast) || (re>=skipdec),
@@ -1438,11 +1430,13 @@ loop(kc,nlim,nskip,looplim) = {
        gains of <0.001 digits before nskip runs out (~3 x 10.4s at e|200).
        Marginal gains spend a stall credit immediately. */
     if ((n>3) && ((re-relast) < 0.1), nskip--);
+    print("PROF ", n, " re=", re, " dps=", default(realprecision), " cts=", ctsamples, " st=", stopterms, " tth=", proftth, " tsmp=", profsmp, " text=", profext, " trest=", gettime());
     if (quietmode==0,
 /*    printf("%4d =loopcnt %5.1f decimal digits, %4d ctsamples,%4d %4d thsamples\n", n, re, ctsamples, stopterms, thsamples);*/
       print(n "=loopcnt "re" decimal digits, "ctsamples" ctsamples, "thsamples" thsamples");
     );
   );
+  print("PCOUNT dir=", pcdir, " theta=", pcth);
   default(realprecision, precis);  /* exp-008: restore full precision */
   ctd = deriv(ct);
   if ((quietmode<0) && ((n%4)<>0) ,print());

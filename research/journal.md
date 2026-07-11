@@ -739,3 +739,17 @@ Format pro Eintrag:
 - **Wasserlinie dps 300 mit Keeps #11-13: 811.9s (13.5 min), 294 digits,
   175 Iter, Grid 2304. Morgen-Baseline 1606s -> 1.98x an einem Tag.**
   Hochrechnung dps 520: ~2.7-3h (war 5.4h) -> fuer <30min fehlen ~5-6x.
+
+---
+
+## exp-024 KEEP (#14) — isuperf/isuperf2 per-Sample-Cache: GROESSTER EINZELGEWINN
+- Frisches Profil (fatou_profile3.gp, dps 220 nach Keeps 11-13): Sampling
+  71%, Kalt-Paesse nur 12% davon (entwarnt); Rechnung ergab Theta-Zweig-
+  Samples ~6ms vs direkte ~1.2ms -> unvermessener Baustein isuperf.
+- Befund: isuperf(z) ist ein ZWEITER Orbit-Walk (bis 0.01 an Fixpunkt L,
+  potenziell hunderte fs-Schritte) — Input ist der FIXE Grid-Punkt zc,
+  haengt nur von der Basis-Abbildung ab (ct-unabhaengig) -> exakt wie
+  exp-012 pro Grid-Stufe cachebar (swisf/swisfv, Flag 1/2 = Zweig).
+- A/B gepaart dps 220: 258.8s -> **115.6s = 2.239x**, Werte BIT-IDENTISCH,
+  gleiche 132 Iterationen. Gate: FULL PASS. Suite 45 passed.
+- **Kumulativ heute dps 220: 461.2s -> 115.6s = 3.99x.**
