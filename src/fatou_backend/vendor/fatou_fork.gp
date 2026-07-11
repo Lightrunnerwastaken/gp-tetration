@@ -29,6 +29,9 @@ icct=0; icvals=0; icA=0; ickey=0; icdct=0; icdig=60; icfull=1;
 /* exp-024: isuperf/isuperf2 at the raw grid point depend only on the base
    map — cache per sample index within a grid stretch (flag 1/2 = branch) */
 swisf=0; swisfv=0;
+/* exp-026: theta-grid quantization + per-index superf cache + incremental
+   abelest for thfunc (same program as exp-020/021/024, theta side) */
+thon=0; thidx=0; thskey=0; thsw=0; thswv=0; thicv=0; thicA=0; thfull=1; thdct=0; thdig=60;
 quietmode=0;
 /* I added || (real(Period)>47) to handle speed for sexpinit(1.4494); takes the place of theta0lim=0.224 */
 theta0lim=0.0002; /* theta0lim=0.0224; */
@@ -217,9 +220,31 @@ xfixed=
 
 /* theta transform mapped to unit circle */
 thfunc(z,n) = {
-  local(y);
+  local(y,p,h,A);
   if (n<>2,
     y=log(z)/(2*Pi*I);
+    if (thon && thidx>0,
+      /* exp-026: superf(zth+y) depends only on the base map at the fixed
+         grid point — cache it; abelest's ct-Horner updates incrementally
+         against the previous pass (diff-poly thdct at reduced precision). */
+      if (thswv[thidx],
+        p = thsw[thidx];
+      ,
+        p = superf(zth+y);
+        thsw[thidx] = p; thswv[thidx] = 1;
+      );
+      if (thfull,
+        A = rlnlm*(log(I*(p-L))-Pi*I/2) + rlnlm2*(log(-I*(p-L2))+Pi*I/2) + sfunczero;
+        h = subst(ct, x, (p-circc));
+        thicA[thidx] = A; thicv[thidx] = h;
+      ,
+        h = thicv[thidx] + subst(thdct, x, precision(p-circc, thdig));
+        thicv[thidx] = h;
+        A = thicA[thidx];
+      );
+      y = (A + h) - y - zth;
+      return(y);
+    );
     y = abelest(superf(zth+y),ct)-y-zth;
     return(y);
   ,
@@ -230,18 +255,41 @@ thfunc(z,n) = {
 }
 /* taylor series function ussing thfunc which is defined by sfuncmode */
 thtaylor(n,samples) = {
-  local(s,t,x1,y,z,tot,t_est,tcrc,halfsamples,wtaylor,terms);
+  local(s,t,x1,y,z,tot,t_est,tcrc,halfsamples,wtaylor,terms,thsc);
   if (samples==0, samples=120);  /* no matter how many sample points, the default gie series size is 200 halfsamples */
   samples = floor(samples);
+  /* exp-026: quantize the theta grid (efam, n==1) to 64-steps so it stays
+     unchanged for ~20-30 iterations — prerequisite for the caches below. */
+  if (efam && (n==1) && (samples>64), samples = 64*ceil(samples/64));
   terms=samples-1;
   t_est    = vector (samples,i,0);
   tcrc     = vector (samples,i,0);
   wtaylor=0;
+  if (efam && (n==1),
+    thfull = 1;
+    if ((thskey == samples) && (type(icct) == "t_POL"),
+      thdct = ct - icct;
+      thsc = vecmax(apply(abs, Vec(thdct)));
+      if (thsc > 0,
+        thdig = max(30, default(realprecision) + ceil(log(thsc)/log(10)) + 40);
+        thdct = precision(thdct, thdig);
+        thfull = 0;
+      );
+    );
+    if (thfull,
+      thsw = vector(samples); thswv = vector(samples);
+      thicv = vector(samples); thicA = vector(samples);
+    );
+    thskey = samples;
+    thon = 1;
+  );
   for(s=1, samples,
     x1 = -1 + -1/(samples) + (2*s/samples); /* -Pi to Pi */
     tcrc[s] = exp(Pi*I*x1);
+    thidx = s;
     t_est[s]= thfunc(tcrc[s],n);
   );
+  thon = 0; thidx = 0;
 
   for (s=0,terms,
     tot=0;

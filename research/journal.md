@@ -773,3 +773,16 @@ Format pro Eintrag:
   1077s (18 min, 383 digits; nachmittags 83 min = 4.6x).** Hochrechnung
   dps 520 ~55 min; mit exp-026 (1.28x im A/B) ~45 min -> 30-min-Ziel fuer
   500 digits in Reichweite (~1.5-2x fehlen).
+
+---
+
+## exp-026 KEEP (#15) — Theta-Quantisierung + superf-Cache + inkrementeller thfunc-Horner
+- Mutation (efam, n==1): thsamples auf 64er-Stufen quantisiert (Grid ~25
+  Iterationen stabil), superf(zth+y) pro Index gecacht (ct-unabhaengig),
+  abelest-ct-Horner inkrementell via thdct (nutzt icct aus exp-021 —
+  thtaylor laeuft VOR staylor, daher haelt icct noch ct_{n-1}).
+- A/B gepaart dps 220: 114.1s -> **89.0s = 1.282x**, volle 191 digits.
+  Nebeneffekt: staylor-Grid kleiner (1536 statt 1792, +2 Iter) durch
+  leicht andere st-Ko-Evolution.
+- Gate: FULL PASS. Suite 45 passed.
+- **Kumulativ heute dps 220: 461.2s -> 89.0s = 5.18x.**
