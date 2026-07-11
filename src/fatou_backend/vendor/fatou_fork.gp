@@ -1147,6 +1147,20 @@ invabel_sexp(z) = {
   return(z);
 }
 
+/* exp-020: exact-N DFT via Bluestein chirp + poly mult, for grids that
+   are not powers of 2. Verified vs naive rotation DFT to precision floor
+   (research/tools/bluestein_proto.gp; N=12/100/1000/2100, ~53x faster
+   than rotation at N=2100). */
+bluedft(t) = {
+  local(nn, ch, a, b, pp);
+  nn = length(t);
+  ch = exp(-Pi*I/nn);
+  a = vector(nn, j, t[j] * ch^((j-1)^2));
+  b = vector(2*nn-1, m, ch^(-(m-nn)^2));
+  pp = Polrev(a) * Polrev(b);
+  vector(nn, k, ch^((k-1)^2) * polcoeff(pp, (k-1)+(nn-1)));
+}
+
 staylor( w,r,samples) = {
   local(rinv,s,t,x1,y,y0,y1,y2,st,z,tot,t_est,tcrc,halfsamples,wtaylor,terms,om,c0,mu,c1,G,coeffs);
   if (samples==0, samples=240);  /* no matter how many sample points, the default gie series size is 200 halfsamples */
@@ -1154,7 +1168,15 @@ staylor( w,r,samples) = {
      costs the factor-2 bases their delicate sample/terms co-evolution
      (gate: 30-43 digits), so it applies ONLY to the base-e family where
      the expensive long inits live. */
-  if (efam, z=1; while (z<samples, z=z*2); samples=z);
+  /* exp-020: 256-step grids instead of power-of-2 (waste <=12% instead
+     of up to 2x in sfunc sampling, the dominant cost); the exp-012 walk
+     cache stays valid within each step. Extraction routes to bluedft()
+     when the grid is not a power of 2. */
+  if (efam,
+    if (samples <= 256,
+      z=1; while (z<samples, z=z*2); samples=z
+    ,
+      samples = 256*ceil(samples/256)));
   terms=samples;
   if (complextaylor==0, samples=samples/2);
   t_est    = vector (samples,i,0);
@@ -1209,12 +1231,18 @@ staylor( w,r,samples) = {
     if (complextaylor,
       om = exp(2*Pi*I/samples);
       c0 = exp(-Pi*I*(1+1/samples));
-      G = fft(powers(om^(-1), samples-1), t_est);
+      if (2^valuation(samples,2)==samples,
+        G = fft(powers(om^(-1), samples-1), t_est)
+      ,
+        G = bluedft(t_est));
       coeffs = vector(terms, s, (rinv^s/samples) * conj(c0)^s * om^(-s) * G[(s%samples)+1]);
     ,
       mu = exp(Pi*I/samples);
       c1 = exp(-Pi*I/(2*samples));
-      G = fft(powers(mu^(-1), 2*samples-1), concat(t_est, vector(samples, i, 0)));
+      if (2^valuation(samples,2)==samples,
+        G = fft(powers(mu^(-1), 2*samples-1), concat(t_est, vector(samples, i, 0)))
+      ,
+        G = bluedft(concat(t_est, vector(samples, i, 0))));
       coeffs = vector(terms, s, (rinv^s/samples) * real(conj(c1)^s * mu^(-s) * G[(s%(2*samples))+1]));
     );
     wtaylor = Polrev(concat([0], coeffs));

@@ -638,3 +638,21 @@ Format pro Eintrag:
   den Informationsfluss gepinnt. Beschleunigung => Sample-Pass verbilligen
   (Grid exakt statt Power-of-2 = exp-020; sfunc-Kosten) oder Newton-artige
   Schritte mit mehr Informationsgewinn pro Pass (Forschung).
+
+---
+
+## exp-020 (2026-07-11) — 256er-Grids + Bluestein-Extraktion: KEEP (#11)
+- Mutation (efam-only): staylor-Grid > 256 wird auf 256er-Vielfache
+  quantisiert statt Power-of-2 (Verschwendung <=12% statt bis 2x im
+  dominanten sfunc-Sampling); Extraktion routet bei Nicht-Power-of-2
+  auf bluedft() (Bluestein-Chirp + PARI-Poly-Mult, exakt-N-DFT).
+  Prototyp research/tools/bluestein_proto.gp: relerr ~1e-73 @dps60,
+  53x schneller als Rotations-DFT bei N=2100.
+- A/B gepaart (identische Last): dps 220: 461.2s -> 353.9s = **1.30x**
+  (Grid 8192 -> 2560), beide 191 echte digits. dps 150: 81.7 -> 68.3s =
+  **+16.4%**. Gewinn waechst mit Tiefe (Grid-Waste waechst).
+- Gate: FULL PASS (alle 80.0/194.3/193.1, Roundtrips sauber). Suite 45
+  passed, 3 skipped. exp-012-Walk-Cache bleibt innerhalb der 256er-Stufen
+  gueltig (Grid-Identitaet [samples,w,r] unveraendert pro Stufe).
+- Erwartung Deep-Tier: ~1.4x bei dps 300+; naechster Hebel = sfunc-Kosten
+  pro Call bzw. Newton-artige Schritte (mehr Info pro Sample-Pass).
