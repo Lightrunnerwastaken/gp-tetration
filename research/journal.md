@@ -753,3 +753,18 @@ Format pro Eintrag:
 - A/B gepaart dps 220: 258.8s -> **115.6s = 2.239x**, Werte BIT-IDENTISCH,
   gleiche 132 Iterationen. Gate: FULL PASS. Suite 45 passed.
 - **Kumulativ heute dps 220: 461.2s -> 115.6s = 3.99x.**
+
+---
+
+## exp-025 (2026-07-11) — thtaylor-DFT via bluedft: REVERT (neutral)
+- Frisches Profil nach Keep #14 (dps 220, 113s): theta-rebuild 39s (35%),
+  Sampling 41s (36%), Extraktion 33s (29%) — drei gleich grosse Fronten.
+- Hypothese "Rotations-DFT dominiert theta" war FALSCH: bluedft-Swap
+  ergab 114.4 vs 114.9s (0.5%, Rauschen), Werte identisch -> REVERT
+  per Regelwerk. Kaveat: O(N^2)-Rotation koennte bei dps 500+ (N_tht
+  waechst mit re) wieder relevant werden — bei Deep-Benchmarks pruefen.
+- Wahre theta-Kosten: thfunc-Sampling = superf-WALK (ct-unabhaengig, fixer
+  Punkt!) + VOLLER abelest-ct-Horner (~1.9ms) pro Punkt. Problem: Theta-
+  Grid waechst JEDE Iteration (thsamples ~ re*0.43) -> nichts cachebar.
+- => exp-026: Theta-Grid auf 64er-Stufen quantisieren (efam, n==1) +
+  superf-per-Index-Cache + inkrementeller abelest (thdct). A/B laeuft.
