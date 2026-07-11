@@ -873,3 +873,15 @@ Format pro Eintrag:
 - Zusatznutzen: dps-1020-Memory-Blocker strukturell beseitigt (FFT-
   Konvolution ~26MB statt >2GB Karatsuba-Poly-Mult).
 - **Kumulativ dps 300: 1606s (gestern frueh) -> 168.3s = 9.5x.**
+
+---
+
+## Referenz-v6 (2026-07-12) — 2|500 doppelt bewiesen
+- Original-Marathon (~27h, dps 520+533): kontur_533 = 511.1,
+  **Fehler-Vektor 7.19e-498 => >=497 bewiesene digits** fuer sexp_2(0.5).
+- **Engine-Diversitaet: Fork(dps520) vs Original(dps533) = 496 digits**
+  Agreement — konsistent mit Fork-Kontur 496.65; beide Beweise decken sich.
+- Alter v1-Eintrag divergierte ab digit 41 (bekannte Basis-2-Systematik).
+- sexp|2|0.5|500 ersetzt, Provenienz meta.v6_correction (delegiert).
+- Damit sind BEIDE Deep-Referenzen (e|500, 2|500) bewiesen — das
+  4-Wege-Rennen von gestern ist vollstaendig abgeschlossen.
