@@ -36,6 +36,12 @@ thon=0; thidx=0; thskey=0; thsw=0; thswv=0; thicv=0; thicA=0; thfull=1; thdct=0;
    the t_est diff (scale ~10^-re) at reduced precision and add to the
    previous pass's coefficients */
 exkey=0; extest=0; excoef=0;
+/* exp-030: chirp caches — the extraction chirps depend only on the grid,
+   not on the iteration; computing them as fresh powers every pass costs
+   ~11 mults/term. Two-slot cache for bluedft (staylor+theta Ns), map
+   cache for the staylor coefficient mapping. */
+bd1n=0; bd1p=0; bd1t=0; bd1a=0; bd1b=0; bd1w=0; bd1m=0; bd2n=0; bd2p=0; bd2t=0; bd2a=0; bd2b=0; bd2w=0; bd2m=0; bdclock=1;
+exmap=0; exmapkey=0;
 quietmode=0;
 /* I added || (real(Period)>47) to handle speed for sexpinit(1.4494); takes the place of theta0lim=0.224 */
 theta0lim=0.0002; /* theta0lim=0.0224; */
@@ -1247,13 +1253,33 @@ invabel_sexp(z) = {
    (research/tools/bluestein_proto.gp; N=12/100/1000/2100, ~53x faster
    than rotation at N=2100). */
 bluedft(t) = {
-  local(nn, ch, a, b, pp);
+  local(nn, ch, M, w, fa, pp, sl, chv, fbv);
   nn = length(t);
-  ch = exp(-Pi*I/nn);
-  a = vector(nn, j, t[j] * ch^((j-1)^2));
-  b = vector(2*nn-1, m, ch^(-(m-nn)^2));
-  pp = Polrev(a) * Polrev(b);
-  vector(nn, k, ch^((k-1)^2) * polcoeff(pp, (k-1)+(nn-1)));
+  sl = 0;
+  if ((bd1n == nn) && (bd1p >= default(realprecision)), sl = 1);
+  if ((sl == 0) && (bd2n == nn) && (bd2p >= default(realprecision)), sl = 2);
+  if (sl == 0,
+    /* exp-031: convolution via pow2 FFT instead of poly mult — Karatsuba
+       temporaries blew the PARI stack at dps 1020 / grid 2304 (anchor
+       crash "not enough memory"); FFT is also 2-3x faster and the b-side
+       transform is grid-fixed, so it is cached alongside the chirps. */
+    ch = exp(-Pi*I/nn);
+    chv = vector(nn, j, ch^((j-1)^2));
+    M = 1; while (M < 3*nn-2, M = M*2);
+    w = powers(exp(2*Pi*I/M), M-1);
+    fbv = fft(w, concat(vector(2*nn-1, m, ch^(-(m-nn)^2)), vector(M-(2*nn-1), i, 0)));
+    if (bd1t <= bd2t,
+      bd1n=nn; bd1p=default(realprecision); bd1a=chv; bd1b=fbv; bd1w=w; bd1m=M; bd1t=bdclock++; sl=1
+    ,
+      bd2n=nn; bd2p=default(realprecision); bd2a=chv; bd2b=fbv; bd2w=w; bd2m=M; bd2t=bdclock++; sl=2);
+  );
+  if (sl == 1,
+    chv = bd1a; fbv = bd1b; w = bd1w; M = bd1m; bd1t=bdclock++
+  ,
+    chv = bd2a; fbv = bd2b; w = bd2w; M = bd2m; bd2t=bdclock++);
+  fa = fft(w, concat(vector(nn, j, t[j] * chv[j]), vector(M-nn, i, 0)));
+  pp = fftinv(w, vector(M, i, fa[i]*fbv[i]));
+  vector(nn, k, chv[k] * pp[(k-1)+(nn-1)+1] / M);
 }
 
 staylor( w,r,samples) = {
@@ -1368,7 +1394,11 @@ staylor( w,r,samples) = {
         G = fft(powers(om^(-1), samples-1), exin)
       ,
         G = bluedft(exin));
-      coeffs = vector(terms, s, (rinv^s/samples) * conj(c0)^s * om^(-s) * G[(s%samples)+1]);
+      if ((exmapkey != [samples, w, r, 1]) || (type(exmap) != "t_VEC"),
+        exmap = vector(terms, s, (rinv^s/samples) * conj(c0)^s * om^(-s));
+        exmapkey = [samples, w, r, 1];
+      );
+      coeffs = vector(terms, s, exmap[s] * G[(s%samples)+1]);
     ,
       mu = exp(Pi*I/samples);
       c1 = exp(-Pi*I/(2*samples));
@@ -1376,7 +1406,11 @@ staylor( w,r,samples) = {
         G = fft(powers(mu^(-1), 2*samples-1), concat(exin, vector(samples, i, 0)))
       ,
         G = bluedft(concat(exin, vector(samples, i, 0))));
-      coeffs = vector(terms, s, (rinv^s/samples) * real(conj(c1)^s * mu^(-s) * G[(s%(2*samples))+1]));
+      if ((exmapkey != [samples, w, r, 2]) || (type(exmap) != "t_VEC"),
+        exmap = vector(terms, s, conj(c1)^s * mu^(-s));
+        exmapkey = [samples, w, r, 2];
+      );
+      coeffs = vector(terms, s, (rinv^s/samples) * real(exmap[s] * G[(s%(2*samples))+1]));
     );
     );
     if (exinc == 1,

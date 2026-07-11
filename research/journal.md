@@ -864,3 +864,12 @@ Format pro Eintrag:
 - Anker-Zwischendaten (bis re 326 @dps1020): pro Iter tsmp 6.2s,
   text 3.1s, tth 1.4s — Extraktion+Sampling ~90%.
 - A/B dps 300 (030+031 kombiniert) laeuft.
+
+---
+
+## exp-030+031 KEEP (#17) — Chirp-Caches + FFT-Konvolution
+- A/B gepaart dps 300: 194.3s -> **168.3s = 1.155x**, volle 294 digits.
+- Gate: FULL PASS. Suite 45 passed.
+- Zusatznutzen: dps-1020-Memory-Blocker strukturell beseitigt (FFT-
+  Konvolution ~26MB statt >2GB Karatsuba-Poly-Mult).
+- **Kumulativ dps 300: 1606s (gestern frueh) -> 168.3s = 9.5x.**
