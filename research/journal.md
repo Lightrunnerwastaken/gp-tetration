@@ -656,3 +656,8 @@ Format pro Eintrag:
   gueltig (Grid-Identitaet [samples,w,r] unveraendert pro Stufe).
 - Erwartung Deep-Tier: ~1.4x bei dps 300+; naechster Hebel = sfunc-Kosten
   pro Call bzw. Newton-artige Schritte (mehr Info pro Sample-Pass).
+
+- Bestaetigung dps 300: 1606s -> 1134.7s CPU = **1.42x** (Grid 3584 statt
+  8192), identische 294 echte digits, 143 Iter. Hochrechnung dps 520:
+  ~3.7h statt 5.4h. Fuer <30min fehlen weitere ~7x -> sfunc-Kosten/Call
+  und Newton-Track.
