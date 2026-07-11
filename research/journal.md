@@ -573,3 +573,13 @@ Format pro Eintrag:
 - Noch offen im 4-Wege-Rennen: Original 2|500 (dps 520+533), Fork-Racer
   e|520 + 2|520 (Engine-Diversitaet als Zusatz-Beweis; Original laeuft
   weiter, nicht abgebrochen — Nutzer-Direktive).
+
+---
+
+## Kalibrierung-2026-07-11 — Fork Digits-vs-dps-Kurve gegen bewiesene e|500-Referenz
+- Probe dps 300 (Fork, sexpinit(e,400,4,0), unter Last von 4 parallelen
+  gp-Jobs): **294 echte digits** (Vergleich gegen v5-Referenz >=497 bewiesen),
+  Laufzeit ~15-20 min. looplim-Ziel (~280) um 14 digits ueberschossen ->
+  Gap-Modell im Deep-Bereich guenstiger als bei dps 220 (dort 193 echt).
+  Faustregel neu: echte digits ~ dps - 6 (statt dps - 27) bei dps 300.
+- Probe dps 400 laeuft (Erwartung ~390+ echte digits).
