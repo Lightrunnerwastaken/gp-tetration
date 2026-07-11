@@ -723,3 +723,15 @@ Format pro Eintrag:
   bei ctr_eff ~ 0.68 (= 0.85 * 0.8). Wand unter 0.80 (Iter-Explosion).
 - Verifikation dps 220 laeuft (0.85/0.90/1.00 gepaart) — Optimum koennte
   tiefenabhaengig sein.
+
+---
+
+## exp-023 KEEP (#13) — efam-Sampling-Radius ctr*9/10
+- Verifikation dps 220 (Trio, gleiche Last): 1.00: 304.9s | 0.90: 258.6s
+  = **1.179x (15.2%)** | 0.85: 257.4s. Alle volle 191 echte digits.
+- Keep-Wahl 0.90 statt 0.85: bei Tiefe waechst die Iterationsstrafe des
+  kleineren Radius (151 vs 132 Iter @220); 0.90 ist der robuste Punkt.
+- Implementiert als efam-gated `ctr = ctr*9/10` nach initsch; schnelle
+  Basen unveraendert. ctrmul-Scan-Knopf bleibt (Default 1).
+- Gate: FULL PASS. Suite 45 passed, 3 skipped.
+- **Kumulativ heute dps 220: 461.2s -> ~259s = 1.78x** (exp-020+021+023).

@@ -11,6 +11,7 @@ precis=precision(z);
 if (precis<=38, default(format,"g0.32"));
 ir  = 7/10;  /* automatically selected values: 7/10; 15/16 */
 ctr = 8/10;  /* automatically selected values: 8/10;  8/9  */
+ctrmul = 1;  /* exp-023 scan knob: scales the theta sampling radius */
 /* thlogk= 1/10; thlogk isn't used anymore :( see c:\pari\fatou_backup....gp for more details :( */
 superfr = 0.1;
 isuperfr = 0.01;
@@ -1338,6 +1339,13 @@ loop(kc,nlim,nskip,looplim) = {
      (b=2: kc~0.63, b=10: kc~1.83). */
   efam = (abs(kc-1) < 0.12);
   initsch(kc);
+  /* exp-023: for the base-e family a smaller sampling radius trades a
+     slightly slower rate (~2.05 -> ~1.7 digits/iter) for a much smaller
+     grid (terms/digit ~9 -> ~6): product optimum near ctr*0.9 at dps
+     150-300, ~16% faster with unchanged true digits. Fast bases keep
+     their original radius (delicate sample/terms co-evolution). */
+  if (efam, ctr = ctr*9/10);
+  if (ctrmul != 1, ctr = ctr*ctrmul);  /* scan knob, default 1 */
   if (nlim==0,  nlim=70);
   if (nskip==0, nskip=6);
   if (looplim==0, if (limitp==0, looplim=precis-throwp, looplim=limitp));
