@@ -832,3 +832,13 @@ Format pro Eintrag:
   256er-Quantum zweifach bestaetigt.
 - Nebenbefund: dps-300-Wasserlinie mit Keep #16 = **200.6s (3.3 min)**.
 - dps-1020-Ankerlauf (instrumentiert) laeuft fuer die Skalierungs-Analyse.
+
+---
+
+## exp-029 (2026-07-12) — Diff-Poly-Schwanz-Truncation: REVERT (nur 2.2%)
+- Tote Terme (|c|*r^s < 10^-(dps+10)) am ENDE des Diff-Polynoms abschneiden
+  brachte nur 196.4 vs 200.6s -> Schwanz ist kurz, die Energie des Diffs
+  sitzt breiter. REVERT.
+- Diagnose-Lauf (fatou_diag_band.gp) misst jetzt die Band-Struktur des
+  Diffs (Kopf- UND Schwanz-Grenze): falls schmales Band -> strukturelle
+  Band-Extraktion moeglich (Samples ~ Bandbreite statt Grid).
