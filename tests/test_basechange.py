@@ -37,3 +37,25 @@ class BasechangeMuTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PhiModeTableTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        mp.mp.dps = 70
+        cls.gp = _gp()
+
+    def test_reconstruction_matches_ladder(self):
+        import tempfile, os
+        path = os.path.join(tempfile.gettempdir(), "phi_modes_test.json")
+        if os.path.exists(path):
+            os.remove(path)
+        mu_v, modes = basechange.phi_modes_cached(self.gp, 2, path=path)
+        for th in ("0.037", "0.41", "0.777"):
+            direct = basechange.phi(self.gp, self.gp, "exp(1)", 2, mp.mpf(th))
+            recon = basechange.phi_from_modes(mu_v, modes, mp.mpf(th))
+            self.assertLess(abs(direct - recon), mp.mpf("1e-20"))
+        # Cache-Hit liefert identische Werte
+        mu_c, modes_c = basechange.phi_modes_cached(self.gp, 2, path=path)
+        self.assertLess(abs(mu_c - mu_v), mp.mpf("1e-40"))
+        os.remove(path)

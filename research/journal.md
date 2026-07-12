@@ -1234,3 +1234,19 @@ Format pro Eintrag:
 
 - mu_hub.json v1: **17 Basen [1.5, 5]** (Kanten-Region komplett), alle
   4 Anker auf 31-32 digits. Basen 6-100 nach Lauf-A (OOM-Budget).
+
+---
+
+## M5.3 (2026-07-13 ~01:10) — Phi-Moden-Tabelle implementiert und validiert
+- Datenformat mit Nutzer abgestimmt: JSON (research/reference/
+  phi_modes.json), on-demand + Cache, k_head=20, dps 60; universeller
+  Tail (Struktur-Fit sigma*=0.0789/c=59.78/gamma=9.47) in meta;
+  gespeichert wird die Vorwaerts-Richtung Phi_{e,b} (Rueckrichtung exakt
+  via Groupoid + Newton-H-Inversion, H' in [0.997,1.003]).
+- API: phi_modes_cached() + phi_from_modes() in basechange.py.
+- **Validierung: Rekonstruktion aus mu + 20 Moden trifft die direkte
+  Leiter auf ~1.5-2.5e-24** an frischen Zwischenpunkten (besser als die
+  A_21-Erwartung ~e-20) — 24 digits Phi aus 3-KB-Eintrag, Auswertung in
+  Mikrosekunden. Erster Tabellen-Eintrag: (e,2), 0.2s Messung.
+- Suite 49 passed. Naechste M5-Schritte: sexp_b/slog_b-Fastpath
+  (H-Inversion), E6 Rueckwaerts-Peel, Raster-Rest nach Lauf A.

@@ -77,3 +77,75 @@ def _base_value(base) -> mp.mpf:
             return mp.e
         return mp.mpf(base)
     return mp.mpf(base)
+
+
+# ---------------------------------------------------------------------------
+# M5.3: Phi-Moden-Tabelle (JSON, on-demand + Cache; Format mit Nutzer
+# abgestimmt 2026-07-13: k_head=20, dps=60, universeller Tail per
+# basechange-modes-Fit). Gespeichert wird die VORWAERTS-Richtung
+# Phi_{e,b}; die Rueckrichtung folgt exakt aus dem Groupoid
+# Phi_{b,e}(H(theta)) = -Phi_{e,b}(theta) (H-Inversion via Newton,
+# H' in [0.997, 1.003]).
+# ---------------------------------------------------------------------------
+import json
+import os
+
+PHI_TABLE_PATH = os.path.join(os.path.dirname(__file__), "..", "..",
+                              "research", "reference", "phi_modes.json")
+
+UNIVERSAL_TAIL = {
+    "model": "ln A_k = lnC + gamma*ln k - 2*pi*sigma*k - sqrt(pi*c*k)",
+    "sigma": 0.0789, "c": 59.78, "gamma": 9.47,
+    "source": "basechange-modes RESEARCH_LOG R2 Struktur-Fit (paar-universell 2.4e-4)",
+}
+
+
+def _load_table(path=None):
+    path = path or PHI_TABLE_PATH
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    return {"meta": {"version": 1, "dps": 60, "n_grid": 64, "k_head": 20,
+                     "anchor": "e",
+                     "definition": ("Phi_{e,b}(theta) = slog_e(T_b(n+theta)) - (n+theta); "
+                                    "a_k = (2/N) sum_j Phi_j e^{-2pi i jk/N}, mu = Gittermittel"),
+                     "universal_tail": UNIVERSAL_TAIL},
+            "bases": {}}
+
+
+def phi_modes_cached(gp, base, n_grid=64, k_head=20, path=None):
+    """Komplexe Phi_{e,b}-Moden fuer eine Basis, on-demand + JSON-Cache."""
+    table = _load_table(path)
+    key = str(base)
+    if key in table["bases"]:
+        e = table["bases"][key]
+        mu_v = mp.mpf(e["mu"])
+        modes = [mp.mpc(mp.mpf(m["re"]), mp.mpf(m["im"])) for m in e["modes"]]
+        return mu_v, modes
+    vals = [phi(gp, gp, "exp(1)", base, mp.mpf(j) / n_grid) for j in range(n_grid)]
+    mu_v = sum(vals) / n_grid
+    modes = []
+    for k in range(1, k_head + 1):
+        s = mp.mpc(0)
+        for j, v in enumerate(vals):
+            s += v * mp.exp(mp.mpc(0, -2) * mp.pi * j * k / n_grid)
+        modes.append(s * 2 / n_grid)
+    table["bases"][key] = {
+        "mu": mp.nstr(mu_v, 45),
+        "modes": [{"re": mp.nstr(m.real, 45), "im": mp.nstr(m.imag, 45)} for m in modes],
+        "measured": "2026-07-13",
+    }
+    p = path or PHI_TABLE_PATH
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    with open(p, "w", encoding="utf-8") as f:
+        json.dump(table, f, indent=1)
+    return mu_v, modes
+
+
+def phi_from_modes(mu_v, modes, theta):
+    """Phi-Rekonstruktion aus mu + Moden-Kopf: mu + sum Re(a_k e^{2pi i k theta})."""
+    theta = _to_mpf(theta)
+    s = mp.mpf(mu_v)
+    for k, a in enumerate(modes, start=1):
+        s += (a * mp.exp(mp.mpc(0, 2) * mp.pi * k * theta)).real
+    return s
