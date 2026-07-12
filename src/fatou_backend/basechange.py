@@ -149,3 +149,36 @@ def phi_from_modes(mu_v, modes, theta):
     for k, a in enumerate(modes, start=1):
         s += (a * mp.exp(mp.mpc(0, 2) * mp.pi * k * theta)).real
     return s
+
+
+def sexp_anchor(gp, base_b, y, n_lift=8):
+    """sexp_b(y) NUR aus dem e-Anker + Phi-Tabelle (kein Basis-b-Init).
+
+    Hoehe liften: h = n_lift + y + Phi_{e,b}(y mod 1); Anker liefert
+    t = T_e(a) an moderater Hoehe a; dann exakter Rueckpeel in
+    ln-Koordinaten: v_{j+1} = ln v_j - lnln b, wobei oberhalb der
+    Praezisionsschwelle v_j = T_e(h-1-j) - lnln b exakt gilt
+    (Spiegel der Vorwaerts-Leiter; Trunkierung sub-Praezision).
+    """
+    y = _to_mpf(y)
+    mu_v, modes = phi_modes_cached(gp, base_b)
+    theta = y - mp.floor(y)
+    h = n_lift + y + phi_from_modes(mu_v, modes, theta)
+    ln_b = mp.log(_base_value(base_b))
+    lnln_b = mp.log(ln_b)
+    # Schaltlevel direkt waehlen: a = h-1-j in (2.2, 3.2], dann noetigenfalls
+    # via mpmath hochklettern bis T_e(a) > Schwelle (nie Engine-Calls auf
+    # unrepraesentierbaren Turmhoehen).
+    thresh = mp.mpf(10) ** (mp.mp.dps // 2 + 10)
+    j = int(mp.ceil(h - 1 - mp.mpf("3.2")))
+    j = max(j, 1)
+    a = h - 1 - j
+    t = mp.mpf(gp.sexp("exp(1)", a).real)
+    while t <= thresh and j > 1:
+        t = mp.e ** t          # eine e-Ebene hoch: T_e(a+1)
+        j -= 1
+    v = t - lnln_b
+    while j < n_lift:
+        v = mp.log(v) - lnln_b
+        j += 1
+    return mp.e ** v

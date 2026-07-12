@@ -1250,3 +1250,18 @@ Format pro Eintrag:
   Mikrosekunden. Erster Tabellen-Eintrag: (e,2), 0.2s Messung.
 - Suite 49 passed. Naechste M5-Schritte: sexp_b/slog_b-Fastpath
   (H-Inversion), E6 Rueckwaerts-Peel, Raster-Rest nach Lauf A.
+
+---
+
+## MEILENSTEIN M5.4 (2026-07-13 ~01:30) — sexp_b-Fastpath: der Basisatlas LEBT
+- sexp_anchor(): Hoehe liften (h = n + y + Phi(theta)), e-Anker an
+  moderater Hoehe, exakter Rueckpeel in ln-Koordinaten (v <- ln v - lnln b;
+  oberhalb der Praezisionsschwelle exakt trunkierbar — Spiegel der
+  M5.1-Leiter). Bugfix: Schaltlevel DIREKT waehlen (a in (2.2,3.2]),
+  nie Engine-Calls auf unrepraesentierbaren Turmhoehen.
+- **Validierung: sexp_2(0.5) via e-Anker = 3.0e-24 Fehler gegen die
+  BEWIESENE v6-Referenz**; alle Testpunkte 1.2-3.3e-24; **Basis 3
+  on-demand in 0.2s (6.4e-25)**. Neue Basis: 0.2s statt Kontur-Init,
+  Auswertung in Millisekunden bei ~24 digits.
+- Suite 51 passed. Atlas-Rest: slog_anchor (H-Newton), k_head/dps-Upgrade
+  fuer mehr digits, E6 Rueckwaerts-Peel-Zertifikat, Raster 6-100.

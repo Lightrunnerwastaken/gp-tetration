@@ -59,3 +59,23 @@ class PhiModeTableTests(unittest.TestCase):
         mu_c, modes_c = basechange.phi_modes_cached(self.gp, 2, path=path)
         self.assertLess(abs(mu_c - mu_v), mp.mpf("1e-40"))
         os.remove(path)
+
+
+class SexpAnchorTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        mp.mp.dps = 70
+        cls.gp = _gp()
+
+    def test_sexp_anchor_matches_proven_reference(self):
+        import json
+        ref = mp.mpf(json.load(open("research/reference/values.json"))
+                     ["values"]["sexp|2|0.5|500"]["real"][:80])
+        v = basechange.sexp_anchor(self.gp, 2, mp.mpf("0.5"))
+        self.assertLess(abs(v - ref), mp.mpf("1e-20"))
+
+    def test_sexp_anchor_matches_direct_engine(self):
+        for y in ("0.0", "0.25", "0.9"):
+            va = basechange.sexp_anchor(self.gp, 2, mp.mpf(y))
+            vd = mp.mpf(self.gp.sexp(2, mp.mpf(y)).real)
+            self.assertLess(abs(va - vd), mp.mpf("1e-20"))
