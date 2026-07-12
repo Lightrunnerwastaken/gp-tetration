@@ -1191,3 +1191,21 @@ Format pro Eintrag:
   Residual-Schritt pro Zyklus. Erwartung: teure Vollpraezisions-Schritte
   um Faktor ~30 reduziert; Wechselwirkung mit exp-008/021-Staffelung
   (die schon Teile davon emuliert) ist DIE Messfrage.
+
+---
+
+## E5b-Verdikt + E-Programm-Bilanz Operatorloeser (2026-07-13 ~01:15)
+- Naives aeusseres Refinement (aussen 220, innen 60): nur 4 digits in 3
+  Zyklen. Ursache fundamental: c+delta bei dps 60 rundet delta (Skala
+  e-72) komplett weg -> K*delta = 0. Skalengetrennte K-Anwendung noetig —
+  **und die existiert im Fork bereits: exp-021/027 (Inkremental-Pfad) IST
+  das Praezisions-Refinement pro Schritt** (deshalb Arithmetik-Exponent
+  1.29 statt 2).
+- **BILANZ Operatorloeser-Route (Bericht Kap. 7): alle vier Stufen
+  durchgemessen — E3 affin OK, E4 Anderson k~p, E5a Spektrum uniform,
+  E5b Refinement implizit vorhanden. Der p^4.1 laesst sich mit
+  Krylov/Preconditioner-Mitteln NICHT weiter brechen; die verbleibenden
+  Wege sind P0-Multipoint mit Radius-Schalen-Batching (Engineering) und
+  P5/P6 (Basisatlas/Phase-first — M5-Programm).**
+- Damit ist das naechtliche E-Programm abgeschlossen: 1 Meilenstein (v8
+  e|1000 bewiesen), 3 harte Verdikte, 3 Harness-Werkzeuge committed.
