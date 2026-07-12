@@ -1297,7 +1297,13 @@ staylor( w,r,samples) = {
     if (samples <= 256,
       z=1; while (z<samples, z=z*2); samples=z
     ,
-      samples = 256*ceil(samples/256)));
+      samples = 256*ceil(samples/256))
+  ,
+    /* exp-032: gentle 32-step quantization for non-e bases — stabilizes
+       the grid for a few iterations so the walk/isuperf caches and the
+       incremental Horner apply. Small steps to respect the delicate
+       sample/terms co-evolution that pow2 rounding broke (exp-011b). */
+    if (samples > 64, samples = 32*ceil(samples/32)));
   terms=samples;
   if (complextaylor==0, samples=samples/2);
   t_est    = vector (samples,i,0);
@@ -1307,7 +1313,7 @@ staylor( w,r,samples) = {
 
   /* exp-012: enable the sfunc walk cache while sampling an unchanged grid
      (e-family only; grid identity = [samples, w, r]). */
-  if (efam,
+  if (1,
     if (swkey != [samples, w, r],
       swkey = [samples, w, r];
       swz = vector(samples);

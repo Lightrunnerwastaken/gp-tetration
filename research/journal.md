@@ -885,3 +885,21 @@ Format pro Eintrag:
 - sexp|2|0.5|500 ersetzt, Provenienz meta.v6_correction (delegiert).
 - Damit sind BEIDE Deep-Referenzen (e|500, 2|500) bewiesen — das
   4-Wege-Rennen von gestern ist vollstaendig abgeschlossen.
+
+---
+
+## exp-032 KEEP (#18) — Cache-Stack fuer ALLE Basen (nicht mehr efam-only)
+- Basis-2-Check hatte gezeigt: 2|300 = 54 min vs e|300 = 2.8 min (19x!) —
+  Nicht-e-Basen liefen noch auf dem Original-Pfad (kalte Walks, volle
+  Horner), weil fast alle Keeps efam-gated waren.
+- Mutation: (a) sanfte 32er-Grid-Quantisierung fuer Nicht-e-Basen (die
+  Fragilitaet von exp-011b kam von Pow2-VERDOPPLUNG, nicht vom Cachen);
+  (b) Walk-/isuperf-/Basis-Est-Caches + inkrementeller ct-Horner (icabel)
+  fuer alle Basen aktiviert. Theta-Seite und Extraktion (Rotation) fuer
+  Nicht-e unveraendert (v2-Kandidat).
+- A/B gepaart Basis 2 dps 150: 192.1s -> **148.6s = 1.292x**, volle 148
+  echte digits (vs v6-Referenz), gleiche 115 Iterationen.
+- Gate: FULL PASS — fragile Basen bit-stabil (2|80 80.0, 2|200 194.3
+  identisch). Suite 45 passed.
+- Naechste Stufe (exp-033-Kandidat): inkrementelle Rotations-Extraktion +
+  Theta-Caches fuer Nicht-e-Basen.
