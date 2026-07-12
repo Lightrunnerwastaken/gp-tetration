@@ -1231,3 +1231,6 @@ Format pro Eintrag:
 - **mu-Hub validiert: m(1.5) und m(2) treffen die publizierten Anker auf
   31 digits** (dps 60, N=32, je 1.3s warm). M5.3a-Stack einwandfrei;
   Raster-Rerun laeuft.
+
+- mu_hub.json v1: **17 Basen [1.5, 5]** (Kanten-Region komplett), alle
+  4 Anker auf 31-32 digits. Basen 6-100 nach Lauf-A (OOM-Budget).
