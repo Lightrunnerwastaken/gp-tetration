@@ -1209,3 +1209,14 @@ Format pro Eintrag:
   P5/P6 (Basisatlas/Phase-first — M5-Programm).**
 - Damit ist das naechtliche E-Programm abgeschlossen: 1 Meilenstein (v8
   e|1000 bewiesen), 3 harte Verdikte, 3 Harness-Werkzeuge committed.
+
+---
+
+## M5.2-Grundstein (2026-07-13 ~01:30) — Phi-Moden-Extraktion laeuft
+- research/tools/m52_modes.py: Phi-Grid + DFT auf Basis der M5.1-Leiter.
+- (e,2) N=64 @dps60 in **0.2s** (warmer State-Cache); mu auf 24 digits;
+  A2/A1 = 0.00956, A3/A1 = 2.72e-4 (publizierte Diagonal-Limits 0.00934 /
+  2.67e-4 — Abweichung ~2% = erwartete Paar-Abhaengigkeit).
+- Naechste M5-Schritte (Tagwerk, Datenformat mit Nutzer abstimmen):
+  Fourier-Tabelle + universelle Kurve (M5.3), sexp_b-Fastpath, mu-Hub aus
+  deren mb_raster.csv.
