@@ -270,12 +270,14 @@ thtaylor(n,samples) = {
   samples = floor(samples);
   /* exp-026: quantize the theta grid (efam, n==1) to 64-steps so it stays
      unchanged for ~20-30 iterations — prerequisite for the caches below. */
-  if (efam && (n==1) && (samples>64), samples = 64*ceil(samples/64));
+  /* exp-034: theta quantization+caches for all REAL bases (complex bases
+     alternate n=1/n=2 and would thrash the single-slot cache). */
+  if ((efam || (complextaylor==0)) && (n==1) && (samples>64), samples = 64*ceil(samples/64));
   terms=samples-1;
   t_est    = vector (samples,i,0);
   tcrc     = vector (samples,i,0);
   wtaylor=0;
-  if (efam && (n==1),
+  if ((efam || (complextaylor==0)) && (n==1),
     thfull = 1;
     if ((thskey == samples) && (type(icct) == "t_POL"),
       thdct = ct - icct;

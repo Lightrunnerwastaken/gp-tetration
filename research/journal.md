@@ -919,3 +919,14 @@ Format pro Eintrag:
 - **Basis 2 dps 150 heute: 192 -> 64.5s = 3.0x**; hochgerechnet 2|300:
   von 54 min auf ~15-18 min. Naechster Kandidat exp-034: Theta-Seite
   (thtaylor-Quantisierung+Caches) fuer Nicht-e-Basen.
+
+---
+
+## exp-034 KEEP (#20) — Theta-Quantisierung+Caches fuer alle reellen Basen
+- exp-026-Mechanik (64er-Theta-Grid + superf-Cache + inkrementeller
+  thfunc-Horner) von efam auf alle REELLEN Basen ausgedehnt (komplexe
+  Basen alternieren n=1/2 -> Cache-Thrash, bleiben aussen).
+- A/B gepaart Basis 2: dps 150: 67.7 -> 61.1s = **1.108x**; dps 220:
+  353.8 -> 326.7s = **1.083x**. Volle digits (148/193) beidesmal.
+- Gate: FULL PASS. Suite 45 passed.
+- **Basis 2 dps 150 heute gesamt: 192 -> 61.1s = 3.14x.**
