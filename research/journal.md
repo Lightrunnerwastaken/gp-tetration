@@ -1093,3 +1093,26 @@ Format pro Eintrag:
 - Tests: mu_(e,2), mu_(3,5), mu-Antisymmetrie (je <1e-14 @ dps 60/N 16),
   Suite 48 passed. Naechster Schritt M5.2: Phi-Moden-Treiber (nlim-
   skaliert) + Floor-Rekalibrierung auf dem Fork.
+
+---
+
+## E-Programm-Start (2026-07-12 Abend) — Forschungsbericht + E1-Zwischenstand
+- Externer Bericht (Downloads/Tetration_Forschungsbericht_2026-07-12.pdf,
+  23 S., analysiert Commit c79d2b4): Exponent 4.1 zerlegt als Iterationen
+  p^0.996 x Grid^2 p^1.85 x Arithmetik p^1.29. Zwei Exponentenbrueche:
+  P0 = schnelle Mehrpunktauswertung (FLINT/Arb acb_poly, precomp-Baum,
+  Punkte pro Stretch konstant) -> ~3.x; P2/P3 = Branch-Lock + affiner
+  Operator (I-K)c=g matrixfrei (Anderson/GMRES) -> Richtung 2.x.
+  Erklaert exp-019-Fehlschlag: Aitken lief auf wachsendem Grid mit
+  Branch-Flips (nichtlinear); auf festem Endgrid mit Lock ist der
+  Schritt affin. E0 (eingefrorene Wahrheitsbasis) haben wir (v5-v7).
+- **E1 (ACB-Multipoint, python-flint 0.9, synthetisch):** Zeiten
+  vielversprechend in erster Messung (bis 14x bei N=7168/1023dig), ABER
+  Direktvergleich im selben Prozess nur ~1.5x UND fast-Mittelpunkte
+  kollabieren (1e13-1e150 selbst mit 1024 Guard-Bits). Mechanismus:
+  Produktbaum-Skalierung 0.55^2048 ~ 1e-533 = Ausloeschung. Abhilfe
+  bekannt: Radius-Normierung der Punkte. Synthetik nicht beweiskraeftig
+  (echte Walk-Endpunkte sind verstreut, nicht auf Kreis) -> E1b braucht
+  ECHTE Zustandsdumps (ct + swz aus GP-Lauf) + ruhige Maschine.
+- Messhygiene-Warnung: iter-Zeiten schwankten 5x zwischen Laeufen unter
+  1033-Partner-Last — E1b erst nach Partner-Abschluss.
