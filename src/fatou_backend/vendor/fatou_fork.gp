@@ -1299,7 +1299,15 @@ staylor( w,r,samples) = {
     if (samples <= 256,
       z=1; while (z<samples, z=z*2); samples=z
     ,
-      samples = 256*ceil(samples/256))
+      /* exp-037 (KEEP-Kandidat): depth-adaptive quantum — above grid 3584
+         cold passes (walks + full Horner/extract, ~12x a warm iteration)
+         dominate; 512-steps halve the stretch changes. Verified in the
+         720/733 e|700 reference pair: 1.10x normalized, full digits
+         (698 proven). Below 3584 bit-identical to the 256-quantum. */
+      if (samples > 3584,
+        samples = 512*ceil(samples/512)
+      ,
+        samples = 256*ceil(samples/256)))
   ,
     /* exp-032: gentle 32-step quantization for non-e bases — stabilizes
        the grid for a few iterations so the walk/isuperf caches and the

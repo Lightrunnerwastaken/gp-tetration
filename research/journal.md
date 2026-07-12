@@ -997,3 +997,20 @@ Format pro Eintrag:
   Sub-Wort-Margin-Tuning ist strukturell wirkungslos; groessere
   Schnitte (>19 digits) waeren noetig, aber riskieren die Drift-Marge
   ueber lange Stretches. Front geschlossen.
+
+---
+
+## e|700-Paar + exp-037 KEEP (#21) — Referenz v7 + Tiefen-Quantum (2026-07-12)
+- **Paar-Ergebnis**: A (dps 720, clean): 89.9 min, kontur 697.9 | B (dps
+  733, 512er-Quantum ab Grid 3584): 87.0 min, kontur 716.4.
+  **Fehler-Vektor: Agreement 698 digits** -> e|700-Referenz bewiesen
+  (sexp|e|0.5|700 = B-Wert, meta.v7_addition). Faktor-1 haelt exakt
+  (kontur A 697.9 ~ gemessen 698).
+- **candidate_e_1020 dadurch auf >=698 digits BEWIESEN mitbestaetigt**
+  (drei unabhaengige Laeufe: 720/733/1020er-Anker decken sich).
+- **Quantum-Urteil**: B normalisiert (dps^3.7-Korrektur 733->720) = 4887s
+  vs A 5397s = **1.104x** -> exp-037 KEEP (#21): 512er-Quantum ab Grid
+  3584 (unterhalb bit-identisch; Verifikation = das Paar selbst, volle
+  digits mit Quantum). Gate: FULL PASS (pro forma). Suite 45 passed.
+- Damit Labor-Lineal bis ~698 bewiesen / ~970 praktisch; Exponent-Messung
+  aktuell: 400->720 = (5397/488)^: ln11.1/ln1.8 ~ 4.1 bestaetigt.
