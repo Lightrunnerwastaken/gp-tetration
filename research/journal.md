@@ -949,3 +949,17 @@ Format pro Eintrag:
   auf Wunsch).
 - Stand: 20 Keeps; e-Leiter 150/220/300/400/520 = 40s/73s/2.8min/8.1min/
   ~20min (Schaetzung mit #17); Basis 2 dps150 3.1x heute Nacht.
+
+---
+
+## KORREKTUR + Meilenstein: dps-1020-Anker DOCH abgeschlossen (PC lief noch)
+- **dps 1020: 24079s = 6.69h**, 573 Iter, Grid 7168, kontur re 973.3.
+  Wert (1020 digits) stimmt auf 508 digits mit der bewiesenen e|500-
+  Referenz ueberein (= mehr als deren Beweis-Limit; alle pruefbaren
+  Stellen korrekt). Selbstschaetzung ~973 echte digits (Faktor-1-Modell).
+- **Skalierung im Tiefenbereich: 520->1020 = 16.2x bei 1.96x dps ->
+  Exponent ~4.1** (steiler als ~3.4 im 300-520-Fenster). Bestaetigt den
+  Plan: naechste Sprossen 720/733er- und 820er-Paare, dort profilieren
+  und optimieren, DANN 1020+1033.
+- Wert als research/reference/candidate_e_1020.txt gesichert (halbes
+  Fehler-Vektor-Paar; der kuenftige 1033er-Lauf beweist ihn).
