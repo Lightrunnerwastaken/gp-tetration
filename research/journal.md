@@ -975,3 +975,15 @@ Format pro Eintrag:
   tiefen Bereich (25s pro Grid-Wechsel vs ~2s warm bei Grid ~2800) ->
   Kalt-Paesse treiben den Tiefen-Exponenten (~4.1). => exp-035
   (tiefen-adaptives 512er-Quantum ab Grid 2560) im A/B.
+
+---
+
+## exp-035 (2026-07-12) — tiefen-adaptives 512er-Quantum ab Grid 2560: REVERT
+- A/B dps 400: 486.6 -> 499.9s = 2.7% LANGSAMER (End-Grid 3584 vs 3072).
+  Drittes Mal dasselbe Muster: Overshoot frisst die Ersparnis, solange
+  Kalt-Paesse nicht klar dominieren (erst dps 600+).
+- Plan: Quantum-Frage ins 720/733-Referenz-Paar einbetten (die zwei Laeufe
+  des Fehler-Vektor-Paars koennen unterschiedliche Quantum-Settings fahren
+  — Werte beweisen sich gegenseitig, Zeiten vergleichen die Settings).
+- exp-036 (Margin-Tuning 40->28 / Floor 30->24 fuer icdig/thdig/exdig)
+  im A/B bei dps 300.
