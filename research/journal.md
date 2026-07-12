@@ -933,3 +933,19 @@ Format pro Eintrag:
 
 - Leiter-Neuvermessung dps 400 (Keeps bis #20): **488s = 8.1 min**, 383
   digits (gestern Nachmittag 83 min = 10.2x). dps-1020-Anker laeuft.
+
+---
+
+## Session-Ende 2026-07-12 ~06:50 — PC-Shutdown durch Nutzer
+- dps-1020-Ankerlauf (Keeps #17-Stand, ~4.6h) wird durch Shutdown
+  verworfen — KEIN Checkpoint im Treiber. Lehre fuer den Re-Run:
+  Treiber mit writebin-Checkpoint (State-Cache-Muster des Wrappers)
+  oder Instrumentierung nutzen, damit Teilergebnisse ueberleben.
+- NAECHSTE SCHRITTE (neue Session): (1) dps-1020 + dps-1033 Paar
+  (mit Checkpoints) -> Fehler-Vektor -> erste bewiesene e|1000-Referenz;
+  (2) offizieller bench/benchmark.py auf ruhiger Maschine;
+  (3) 2|500-Leiter-Neuvermessung mit Keeps #18-20 (2|300 war 54min ->
+  erwartet ~10-15min); (4) main ist ~120 Commits vor origin (push nur
+  auf Wunsch).
+- Stand: 20 Keeps; e-Leiter 150/220/300/400/520 = 40s/73s/2.8min/8.1min/
+  ~20min (Schaetzung mit #17); Basis 2 dps150 3.1x heute Nacht.
