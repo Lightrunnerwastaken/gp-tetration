@@ -1220,3 +1220,14 @@ Format pro Eintrag:
 - Naechste M5-Schritte (Tagwerk, Datenformat mit Nutzer abstimmen):
   Fourier-Tabelle + universelle Kurve (M5.3), sexp_b-Fastpath, mu-Hub aus
   deren mb_raster.csv.
+
+---
+
+## OOM-Lektion + Hub-Validierung (2026-07-13 ~00:30)
+- 2|700-Paar PARALLEL (2x parisizemax 4GB) + Raster = Windows-Pagefile
+  erschoepft: Lauf B starb ("not enough memory" im FFT), Raster-Worker ab
+  m(3) (WinError 1455). **Regel: Deep-Paare auf dieser Maschine
+  SEQUENZIELL fahren.** Lauf A (2|720) laeuft weiter; B-Rerun nach A.
+- **mu-Hub validiert: m(1.5) und m(2) treffen die publizierten Anker auf
+  31 digits** (dps 60, N=32, je 1.3s warm). M5.3a-Stack einwandfrei;
+  Raster-Rerun laeuft.
