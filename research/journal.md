@@ -963,3 +963,15 @@ Format pro Eintrag:
   und optimieren, DANN 1020+1033.
 - Wert als research/reference/candidate_e_1020.txt gesichert (halbes
   Fehler-Vektor-Paar; der kuenftige 1033er-Lauf beweist ihn).
+
+---
+
+## Radius-Rescan dps 400 (2026-07-12) — Optimum bleibt beim Keep (kein Change)
+- ctrmul 0.85/0.95/1.05 (effektiv 0.61/0.68/0.76 nach 0.9-Keep) bei dps
+  400 unter 4-fach-Last: 475.9/469.0/[s.u.]s vs 488.3s Basis — alles unter
+  der 6.8%-Schwelle, alle volle 383 digits (verifiziert gegen
+  candidate_e_1020, der jetzt als Lineal bis ~950 digits dient).
+- Profil dps 400 (profile6): Sampling 74%, davon KALT-PAESSE ~40% im
+  tiefen Bereich (25s pro Grid-Wechsel vs ~2s warm bei Grid ~2800) ->
+  Kalt-Paesse treiben den Tiefen-Exponenten (~4.1). => exp-035
+  (tiefen-adaptives 512er-Quantum ab Grid 2560) im A/B.
