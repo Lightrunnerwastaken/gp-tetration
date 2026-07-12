@@ -1116,3 +1116,18 @@ Format pro Eintrag:
   ECHTE Zustandsdumps (ct + swz aus GP-Lauf) + ruhige Maschine.
 - Messhygiene-Warnung: iter-Zeiten schwankten 5x zwischen Laeufen unter
   1033-Partner-Last — E1b erst nach Partner-Abschluss.
+
+---
+
+## E1b-Verdikt (2026-07-12 spät) — P0 Multipoint GEPARKT, Pivot auf E3/E4
+- Echte Zustandsdaten (dps-300-Dump: ct 2305 Koeffs, 1152 Walk-Endpunkte):
+  fast-Multipoint 1.8-3.1x schneller, aber Mittelpunkte kaputt (inf) AUCH
+  mit Radius-Normierung.
+- Ursache diagnostiziert: Punkte verteilen sich ueber die ganze Scheibe
+  (|w| 0.07-0.96, min Paarabstand 1.4e-3) -> Produktbaum-Koeffizienten
+  ~ prod|w_j| ~ 1e-430; Max-Normierung hilft nicht wenn Median 0.55.
+  Fix waere Radius-Schalen-Batching (eigenes Projekt) — P0 GEPARKT mit
+  Daten; der Bericht hatte den Speedup korrekt als unversprochen markiert.
+- **Pivot: E3 (Branch-Lock + Affinitaetstest) und E4 (Anderson auf festem
+  Endgrid) — unabhaengig von Multipoint, pur GP.** Falls k(p) << p faellt
+  der Iterations-Exponent auch mit N^2-Sampling: T ~ k(p)*p^2*Arith.
