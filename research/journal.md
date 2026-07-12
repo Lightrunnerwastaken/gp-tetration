@@ -1080,3 +1080,16 @@ Format pro Eintrag:
   (Werte engine-divers bewiesen identisch). Vorbehalt: Mode-Floor-Regel
   (k ~ 2.3*nlim) muesste auf dem Fork neu kalibriert werden. Opt-in via
   fatou_gp-Parameter, deren Setup unberuehrt.
+
+---
+
+## M5.1 (2026-07-12) — Base-Change-Peel-Leiter implementiert
+- fatou_backend/basechange.py: Phi_{b,d} via Turm-Hochziehen + exaktem
+  Zwei-Level-Einstieg W = alpha_hat + c*y (identisch log_b log_b
+  T_d(m+theta+2), kein Runden des Riesenturms) + Peeling + EIN slog-Call.
+- **Erste Messung traf auf 19 digits**: mu_(e,2) @ dps60/N16 =
+  -1.12840377662892400986... vs Research-Log-Referenz ...987921...
+  (Rest = dps-60-Floor ~1e-16). Index-Buchhaltung exakt.
+- Tests: mu_(e,2), mu_(3,5), mu-Antisymmetrie (je <1e-14 @ dps 60/N 16),
+  Suite 48 passed. Naechster Schritt M5.2: Phi-Moden-Treiber (nlim-
+  skaliert) + Floor-Rekalibrierung auf dem Fork.
