@@ -1131,3 +1131,15 @@ Format pro Eintrag:
 - **Pivot: E3 (Branch-Lock + Affinitaetstest) und E4 (Anderson auf festem
   Endgrid) — unabhaengig von Multipoint, pur GP.** Falls k(p) << p faellt
   der Iterations-Exponent auch mit N^2-Sampling: T ~ k(p)*p^2*Arith.
+
+---
+
+## E3 BESTANDEN (2026-07-12 ~23:00) — Iteration ist AFFIN auf festem Grid
+- Harness research/tools/fatou_e3diag.gp: affstop (Early-Stop im Loop),
+  affstep() = eine Iteration als Operator (festes Grid affcts/affths).
+- Test dps 220, Lock bei re=150, v = letzter Picard-Inkrement (7e-133):
+  **|G(c0+2v)-G(c0) - 2(G(c0+v)-G(c0))| / |G(c0+v)-G(c0)| = 4.5e-81.**
+  Affinitaet haelt ueber 81 Groessenordnungen (Rest = icdig/exdig-Marge).
+- P1 des Berichts damit verifiziert: (I-K)c = g ist die richtige Struktur;
+  Kontraktionsfaktor pro Schritt |d1|/|v| ~ 0.026. E4 (Anderson) folgt
+  unmittelbar.
