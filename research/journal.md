@@ -1038,3 +1038,17 @@ Format pro Eintrag:
 - Die 806s im m8-Lauf: Einzelausreisser (vermutl. OS-Interferenz/Defender
   auf writebin-Datei). m8-JSON bleibt mit dieser Notiz gueltig; korrekte
   2|200-cold-Zahl = ~236s.
+
+---
+
+## exp-038 (2026-07-12) — Walk-Fruehterminierung bei ircircr: REVERT (neutral)
+- Idee: Walk beim ircircr-Eintritt stoppen statt zum Distanz-Minimum
+  (mathematisch exakt via abel(f(z))=abel(z)+1; ircircr ist die
+  engine-eigene "direkt-Zweig ok"-Grenze).
+- A/B dps 300: 170.3 vs 169.0s, Werte BIT-identisch -> die Bedingung
+  greift praktisch nie: Orbits erreichen ircircr oft nicht (daher der
+  Theta-Zweig), und wo doch, liegt das Minimum ~am Eintritt.
+- Learnings: Walk-Laengen sind geometrisch erzwungen; Kalt-Pass-Front
+  nur noch ueber genestete/offset-alignierte Grids angreifbar
+  (Forschungsprojekt; Offset-Nesting scheitert an der 0.5-Offset-
+  Konvention — braucht verallgemeinerte Extraktions-Chirps).
