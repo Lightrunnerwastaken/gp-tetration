@@ -930,3 +930,6 @@ Format pro Eintrag:
   353.8 -> 326.7s = **1.083x**. Volle digits (148/193) beidesmal.
 - Gate: FULL PASS. Suite 45 passed.
 - **Basis 2 dps 150 heute gesamt: 192 -> 61.1s = 3.14x.**
+
+- Leiter-Neuvermessung dps 400 (Keeps bis #20): **488s = 8.1 min**, 383
+  digits (gestern Nachmittag 83 min = 10.2x). dps-1020-Anker laeuft.
