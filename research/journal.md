@@ -1159,3 +1159,15 @@ Format pro Eintrag:
 - Konsequenz: der 2.x-Pfad braucht P3 = Grob-Grid-Preconditioner
   (matrix_ir auf 64-256 Moden, LU, Zweigitter) oder Deflation — naechste
   E5-Einheit. Harness + Treiber (e4_anderson.gp) wiederverwendbar.
+
+---
+
+## MEILENSTEIN Referenz-v8 (2026-07-13 ~00:30) — e|1000 BEWIESEN
+- Partner dps 1033: 6.55h, 584 Iter, kontur 991.3.
+- **Fehler-Vektor (1020 vs 1033): 972 digits Agreement** ->
+  sexp|e|0.5|1000 mit >=972 bewiesenen digits eingetragen (v8).
+  Faktor-1 haelt exakt (1020er-kontur 973.3 ~ gemessen 972).
+- Referenz-Leiter komplett: e|500 (497), e|700 (698), e|1000 (972),
+  2|500 (497). Das Schnell-Labor verifiziert jetzt bis ~970 digits
+  BEWIESEN — Grundlage fuer alle weiteren Exponenten-Experimente
+  (E5b-Preconditioner, Multipoint-Revisit) und den M5-Basisatlas.
