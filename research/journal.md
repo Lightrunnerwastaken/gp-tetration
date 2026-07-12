@@ -1171,3 +1171,23 @@ Format pro Eintrag:
   2|500 (497). Das Schnell-Labor verifiziert jetzt bis ~970 digits
   BEWIESEN — Grundlage fuer alle weiteren Exponenten-Experimente
   (E5b-Preconditioner, Multipoint-Revisit) und den M5-Basisatlas.
+
+---
+
+## E5a-Verdikt (2026-07-13 ~01:00) — Spektrum UNIFORM; Pivot auf Praezisions-Refinement
+- Einheitsmoden-Sonde (Rohkoeffizienten) unbrauchbar (Skalen-Explosion,
+  drei Harness-Bugs gefixt: isuperfr2/fsl2 uninitialisiert fuer reelle
+  Basen -> Walk-Caps + Unterzweig-Guard in fatou_e3diag.gp).
+- Robuste Messung (E5a2, Moden-Zerfall entlang der Picard-Trajektorie,
+  40 Schritte, Grid 1792 @dps220): **ALLE Moden k=1..1700 zerfallen mit
+  1.67-1.74 digits/Schritt — uniform.** Kein langsamer Unterraum ->
+  Zweigitter-Preconditioner im TAYLOR-Raum ist tot (konsistent mit
+  exp-019-Aitken und E4-Anderson).
+- Physik: der langsame Anteil ist die sequenzielle Theta-Harmonischen-
+  Aufloesung, gleichmaessig in alle Taylor-Grade gemischt.
+- **Pivot E5b: Praezisions-Refinement (Bericht 7.3(4))** — Operator ist
+  affin + konvergenz-konstant (E3), also Korrektur-Solve (I-K)delta = r
+  bei dps~60 (35 billige Schritte/60 digits), delta liften, 1 teurer
+  Residual-Schritt pro Zyklus. Erwartung: teure Vollpraezisions-Schritte
+  um Faktor ~30 reduziert; Wechselwirkung mit exp-008/021-Staffelung
+  (die schon Teile davon emuliert) ist DIE Messfrage.

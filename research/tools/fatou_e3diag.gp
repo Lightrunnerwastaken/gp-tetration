@@ -38,6 +38,7 @@ thon=0; thidx=0; thskey=0; thsw=0; thswv=0; thicv=0; thicA=0; thfull=1; thdct=0;
 exkey=0; extest=0; excoef=0;
 /* E3 diag: early-stop + captured state for the affinity experiment */
 affstop=0; affprev=0; affcts=0; affths=0;
+isuperfr2=0.01; /* E5: unterer Zweig kann durch Stoerungen erreichbar werden */
 /* exp-030: chirp caches — the extraction chirps depend only on the grid,
    not on the iteration; computing them as fresh powers every pass costs
    ~11 mults/term. Two-slot cache for bluedft (staylor+theta Ns), map
@@ -377,13 +378,13 @@ isuperf(z) = {
   y=z;
   n=0;
   if (repelling,
-    while (abs(y-L)>isuperfr,
+    while ((abs(y-L)>isuperfr) && (n<600),
       y1=finv(y,L);
       if (abs(y1+2*Pi*I-L)<abs(y1-L), y=y1+2*Pi*I, y=y1);
       n++;
     );
   ,
-    while (abs(y-L)>isuperfr,
+    while ((abs(y-L)>isuperfr) && (n>-600),
       y=fs(y);
       n--;
     );
@@ -398,7 +399,7 @@ isuperf2(z) = {
   local(n,y);
   y=z;
   n=0;
-  while (abs(y-L2)>isuperfr2,
+  while ((abs(y-L2)>isuperfr2) && (n<600),
     y=finv(y,L2);
     n++;
   );
@@ -919,7 +920,7 @@ sfunc(z) = {
     z=zc;
     y2 = icabel(zc); /* exp-015: lazy — only the theta path needs it */
     /* use theta mapping if abs(y-circc)>(ir*circr) */
-    if (imag(y2)>0,
+    if ((imag(y2)>0) || (complextaylor==0),  /* E5: reelle Basen haben keinen unteren Zweig */
       if (swon && swidx>0 && swisfv[swidx]==1,
         y1 = swisf[swidx];
       ,
