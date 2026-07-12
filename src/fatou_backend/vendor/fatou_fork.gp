@@ -1373,9 +1373,12 @@ staylor( w,r,samples) = {
        complex: coeff_s = (rinv^s/n) * conj(c0)^s * om^(-s) * G[(s%n)+1]
        real:    coeff_s = (rinv^s/m) * Re(conj(c1)^s * mu^(-s) * G[(s%(2m))+1])
      Verified identical to the rotation loop to machine precision
-     (research/tools/fft_extraction_proto.gp). All other bases keep the
-     original rotation loop (their accuracy depends on the unrounded grid). */
-  if (efam,
+     (research/tools/fft_extraction_proto.gp). exp-033: since exp-032 the
+     grid is quantized (32-steps) for ALL bases and bluedft handles exact N,
+     so every base takes this path now — the exp-011b fragility came from
+     pow2 grid doubling, not from the transform. Rotation loop below is
+     dead code kept for reference. */
+  if (1,
     /* exp-027: on an unchanged grid, extract only the diff of the samples
        at reduced precision (the transform is linear); full extract at
        stretch starts. exdig from the diff's scale like exp-021. */

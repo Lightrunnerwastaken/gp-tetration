@@ -903,3 +903,19 @@ Format pro Eintrag:
   identisch). Suite 45 passed.
 - Naechste Stufe (exp-033-Kandidat): inkrementelle Rotations-Extraktion +
   Theta-Caches fuer Nicht-e-Basen.
+
+---
+
+## exp-033 KEEP (#19) — Vereinheitlichte Extraktion (Chirp+bluedft fuer ALLE Basen)
+- Die O(N^2)-Rotations-Schleife (Nicht-e-Extraktion) durch den Chirp+
+  bluedft-Pfad ersetzt (mathematisch identische Transformation, Prototyp-
+  verifiziert; exp-011b-Fragilitaet kam vom Pow2-Grid, nicht vom
+  Transform). exp-027-Inkrementalitaet + exp-030/031-Caches wirken damit
+  automatisch auf allen Basen. Rotations-Loop bleibt als toter Referenz-
+  code im File.
+- A/B gepaart Basis 2 dps 150: 149.3s -> **64.5s = 2.315x**, volle 148
+  digits, gleiche Iterationen.
+- Gate: FULL PASS (fragile Basen identisch: 80.0/194.3). Suite 45 passed.
+- **Basis 2 dps 150 heute: 192 -> 64.5s = 3.0x**; hochgerechnet 2|300:
+  von 54 min auf ~15-18 min. Naechster Kandidat exp-034: Theta-Seite
+  (thtaylor-Quantisierung+Caches) fuer Nicht-e-Basen.
