@@ -79,3 +79,18 @@ class SexpAnchorTests(unittest.TestCase):
             va = basechange.sexp_anchor(self.gp, 2, mp.mpf(y))
             vd = mp.mpf(self.gp.sexp(2, mp.mpf(y)).real)
             self.assertLess(abs(va - vd), mp.mpf("1e-20"))
+
+
+    def test_slog_anchor_inverts_proven_value(self):
+        import json
+        ref = mp.mpf(json.load(open("research/reference/values.json"))
+                     ["values"]["sexp|2|0.5|500"]["real"][:80])
+        s = basechange.slog_anchor(self.gp, 2, ref)
+        self.assertLess(abs(s - mp.mpf("0.5")), mp.mpf("1e-20"))
+
+    def test_anchor_roundtrip(self):
+        for b in (2, 3):
+            y = mp.mpf("0.3")
+            rt = basechange.slog_anchor(self.gp, b,
+                                        basechange.sexp_anchor(self.gp, b, y))
+            self.assertLess(abs(rt - y), mp.mpf("1e-40"))

@@ -182,3 +182,43 @@ def sexp_anchor(gp, base_b, y, n_lift=8):
         v = mp.log(v) - lnln_b
         j += 1
     return mp.e ** v
+
+
+def _phi_deriv_from_modes(modes, theta):
+    """Phi'(theta) aus dem Moden-Kopf: sum Re(2 pi i k a_k e^{2pi i k theta})."""
+    theta = _to_mpf(theta)
+    s = mp.mpf(0)
+    for k, a in enumerate(modes, start=1):
+        s += (a * mp.mpc(0, 2) * mp.pi * k * mp.exp(mp.mpc(0, 2) * mp.pi * k * theta)).real
+    return s
+
+
+def slog_anchor(gp, base_b, w):
+    """slog_b(w) NUR aus dem e-Anker + Phi-Tabelle (kein Basis-b-Init).
+
+    In b-Tuermen hochklettern (y > 1e4, m Ebenen), exakter Zwei-Level-
+    Einstieg in die e-Welt (W = lnln b + y ln b = lnln T_b(..+2)),
+    e-Peel + EIN slog_e-Call -> s_e = slog_e-Hoehe des Turms; dann
+    H(x) = x + Phi(x) = s_e - (m+2) per Newton loesen (H' in
+    [0.997, 1.003], 3 Schritte reichen fuer Volltiefe).
+    """
+    w = _to_mpf(w)
+    mu_v, modes = phi_modes_cached(gp, base_b)
+    ln_b = mp.log(_base_value(base_b))
+    y = w
+    m = 0
+    while y <= TOWER_CUT:
+        y = mp.e ** (ln_b * y)
+        m += 1
+    W = mp.log(ln_b) + y * ln_b
+    k = 0
+    while W > PEEL_CUT:
+        W = mp.log(W)
+        k += 1
+    s_e = mp.mpf(gp.slog("exp(1)", W).real) + 2 + k
+    target = s_e - (m + 2)
+    x = target - mu_v
+    for _ in range(3):
+        g = x + phi_from_modes(mu_v, modes, x - mp.floor(x)) - target
+        x -= g / (1 + _phi_deriv_from_modes(modes, x - mp.floor(x)))
+    return x

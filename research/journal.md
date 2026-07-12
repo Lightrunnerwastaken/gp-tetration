@@ -1265,3 +1265,17 @@ Format pro Eintrag:
   Auswertung in Millisekunden bei ~24 digits.
 - Suite 51 passed. Atlas-Rest: slog_anchor (H-Newton), k_head/dps-Upgrade
   fuer mehr digits, E6 Rueckwaerts-Peel-Zertifikat, Raster 6-100.
+
+---
+
+## M5.5 (2026-07-13 ~01:50) — slog_anchor: Atlas-Kern KOMPLETT
+- slog_anchor(): b-Turm hoch, exakter Zwei-Level-Einstieg in die e-Welt
+  (W = lnln b + y ln b), e-Peel + EIN slog_e, dann H(x) = x + Phi(x)
+  per Newton (Phi' aus Moden, H' in [0.997,1.003], 3 Schritte).
+- **Validierung: slog_2(bewiesener sexp-Wert) = 0.5 auf 3.1e-24;
+  Roundtrips slog(sexp(y)) auf e-52/e-53** (Phi-Fehler heben sich —
+  Konsistenz bis nahe Arbeitspraezision).
+- **Der Basisatlas-Kern steht: sexp_b + slog_b fuer beliebige Basen aus
+  dem e-Anker, ~24 digits absolut, neue Basis 0.2s on-demand.**
+- Suite 53 passed. Offen: Genauigkeits-Upgrade (k_head/dps), E6-Zertifikat,
+  Raster 6-100, 2|700-Paar.
