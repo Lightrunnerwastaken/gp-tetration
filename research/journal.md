@@ -1026,3 +1026,15 @@ Format pro Eintrag:
   Engine 2|dps220 in ~330s schafft -> der Python-Wrapper bestellt fuer
   Basis 2 vermutlich veraltete looplim/nlim-Knobs (Vor-exp-004-Aera).
   Wrapper-Follow-up, kein Fork-Thema; naechster Tick prueft die Bestellung.
+
+---
+
+## m8-Anomalie aufgeloest (2026-07-12): nicht reproduzierbar, Wrapper sauber
+- Knob-Isolation: sexpinit(2,30,4,35) vs (2,400,4,0) @dps200 = identisch
+  (229.2 vs 230.5s; exp-004/018-Floors neutralisieren die Wrapper-Knobs
+  wie designt).
+- Wrapper-Isolation: eval_batch cold MIT state_cache 236.3s, OHNE 235.7s
+  -> Wrapper-Overhead ~0-2%, Cache-Write billig.
+- Die 806s im m8-Lauf: Einzelausreisser (vermutl. OS-Interferenz/Defender
+  auf writebin-Datei). m8-JSON bleibt mit dieser Notiz gueltig; korrekte
+  2|200-cold-Zahl = ~236s.
