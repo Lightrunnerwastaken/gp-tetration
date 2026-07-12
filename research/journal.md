@@ -1060,3 +1060,23 @@ Format pro Eintrag:
   aber 3x-Overshoot in Warm-Kosten macht es unoekonomisch. Front ZU.
 - Tages-Labor damit abgeerntet; naechster dokumentierter Schritt:
   1033er-Partner (uebernacht-Klasse) -> bewiesene e|1000-Referenz.
+
+---
+
+## Querbezug Base-Change-Research (2026-07-12, Research/basechange-modes, nur gelesen)
+- Deren Messung: Kneser-Theta-Zerfall e^(-2.95)/Harmonische = ~1.28 digits/
+  Harmonische. Unsere Kontur: 2.05 digits/Iteration = ~1.6 Harmonische/Iter.
+  **Kreuzvalidierung: die Picard-Rate ist Streifengeometrie der Theta-
+  Abbildung — analytisch fixiert.** Exponent pro Basis faellt nur durch
+  Newton-artige Verfahren (Forschung).
+- Deren Hebel fuer UNS: Amortisierung — Anker-Basis e einmal tief,
+  andere Basen via Base-Change Phi_{b,e} (Fourier-Moden, universelle
+  Form G(k), Amplitude ~ C1*|ln alpha| auf ±2%). Universal-Tail traegt
+  heute 3-4 Dezimalen; ob hunderte digits, entscheidet ihre offene
+  C_k(b,d)/sigma-infinity-Front. M5-Kandidat (spaeter): Base-Change-
+  Fastpath sexp_b = Anker + Phi-Reihe.
+- Synergie-Angebot: installiertes fatou_backend loest ORIGINAL-fatou.gp
+  auf; ihre nlim-120-Laeufe waeren mit dem 21-Keep-Fork 3-13x schneller
+  (Werte engine-divers bewiesen identisch). Vorbehalt: Mode-Floor-Regel
+  (k ~ 2.3*nlim) muesste auf dem Fork neu kalibriert werden. Opt-in via
+  fatou_gp-Parameter, deren Setup unberuehrt.
