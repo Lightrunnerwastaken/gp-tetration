@@ -1143,3 +1143,19 @@ Format pro Eintrag:
 - P1 des Berichts damit verifiziert: (I-K)c = g ist die richtige Struktur;
   Kontraktionsfaktor pro Schritt |d1|/|v| ~ 0.026. E4 (Anderson) folgt
   unmittelbar.
+
+---
+
+## E4-Verdikt (2026-07-12 ~23:45) — Anderson(8): 1.9x Schritte, KEIN Exponentenbruch pur
+- Setup: E3-Harness, Lock bei re~100 @dps220, festes Endgrid 1792/96.
+- Picard-Baseline: **72 Schritte** bis res 4.4e-192 (119s), ~1.25 dig/Schritt.
+- Anderson(8) (normierte Spalten + Tikhonov 1e-30): bis k=25 res e-149
+  (Picard braeuchte ~47) = **~1.9x weniger Schritte**; dann STAGNATION
+  (k=30: e-153, k=35: e-157) und Gram-Degeneration (Eintraege 0.E3 =
+  praezisionsleer). Zwei Versionen (roh/normiert) crashen konsistent.
+- **k(p)-Urteil nach Berichts-Leiter: k ~ p mit Konstante ~0.5 -> kein
+  Bruch durch pures Anderson.** Spektrum von K kontrahiert fast uniform
+  (~e-1.25/Schritt) — deckt sich mit exp-019 (uniformer Informationsfluss).
+- Konsequenz: der 2.x-Pfad braucht P3 = Grob-Grid-Preconditioner
+  (matrix_ir auf 64-256 Moden, LU, Zweigitter) oder Deflation — naechste
+  E5-Einheit. Harness + Treiber (e4_anderson.gp) wiederverwendbar.
