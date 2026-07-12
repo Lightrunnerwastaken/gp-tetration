@@ -1014,3 +1014,15 @@ Format pro Eintrag:
   digits mit Quantum). Gate: FULL PASS (pro forma). Suite 45 passed.
 - Damit Labor-Lineal bis ~698 bewiesen / ~970 praktisch; Exponent-Messung
   aktuell: 400->720 = (5397/488)^: ln11.1/ln1.8 ~ 4.1 bestaetigt.
+
+---
+
+## Offizieller Benchmark m8 (2026-07-12, ruhige Maschine, 21 Keeps)
+- bench/results/2026-07-12-m8-keeps21.json (frozen workload/metrics).
+- Highlights vs m7 (2026-07-10): e|200 Erst-Init 48.3s (m7-Aera: Minuten
+  bis 908s je Pfad); warm-Durchsatz 12k-59k d/s; alle min-digits erfuellt
+  (70.0/190.0).
+- ANOMALIE notiert: Wrapper-Tier 2|200 cold = 806s, waehrend die rohe
+  Engine 2|dps220 in ~330s schafft -> der Python-Wrapper bestellt fuer
+  Basis 2 vermutlich veraltete looplim/nlim-Knobs (Vor-exp-004-Aera).
+  Wrapper-Follow-up, kein Fork-Thema; naechster Tick prueft die Bestellung.
