@@ -1052,3 +1052,11 @@ Format pro Eintrag:
   nur noch ueber genestete/offset-alignierte Grids angreifbar
   (Forschungsprojekt; Offset-Nesting scheitert an der 0.5-Offset-
   Konvention — braucht verallgemeinerte Extraktions-Chirps).
+
+- Leiter 2|300 mit 21 Keeps: **1053s = 17.6 min** (gestern Nacht 54 min
+  = 3.1x), volle 294 digits.
+- Nested-Grid-Mathe geprueft: Verdreifachung N->3N erhaelt die 0.5-Offset-
+  Konvention exakt (3*(-0.5)-(-0.5) = -1 in Z, Punkte nesten bei 3s-1) —
+  aber 3x-Overshoot in Warm-Kosten macht es unoekonomisch. Front ZU.
+- Tages-Labor damit abgeerntet; naechster dokumentierter Schritt:
+  1033er-Partner (uebernacht-Klasse) -> bewiesene e|1000-Referenz.
