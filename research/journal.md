@@ -987,3 +987,13 @@ Format pro Eintrag:
   — Werte beweisen sich gegenseitig, Zeiten vergleichen die Settings).
 - exp-036 (Margin-Tuning 40->28 / Floor 30->24 fuer icdig/thdig/exdig)
   im A/B bei dps 300.
+
+---
+
+## exp-036 (2026-07-12) — Margin-Tuning 40->28: REVERT (neutral)
+- A/B dps 300: Werte bit-identisch, Zeit ~gleich. Ursache verstanden:
+  PARI-Praezision ist WORT-quantisiert (~19 digits/64-bit-Wort) —
+  12-digit-Margensenkung aendert die Wortzahl oft gar nicht.
+  Sub-Wort-Margin-Tuning ist strukturell wirkungslos; groessere
+  Schnitte (>19 digits) waeren noetig, aber riskieren die Drift-Marge
+  ueber lange Stretches. Front geschlossen.
