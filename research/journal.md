@@ -1279,3 +1279,13 @@ Format pro Eintrag:
   dem e-Anker, ~24 digits absolut, neue Basis 0.2s on-demand.**
 - Suite 53 passed. Offen: Genauigkeits-Upgrade (k_head/dps), E6-Zertifikat,
   Raster 6-100, 2|700-Paar.
+
+---
+
+## M5.6 (2026-07-13 ~01:45) — Genauigkeits-Skalierung des Atlas bestaetigt
+- Param-Durchreichung (table_path/n_grid/k_head) in sexp_/slog_anchor.
+- Upgrade-Messung dps 113 / N=128 / k_head=40: **1.0e-36 vs bewiesene
+  2|500-Referenz**, Erst-Messung 3.2s (inkl. Basis-2-Init@113), warme
+  Auswertung 16 ms (2.2e-37).
+- Skalengesetz: k20@60 -> 24 digits, k40@113 -> 37 digits (A_{k+1}-Level,
+  konsistent). ~100 digits => k~150 + dps 220 (Minuten/Basis, on-demand).

@@ -151,7 +151,7 @@ def phi_from_modes(mu_v, modes, theta):
     return s
 
 
-def sexp_anchor(gp, base_b, y, n_lift=8):
+def sexp_anchor(gp, base_b, y, n_lift=8, table_path=None, n_grid=64, k_head=20):
     """sexp_b(y) NUR aus dem e-Anker + Phi-Tabelle (kein Basis-b-Init).
 
     Hoehe liften: h = n_lift + y + Phi_{e,b}(y mod 1); Anker liefert
@@ -161,7 +161,7 @@ def sexp_anchor(gp, base_b, y, n_lift=8):
     (Spiegel der Vorwaerts-Leiter; Trunkierung sub-Praezision).
     """
     y = _to_mpf(y)
-    mu_v, modes = phi_modes_cached(gp, base_b)
+    mu_v, modes = phi_modes_cached(gp, base_b, n_grid=n_grid, k_head=k_head, path=table_path)
     theta = y - mp.floor(y)
     h = n_lift + y + phi_from_modes(mu_v, modes, theta)
     ln_b = mp.log(_base_value(base_b))
@@ -193,7 +193,7 @@ def _phi_deriv_from_modes(modes, theta):
     return s
 
 
-def slog_anchor(gp, base_b, w):
+def slog_anchor(gp, base_b, w, table_path=None, n_grid=64, k_head=20):
     """slog_b(w) NUR aus dem e-Anker + Phi-Tabelle (kein Basis-b-Init).
 
     In b-Tuermen hochklettern (y > 1e4, m Ebenen), exakter Zwei-Level-
@@ -203,7 +203,7 @@ def slog_anchor(gp, base_b, w):
     [0.997, 1.003], 3 Schritte reichen fuer Volltiefe).
     """
     w = _to_mpf(w)
-    mu_v, modes = phi_modes_cached(gp, base_b)
+    mu_v, modes = phi_modes_cached(gp, base_b, n_grid=n_grid, k_head=k_head, path=table_path)
     ln_b = mp.log(_base_value(base_b))
     y = w
     m = 0
