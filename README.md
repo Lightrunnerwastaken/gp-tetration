@@ -1,96 +1,96 @@
-# Fatou Backend
+# gp-tetration — fast Kneser tetration with verified references and a base atlas
 
-Dieses Projekt kapselt `fatou.gp` als duennes Python-Backend um PARI/GP. Ziel ist
-nicht ein neuer Tetrationsport, sondern eine reproduzierbare und kleine API auf
-dem bestehenden GP-Rechenkern.
+A Python wrapper and optimized fork of Sheldon Levenstein's (Sheldonison's)
+`fatou.gp` — the classic PARI/GP implementation of Kneser's real-analytic
+tetration. Everything here builds on that engine; full credit for the
+underlying construction and original code goes to him.
 
-## Ziel
+## What this adds on top of fatou.gp
 
-- `gp.exe` + `fatou.gp` als primaeren Rechenkern benutzen
-- eine kleine Python-API fuer `sexp`, `slog`, Batch-Auswertung und Roundtrips anbieten
-- Paper- und Analysewerkzeuge wie `mixed_phase` auf denselben Wrapper setzen
+**1. An optimized engine fork (~13× faster at high precision).**
+21 gate-verified optimizations (`src/fatou_backend/vendor/fatou_fork.gp`):
+persistent walk/Schröder caches, incremental Taylor/theta/extraction updates
+at reduced precision, FFT/Bluestein extraction on exact-size grids, precision
+laddering, contour-radius tuning. Every change had to pass a frozen accuracy
+gate (all bases, full digits) before being kept; the complete experiment
+history — including all failures — is in `research/journal.md`.
 
-## Struktur
+| target (base e) | true digits | original | fork |
+|---|---|---|---|
+| dps 300 | 294 | ~27 min | **~3 min** |
+| dps 520 | 495 | ~5.4 h | **~25 min** |
+| dps 1020 | 973 | (memory crash) | **~6.7 h** |
 
-- `fatou_backend.gp_backend.FatouGP`: Haupt-Wrapper fuer PARI/GP
-- `fatou_backend.gp_backend.FatouGPSession`: basisgebundene Session-Hilfe
-- `fatou_backend.cli`: allgemeine CLI fuer `sexp`, `slog`, `roundtrip`, `eval`
-- `fatou_backend.mixed_phase`: Mixed-Base-Phase-Profile auf demselben Backend
-- `src/fatou_backend/vendor/fatou.gp`: vendorte GP-Datei
+**2. Reference values with *proven* error bounds.**
+`research/reference/values.json` contains sexp values whose accuracy is
+established by the error-vector method (two independent runs at different
+iteration depths; their agreement bounds the worse run's true error) and,
+for the deep tiers, additionally by engine diversity (fork vs. original):
 
-## Pfadauflosung
+- `sexp_e(0.5)` to **972 proven digits** (dps 1020/1033 pair)
+- `sexp_e(0.5)` to 698 / 497 proven digits (700 / 500 tiers)
+- `sexp_2(0.5)` to 497 proven digits (error vector **and** engine diversity)
 
-`fatou.gp` wird in dieser Reihenfolge gesucht:
+**3. A base atlas: tetration for any base from one anchor.**
+`fatou_backend.basechange` implements the base-change ladder: after a single
+base-e setup, `sexp_anchor` / `slog_anchor` evaluate tetration for *any* base
+via a small Fourier-mode table (`research/reference/phi_modes.json`,
+on-demand, ~3 KB per base, first request ≈ 0.2 s):
 
-1. expliziter Konstruktorparameter `fatou_gp=...`
-2. Umgebungsvariable `FATOU_GP_FILE`
-3. vendorte Repo-Datei `src/fatou_backend/vendor/fatou.gp`
+- validated against the proven references: ~1e-24 absolute (k=20 head,
+  dps-60 table); ~1e-37 with the k=40/dps-113 table; scales further
+- round-trips `slog(sexp(y))` consistent to ~1e-52
+- certified-enclosure prototype (ball arithmetic) in
+  `research/tools/m54_cert_proto.py`
 
-Es gibt keinen stillen Fallback mehr auf `Downloads`.
+The method follows the base-change/phase analysis of the companion research
+(mode decay, universality, µ-hub; forthcoming notes) — this repository
+contains the *consumer* side.
 
-`gp.exe` wird in dieser Reihenfolge gesucht:
+**4. A zero-dependency interactive demo.**
+`research/tools/tetration_calculator.html` — a single static HTML file that
+plots sexp_b(x) with a *continuous* base slider (1.5 … 100), powered by the
+atlas tables in plain JavaScript. No server, no PARI. Typical accuracy
+1e-6…1e-9 (less near the base edge).
 
-1. expliziter Konstruktorparameter `gp_exe=...`
-2. Umgebungsvariable `FATOU_GP_EXE`
-3. Windows-Standardpfade fuer PARI/GP
+## Install / use
 
-## Python-API
+Requirements: PARI/GP ≥ 2.15 (`gp_exe=` parameter or `FATOU_GP_EXE`),
+Python ≥ 3.11, `mpmath` (optionally `python-flint` for certification tools).
 
 ```python
-from fatou_backend import FatouGP
+from fatou_backend.gp_backend import FatouGP
+from fatou_backend import basechange
+import mpmath as mp
 
-gp = FatouGP(dps=80)
-value = gp.sexp("e", 0.5)
-
-session = gp.session("1+I")
-vals = session.sexp_batch([0.25, 0.4 + 0.2j])
-logs = session.slog_batch(vals)
+gp = FatouGP(dps=60)                      # persistent worker + state cache
+gp.sexp(2, mp.mpf("0.5"))                 # direct engine call (base 2)
+basechange.sexp_anchor(gp, 3, "0.5")     # any base via the e-anchor, ~ms
 ```
 
-## CLI
+- `fatou.gp` resolution: `fatou_gp=` parameter → `FATOU_GP_FILE` →
+  vendored file. The optimized fork: `fatou_gp=".../vendor/fatou_fork.gp"`.
+- First initialization of a (base, dps) pair is computed once and cached in
+  `~/.cache/fatou_backend/`; later sessions start in ~0.1 s.
+- Batch/CLI: `python -m fatou_backend.cli sexp --base e --values 0.5`;
+  `FatouGP(n_workers=N)` parallelizes large batches.
 
-```powershell
-python -m pip install -e .
-python -m fatou_backend.cli sexp --base e --values 0.5
-python -m fatou_backend.cli slog --base 2 --values 1.5
-python -m fatou_backend.cli eval --base 1+I --expressions "sexp(0.5)"
-python -m fatou_backend.mixed_phase --outer e --inner 2
-```
+Tests: `python -m pytest tests/` (53 tests, includes atlas validation
+against the proven references; set `FATOU_BACKEND_RUN_SLOW=1` for the
+slow gate block).
 
-## Tests
+## Reproducibility
 
-Schneller Standardlauf:
+- `bench/` — frozen workload/metrics benchmark (`bench/results/`)
+- `research/gate.py` + `research/reference/` — the frozen accuracy gate used
+  for every keep (anti-gaming: gate and references are immutable)
+- `research/journal.md` — complete experiment log (keeps, reverts, method)
+- `research/M5_basechange_plan.md` — atlas design and validation protocol
 
-```powershell
-python -m unittest discover -s tests -p "test_gp_backend.py" -v
-```
+## Credits & license
 
-Mit Slow-Block (inkl. Gate-Laeufe, mehrere Minuten):
-
-```powershell
-$env:FATOU_BACKEND_RUN_SLOW = "1"
-python -m unittest discover -s tests -v
-```
-
-## Performance-Architektur
-
-- Persistente GP-Sessions sind Default (`FatouGP(persistent=False)` fuer den
-  alten One-Shot-Pfad). `gp.close()` oder Context-Manager beendet die Worker.
-- Der sexpinit-State wird pro (Basis, dps, Knobs, fatou-Hash) in
-  `~/.cache/fatou_backend/` gecacht (`FATOU_CACHE_DIR` uebersteuert;
-  `FatouGP(state_cache=False)` schaltet ab). Kaltstart dps 80: ~0.1s statt
-  Sekunden; dps 200: ~0.05s statt ~13s.
-- `FatouGP(n_workers=N)` bzw. `mixed_phase --workers N` parallelisiert grosse
-  Batches (ab 2*N Ausdruecken) ueber N Worker-Prozesse; lohnt ab ~1000
-  Ausdruecken pro Batch (3.6x bei N=4 auf 4000 warmen Evals).
-
-## Benchmark & Autoresearch-Loop
-
-- `python bench/benchmark.py --mode all --label <name>` misst verifizierte
-  korrekte Stellen pro Sekunde gegen `research/reference/values.json`
-  (eingefroren; erzeugt aus der Original-fatou.gp bei dps+20).
-- `python research/gate.py` prueft `fatou_fork.gp` gegen die eingefrorene
-  Referenz (Exit 0 = PASS). `research/gate.py` und `research/reference/`
-  sind unantastbar (Anti-Gaming).
-- Loop-Regeln: `research/program.md`; Historie: `research/journal.md`;
-  Rausch-Schwelle: `research/noise.json` (via `research/calibrate_noise.py`).
+- `fatou.gp` © Sheldon Levenstein, published on the Tetration Forum;
+  vendored unmodified as `src/fatou_backend/vendor/fatou.gp`, optimized fork
+  alongside as `fatou_fork.gp`. This project exists thanks to that work.
+- Base-change mathematics: companion research notes (in preparation).
+- Wrapper, fork optimizations, references, atlas: this repository, 2026.
