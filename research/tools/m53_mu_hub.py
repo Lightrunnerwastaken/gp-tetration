@@ -29,7 +29,13 @@ def main():
     bases = ["1.5", "1.52", "1.55", "1.58", "1.6", "1.65", "1.7", "1.8", "1.9",
              "2", "2.2", "2.5", "2.8", "3", "3.5", "4", "5", "6", "8", "10",
              "13", "16", "20", "30", "50", "100"]
+    # Merge-sicher: bestehende Werte laden, nur Fehlende rechnen
     out = {}
+    try:
+        out = json.load(open("research/reference/mu_hub.json"))["values"]
+    except Exception:
+        pass
+    bases = [b for b in bases if b not in out]
     for b in bases:
         t0 = time.time()
         try:

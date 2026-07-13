@@ -1318,3 +1318,14 @@ Format pro Eintrag:
   ehrlich auf 8 Stellen. Abstiegs-Rekursion fuer x < -0.5.
 - Erzeugung: calc_export.py (SmallGP mit 256MB parisizemax gegen
   Pagefile-Knappheit) + calc_template.html + Daten-Injektion.
+
+---
+
+## Vormittag 2026-07-13 — Run-A-Stopp + Hub-Hygiene
+- Run A (2|720) nach ~13h EXTERN gestoppt (kein Ergebnis, kein Checkpoint).
+  Kein Auto-Restart ohne Nutzer-Go; fuer Publish ist v9 nicht kritisch.
+- System weiter unter Speicherdruck (PARI-Startup-OOM selbst ohne gp-Jobs)
+  -> mu-Hub-Rest verschoben; m53-Skript merge-sicher gemacht (laedt
+  Bestand, rechnet nur Fehlende, ueberschreibt nie mit weniger);
+  ueberschriebene mu_hub.json aus Commit wiederhergestellt (17 Basen).
+- Publish-Paket (README, FORUM_POST_DRAFT, Calculator) wartet auf Review.
