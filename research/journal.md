@@ -1329,3 +1329,6 @@ Format pro Eintrag:
   Bestand, rechnet nur Fehlende, ueberschreibt nie mit weniger);
   ueberschriebene mu_hub.json aus Commit wiederhergestellt (17 Basen).
 - Publish-Paket (README, FORUM_POST_DRAFT, Calculator) wartet auf Review.
+
+- **mu-Hub KOMPLETT: 26 Basen [1.5, 100]**, alle 5 publizierten Anker auf
+  31-32 digits (m(10): 4.9e-31). Speicher war wieder frei.
