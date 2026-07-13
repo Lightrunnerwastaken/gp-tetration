@@ -1289,3 +1289,19 @@ Format pro Eintrag:
   Auswertung 16 ms (2.2e-37).
 - Skalengesetz: k20@60 -> 24 digits, k40@113 -> 37 digits (A_{k+1}-Level,
   konsistent). ~100 digits => k~150 + dps 220 (Minuten/Basis, on-demand).
+
+---
+
+## E6/13.4-Prototyp (2026-07-13 ~09:30) — zertifizierte mu-Einschluesse
+- research/tools/m54_cert_proto.py: Peel-Leiter komplett in flint.arb
+  (Kugelarithmetik); Engine-Werte als Baelle [wert +- eps_engine].
+- **Framework fing sofort einen echten Fehler: eps=1e-55 war zu
+  optimistisch — die e-37-Abweichung ist der REALE dps-60-Engine-Fehler
+  (Kalibriergesetz digits ~ dps-24 => ~1e-36).** Mit ehrlichem
+  eps=1e-33: mu-Ball Radius 9.7e-32, Referenz-Abstand 8.5e-37 ✓ enthalten.
+- Grid-Aliasing-Lektion: N=16-Ball zertifizierte korrekt das GITTERMITTEL
+  (Abweichung von mu = A_16 ~ 1.3e-20, exakt gemessen); N=64 legt
+  Aliasing unters Budget.
+- Fuer scharfe Zertifikate: dps-100+-Worker (eps ~ 1e-72) + explizite
+  Aliasing-Schranke aus bewiesenem Modenzerfall. Naechster Schritt:
+  E6-Rueckwaerts-Peel im selben Ball-Rahmen.
