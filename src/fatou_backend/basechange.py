@@ -1,7 +1,7 @@
 """Base-change ladder (M5.1): Phi_{b,d} and mu via the peel ladder.
 
-Consumer-side implementation of the basechange-modes research method
-(Tetration/Research/basechange-modes, RESEARCH_LOG.md "Methode"):
+Consumer-side implementation of the base-change phase method of the
+mixed-base tetration paper series (see papers/, Papers I-II):
 
     Phi_{b,d}(theta) = slog_b(T_d(n+theta)) - (n+theta)
 
@@ -80,9 +80,9 @@ def _base_value(base) -> mp.mpf:
 
 
 # ---------------------------------------------------------------------------
-# M5.3: Phi-Moden-Tabelle (JSON, on-demand + Cache; Format mit Nutzer
-# abgestimmt 2026-07-13: k_head=20, dps=60, universeller Tail per
-# basechange-modes-Fit). Gespeichert wird die VORWAERTS-Richtung
+# M5.3: Phi mode table (JSON, on-demand + cache; k_head=20, dps=60,
+# universal tail per the paper-IV mode-decay law).
+# Gespeichert wird die VORWAERTS-Richtung
 # Phi_{e,b}; die Rueckrichtung folgt exakt aus dem Groupoid
 # Phi_{b,e}(H(theta)) = -Phi_{e,b}(theta) (H-Inversion via Newton,
 # H' in [0.997, 1.003]).
@@ -96,7 +96,7 @@ PHI_TABLE_PATH = os.path.join(os.path.dirname(__file__), "..", "..",
 UNIVERSAL_TAIL = {
     "model": "ln A_k = lnC + gamma*ln k - 2*pi*sigma*k - sqrt(pi*c*k)",
     "sigma": 0.0789, "c": 59.78, "gamma": 9.47,
-    "source": "basechange-modes RESEARCH_LOG R2 Struktur-Fit (paar-universell 2.4e-4)",
+    "source": "universal mode-decay law, paper IV (papers/); pair-universal fit 2.4e-4",
 }
 
 

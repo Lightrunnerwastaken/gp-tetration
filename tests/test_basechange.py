@@ -1,5 +1,5 @@
-"""M5.1 tests: peel ladder Phi/mu against values published by the
-basechange-modes research log (read-only reference values)."""
+"""M5.1 tests: peel ladder Phi/mu against reference values published
+in the mixed-base tetration paper series (see papers/)."""
 import unittest
 
 import mpmath as mp

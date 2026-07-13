@@ -12,8 +12,9 @@ underlying construction and original code goes to him.
 persistent walk/Schröder caches, incremental Taylor/theta/extraction updates
 at reduced precision, FFT/Bluestein extraction on exact-size grids, precision
 laddering, contour-radius tuning. Every change had to pass a frozen accuracy
-gate (all bases, full digits) before being kept; the complete experiment
-history — including all failures — is in `research/journal.md`.
+gate (all bases, full digits) before being kept; methods, measurements and
+the negative results (what did *not* work, and why) are documented in
+`research/METHODS.md`.
 
 | target (base e) | true digits | original | fork |
 |---|---|---|---|
@@ -43,9 +44,9 @@ on-demand, ~3 KB per base, first request ≈ 0.2 s):
 - certified-enclosure prototype (ball arithmetic) in
   `research/tools/m54_cert_proto.py`
 
-The method follows the base-change/phase analysis of the companion research
-(mode decay, universality, µ-hub; forthcoming notes) — this repository
-contains the *consumer* side.
+The mathematics (base-change phase law, mode decay, universality, µ-hub)
+is developed in the mixed-base tetration paper series — see `papers/` —
+and this repository is its computational companion.
 
 **4. A zero-dependency interactive demo.**
 `research/tools/tetration_calculator.html` — a single static HTML file that
@@ -84,13 +85,16 @@ slow gate block).
 - `bench/` — frozen workload/metrics benchmark (`bench/results/`)
 - `research/gate.py` + `research/reference/` — the frozen accuracy gate used
   for every keep (anti-gaming: gate and references are immutable)
-- `research/journal.md` — complete experiment log (keeps, reverts, method)
-- `research/M5_basechange_plan.md` — atlas design and validation protocol
+- `research/METHODS.md` — verification method, the full keep stack,
+  measured speedups, and all negative results
+- `papers/` — the mixed-base tetration paper series (the mathematics
+  behind the base atlas)
 
 ## Credits & license
 
 - `fatou.gp` © Sheldon Levenstein, published on the Tetration Forum;
   vendored unmodified as `src/fatou_backend/vendor/fatou.gp`, optimized fork
   alongside as `fatou_fork.gp`. This project exists thanks to that work.
-- Base-change mathematics: companion research notes (in preparation).
+- Base-change mathematics: the mixed-base tetration paper series
+  (J. Justus, 2026), included in `papers/`.
 - Wrapper, fork optimizations, references, atlas: this repository, 2026.

@@ -1,8 +1,8 @@
 """M5.3a: mu-hub raster — m(b) = mu_{e,b} over a dense base grid.
 
-Serves both our M5 (hub table, N bases instead of N^2 pairs) and the
-basechange-modes research step "m(b)-Kurve dicht rastern". Validated
-against their published anchors (m(2), m(3), m(5), m(10), m(1.5)).
+Hub table: N bases instead of N^2 pairs (mu_{b,d} = m(d) - m(b) up to
+the groupoid correction). Validated against the anchor values published
+in the paper series (m(2), m(3), m(5), m(10), m(1.5)).
 Output: research/reference/mu_hub.json
 """
 import json, sys, time

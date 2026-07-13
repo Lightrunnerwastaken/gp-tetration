@@ -13,3 +13,13 @@ gp_history.txt
 tmp*/
 
 *.egg-info/
+
+# internal lab notes / drafts (kept locally, not published)
+research/journal.md
+research/program.md
+research/DECISION_reference_v2.md
+research/M5_basechange_plan.md
+research/FORUM_POST_DRAFT.md
+docs/superpowers/
+output/
+research/tools/fatou_profile*.gp

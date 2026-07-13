@@ -11,7 +11,7 @@
    "sigma": 0.0789,
    "c": 59.78,
    "gamma": 9.47,
-   "source": "basechange-modes RESEARCH_LOG R2 Struktur-Fit (paar-universell 2.4e-4)"
+   "source": "universal mode-decay law, paper IV (papers/); pair-universal fit 2.4e-4"
   }
  },
  "bases": {
