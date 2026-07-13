@@ -1305,3 +1305,16 @@ Format pro Eintrag:
 - Fuer scharfe Zertifikate: dps-100+-Worker (eps ~ 1e-72) + explizite
   Aliasing-Schranke aus bewiesenem Modenzerfall. Naechster Schritt:
   E6-Rueckwaerts-Peel im selben Ball-Rahmen.
+
+---
+
+## Tetration Explorer (2026-07-13 ~10:00) — statischer Graphing-Calculator
+- research/tools/tetration_calculator.html (121 KB, self-contained, kein
+  Server/PARI): sexp_b(x) fuer KONTINUIERLICHEN Basis-Slider 1.5-100 via
+  Atlas-Mathematik in JavaScript-float64 (Anker-Kurve 2817 Punkte +
+  70-Basen-Moden-Tabelle k<=16, kubische lnln-b-Interpolation).
+- Validierung gegen Engine: typisch 1e-6..1e-9 relativ; Kantennaehe
+  (b~1.57) 2.2e-3 (mu-Wurzel-Singularitaet) — fuer Plots ok, Readout
+  ehrlich auf 8 Stellen. Abstiegs-Rekursion fuer x < -0.5.
+- Erzeugung: calc_export.py (SmallGP mit 256MB parisizemax gegen
+  Pagefile-Knappheit) + calc_template.html + Daten-Injektion.
