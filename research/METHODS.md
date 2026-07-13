@@ -27,6 +27,12 @@ convergence rates: base e ≈ 2.05 digits/iteration, base 2 ≈ 1.27.
 This law is what the atlas certification prototype uses for its engine-error
 term (e.g. dps 60 → engine ε ≈ 1e−33, *not* the naive 1e−55).
 
+Every entry in `values.json` records its full provenance in the meta
+block (engine, dps pair, measured error-vector delta, runtimes) —
+German strings, but complete. `research/DECISION_reference_v2.md`
+documents why the original v1 base-e references had to be replaced
+(correlated-error artifacts of an iteration-capped engine).
+
 **Proven reference ladder** (`research/reference/values.json`):
 
 | value | proven digits | method |
@@ -134,8 +140,19 @@ base-e engine, using the base-change phase function Φ of the paper series
 
 ## 5. Reproducing
 
-- `bench/` — frozen workload and metrics; results in `bench/results/`.
+- **Any reference value**: `python research/tools/verify_reference.py
+  --key "sexp|e|0.5|500" --dps 520 --pair 533` re-runs the engine and
+  reports both agreement with the stored value and a fresh run-vs-run
+  error vector. Low tiers take seconds-to-minutes; the deep tiers cost
+  what the table in §2 says.
+- `bench/` — frozen workload and metrics; the headline benchmark
+  (`bench/results/2026-07-12-m8-keeps21.json`) references the vendored
+  fork by relative path and reruns as-is.
 - `research/gate.py` + `research/reference/` — the frozen accuracy gate
   used for every keep decision (gate and references are immutable).
 - `tests/` — includes atlas validation against the proven references
   (`FATOU_BACKEND_RUN_SLOW=1` enables the slow gate block).
+- The atlas artifacts (`phi_modes.json`, `mu_hub.json`,
+  `research/tools/calc_data.json`) regenerate from scratch via
+  `basechange.phi_modes_cached`, `research/tools/m53_mu_hub.py` and
+  `research/tools/calc_export.py`.
