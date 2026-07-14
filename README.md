@@ -64,15 +64,24 @@ from fatou_backend.gp_backend import FatouGP
 from fatou_backend import basechange
 import mpmath as mp
 
-gp = FatouGP(dps=60)                      # persistent worker + state cache
+gp = FatouGP(dps=300, fatou_gp="fork")   # the optimized engine, ~13x faster
 gp.sexp(2, mp.mpf("0.5"))                 # direct engine call (base 2)
 basechange.sexp_anchor(gp, 3, "0.5")     # any base via the e-anchor, ~ms
 ```
 
-- `fatou.gp` resolution: `fatou_gp=` parameter → `FATOU_GP_FILE` →
-  vendored file. The optimized fork: `fatou_gp=".../vendor/fatou_fork.gp"`.
-- First initialization of a (base, dps) pair is computed once and cached in
-  `~/.cache/fatou_backend/`; later sessions start in ~0.1 s.
+- **Engine selection**: `fatou_gp="fork"` (optimized) or `"original"`
+  (unmodified fatou.gp); a path or `FATOU_GP_FILE` also works; default is
+  the vendored original.
+- **Precision**: set `dps` and expect ~`dps − 24` true digits (measured
+  calibration law, see `research/METHODS.md`). The defaults fully converge
+  at any `dps` on both engines — a plain `FatouGP(dps=...)` call reproduces
+  the published reference values; check yourself with
+  `python research/tools/verify_reference.py --key "sexp|e|0.5|500"`.
+- **Caching is automatic**: the first initialization of each
+  (base, dps, knobs, engine) combination is computed once and stored in
+  `~/.cache/fatou_backend/` (override with `FATOU_CACHE_DIR`); later
+  sessions restore it in ~0.1 s. The key includes a hash of the engine
+  file, so switching engines or knobs never reuses a stale state.
 - Batch/CLI: `python -m fatou_backend.cli sexp --base e --values 0.5`;
   `FatouGP(n_workers=N)` parallelizes large batches.
 

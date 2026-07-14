@@ -104,12 +104,25 @@ class FatouGPSession:
 
 @dataclass
 class FatouGP:
+    """Persistent PARI/GP tetration engine.
+
+    fatou_gp: engine file; the shortcuts "fork" (optimized fork, ~13x
+        faster at high precision) and "original" (unmodified fatou.gp)
+        resolve to the vendored files.
+    looplim/nlim: convergence target / iteration cap. Left at None they
+        default to looplim=0 (let the engine converge to working
+        precision) and nlim=max(30, dps), which is fully converged at
+        any precision on BOTH engines — naive calls reproduce the
+        published reference values. Expect ~(dps - 24) true digits
+        (see research/METHODS.md, calibration law). Only set these
+        explicitly for experiments that deliberately under-iterate.
+    """
     gp_exe: Path | str | None = None
     fatou_gp: Path | str | None = None
     dps: int = 80
-    nlim: int = 30
+    nlim: int | None = None
     nskip: int = 4
-    looplim: int = 35
+    looplim: int | None = None
     quietmode: int = 1
     persistent: bool = True
     init_timeout: float = 3600.0
@@ -121,7 +134,14 @@ class FatouGP:
 
     def __post_init__(self) -> None:
         self.gp_exe = find_default_gp_exe() if self.gp_exe is None else Path(self.gp_exe)
+        if self.fatou_gp in ("fork", "original"):
+            name = "fatou_fork.gp" if self.fatou_gp == "fork" else "fatou.gp"
+            self.fatou_gp = Path(__file__).resolve().parent / "vendor" / name
         self.fatou_gp = find_default_fatou_gp() if self.fatou_gp is None else Path(self.fatou_gp)
+        if self.looplim is None:
+            self.looplim = 0
+        if self.nlim is None:
+            self.nlim = max(30, self.dps)
         if not self.gp_exe.exists():
             raise FileNotFoundError(f"PARI/GP executable not found: {self.gp_exe}")
         if not self.fatou_gp.exists():
