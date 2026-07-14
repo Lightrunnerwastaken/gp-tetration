@@ -138,17 +138,13 @@ function sexpBLog10(b, x, tab) {           // log10 sexp ohne Overflow (fuer log
   return v * Math.LOG10E;                  // log10(e^v) direkt, kein exp-Overflow
 }
 
-// symlog: linear in [-1,1], logarithmisch ausserhalb — zeigt den
-// negativen Ast (-2<x<-1), die Nullstelle bei x=-1 UND das Wachstum,
-// ohne dass die Nullstelle wie eine Asymptote aussieht.
+// symlog: glatte log-artige Skala mit Vorzeichen — zeigt den negativen
+// Ast (-2<x<-1), die Nullstelle bei x=-1 UND das Wachstum. log10(1+|v|)
+// ist ueberall stetig differenzierbar (kein Knick bei v=+-1).
 function symlog(v) {
-  return Math.abs(v) <= 1 ? v : Math.sign(v) * (1 + Math.log10(Math.abs(v)));
+  return Math.sign(v) * Math.log10(1 + Math.abs(v));
 }
-function symlogInv(g) {
-  return Math.abs(g) <= 1 ? g : Math.sign(g) * Math.pow(10, Math.abs(g) - 1);
-}
-function axisLabel(g, logmode) {
-  const v = logmode ? symlogInv(g) : g;
+function fmtVal(v) {
   const a = Math.abs(v);
   if (a !== 0 && (a >= 1e4 || a < 1e-3)) return v.toExponential(0).replace("e+", "e");
   return String(parseFloat(v.toPrecision(3)));
@@ -179,7 +175,7 @@ function draw() {
     if (logy) {
       if (y === Infinity) {                // jenseits float64: log-Raum weiterrechnen
         const l = sexpBLog10(curB, x, curTab);
-        yy = isFinite(l) ? 1 + l : 1e9;    // symlog(10^l) = 1 + l
+        yy = isFinite(l) ? l : 1e9;        // symlog(10^l) ~= l fuer grosse l
       } else {
         yy = symlog(y);                    // zeigt auch 0 und den negativen Ast
       }
@@ -192,19 +188,48 @@ function draw() {
     // duerfen die Skala nicht dominieren — die Struktur um sexp(0)=1
     // bleibt sichtbar, Extreme laufen aus dem Bild
     if (yy < yLo && yy >= (logy ? -6 : -1e9)) yLo = yy;
-    if (yy > yHi && yy <= (logy ? 20 : 1e6)) yHi = yy;
+    if (yy > yHi && yy <= (logy ? 6 : 1e6)) yHi = yy;
   }
-  if (yLo === Infinity || yHi === -Infinity) { yLo = logy ? -6 : 0; yHi = logy ? 20 : 1; }
+  if (yLo === Infinity || yHi === -Infinity) { yLo = logy ? -6 : 0; yHi = logy ? 6 : 1; }
   if (yHi <= yLo) yHi = yLo + 1;
   const pad = (yHi - yLo) * 0.08 + 1e-9; yLo -= pad; yHi += pad;
   const X = x => (x - xMin)/(xMax - xMin)*W;
   const Y = y => H - (y - yLo)/(yHi - yLo)*H;
+  // y-Ticks: log-Modus an "schoenen" Werten (0, +-1/2/5 x 10^k),
+  // linear an runden Zahlen — Gitterlinien und Labels sind identisch
+  const yTicks = [];
+  if (logy) {
+    const gap = 60 * (yHi - yLo) / H;              // Mindestabstand in T-Einheiten
+    const cands = [[0, 0]];
+    for (let k = -3; k <= 320; k++) {
+      for (const m of [1, 2, 5]) {
+        const v = m * Math.pow(10, k);
+        const t = symlog(v);
+        cands.push([t, v], [-t, -v]);
+      }
+    }
+    const inr = cands.filter(p => isFinite(p[0]) && p[0] >= yLo && p[0] <= yHi)
+                     .sort((a, b) => a[0] - b[0]);
+    if (inr.length) {
+      let anchor = inr.findIndex(p => p[1] === 0);
+      if (anchor < 0) anchor = 0;
+      let last = -Infinity;
+      for (let i = anchor; i < inr.length; i++)
+        if (i === anchor || inr[i][0] - last >= gap) { yTicks.push(inr[i]); last = inr[i][0]; }
+      last = inr[anchor][0];
+      for (let i = anchor - 1; i >= 0; i--)
+        if (last - inr[i][0] >= gap) { yTicks.push(inr[i]); last = inr[i][0]; }
+    }
+  } else {
+    const st = Math.pow(10, Math.floor(Math.log10((yHi - yLo)/6)));
+    const lst = st * Math.max(1, Math.ceil((yHi - yLo) / st / 9));
+    for (let gy = Math.ceil(yLo/lst)*lst; gy <= yHi; gy += lst) yTicks.push([gy, gy]);
+  }
   // Gitter + Achsen
   ctx.globalAlpha = 0.25; ctx.strokeStyle = fg; ctx.lineWidth = 1;
   ctx.beginPath();
   for (let gx = Math.ceil(xMin); gx <= xMax; gx++) { ctx.moveTo(X(gx), 0); ctx.lineTo(X(gx), H); }
-  const ystep = Math.pow(10, Math.floor(Math.log10((yHi - yLo)/6)));
-  for (let gy = Math.ceil(yLo/ystep)*ystep; gy <= yHi; gy += ystep) { ctx.moveTo(0, Y(gy)); ctx.lineTo(W, Y(gy)); }
+  for (const t of yTicks) { ctx.moveTo(0, Y(t[0])); ctx.lineTo(W, Y(t[0])); }
   ctx.stroke();
   if (xMin < 0 && xMax > 0) { ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.moveTo(X(0), 0); ctx.lineTo(X(0), H); ctx.stroke(); }
   if (yLo < 0 && yHi > 0) { ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.moveTo(0, Y(0)); ctx.lineTo(W, Y(0)); ctx.stroke(); }
@@ -213,11 +238,8 @@ function draw() {
   for (let gx = Math.ceil(xMin); gx <= xMax; gx += Math.max(1, Math.round((xMax-xMin)/10))) {
     ctx.fillText(String(gx), X(gx) + 4, H - 8);
   }
-  const ylabelstep = ystep * Math.max(1, Math.ceil((yHi - yLo) / ystep / 9));
-  for (let gy = Math.ceil(yLo/ylabelstep)*ylabelstep; gy <= yHi; gy += ylabelstep) {
-    ctx.fillText(axisLabel(gy, logy), 8, Y(gy) - 5);
-  }
-  ctx.fillText(logy ? "sexp_b(x), log scale (linear near 0)" : "sexp_b(x)", 130, 26);
+  for (const t of yTicks) ctx.fillText(fmtVal(t[1]), 8, Y(t[0]) - 5);
+  ctx.fillText(logy ? "sexp_b(x), log scale" : "sexp_b(x)", 130, 26);
   // Kurve (y auf Sichtbereich geklemmt: Extremwerte laufen oben raus)
   const span = yHi - yLo;
   const yc = v => Math.max(yLo - span, Math.min(yHi + span, v));
