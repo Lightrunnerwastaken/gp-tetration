@@ -4,8 +4,7 @@ Preprints (J. Justus, July 2026), permanently archived on Zenodo — the
 DOIs below are concept DOIs and always resolve to the latest version.
 The series develops the mathematics behind the base atlas in this
 repository (`fatou_backend.basechange`); this repository is the
-computational companion cited by the papers. LaTeX sources are included
-alongside the PDFs.
+computational companion cited by the papers.
 
 | # | File | Title | DOI |
 |---|------|-------|-----|
