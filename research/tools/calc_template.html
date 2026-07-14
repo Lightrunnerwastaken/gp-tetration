@@ -138,6 +138,22 @@ function sexpBLog10(b, x, tab) {           // log10 sexp ohne Overflow (fuer log
   return v * Math.LOG10E;                  // log10(e^v) direkt, kein exp-Overflow
 }
 
+// symlog: linear in [-1,1], logarithmisch ausserhalb — zeigt den
+// negativen Ast (-2<x<-1), die Nullstelle bei x=-1 UND das Wachstum,
+// ohne dass die Nullstelle wie eine Asymptote aussieht.
+function symlog(v) {
+  return Math.abs(v) <= 1 ? v : Math.sign(v) * (1 + Math.log10(Math.abs(v)));
+}
+function symlogInv(g) {
+  return Math.abs(g) <= 1 ? g : Math.sign(g) * Math.pow(10, Math.abs(g) - 1);
+}
+function axisLabel(g, logmode) {
+  const v = logmode ? symlogInv(g) : g;
+  const a = Math.abs(v);
+  if (a !== 0 && (a >= 1e4 || a < 1e-3)) return v.toExponential(0).replace("e+", "e");
+  return String(parseFloat(v.toPrecision(3)));
+}
+
 // --- UI ---
 const cv = document.getElementById("plot"), ctx = cv.getContext("2d");
 const bslider = document.getElementById("bslider"), bval = document.getElementById("bval");
@@ -159,22 +175,26 @@ function draw() {
   for (let i = 0; i <= NPX; i++) {
     const x = xMin + (i/NPX)*(xMax - xMin);
     let yy;
+    const y = sexpB(curB, x, curTab);
     if (logy) {
-      yy = sexpBLog10(curB, x, curTab);    // log-Raum: kein Overflow-Zerreissen
-      if (yy === Infinity) yy = 1e9;       // weit ueber der Kappe: laeuft oben raus
+      if (y === Infinity) {                // jenseits float64: log-Raum weiterrechnen
+        const l = sexpBLog10(curB, x, curTab);
+        yy = isFinite(l) ? 1 + l : 1e9;    // symlog(10^l) = 1 + l
+      } else {
+        yy = symlog(y);                    // zeigt auch 0 und den negativen Ast
+      }
     } else {
-      const y = sexpB(curB, x, curTab);
       yy = (y === Infinity) ? 1e12 : y;
     }
     if (!isFinite(yy)) { pts.push(null); continue; }
     pts.push([x, yy]);
-    // Autoscale gekappt: der Pol bei x=-1 (log -> -unendlich) und die
-    // Turm-Explosion duerfen die Skala nicht dominieren — die Struktur
-    // um sexp(0)=1 bleibt sichtbar, Extreme laufen aus dem Bild
-    if (yy < yLo && yy >= (logy ? -4 : -1e9)) yLo = yy;
+    // Autoscale gekappt: die Turm-Explosion (und linear der -2-Pol)
+    // duerfen die Skala nicht dominieren — die Struktur um sexp(0)=1
+    // bleibt sichtbar, Extreme laufen aus dem Bild
+    if (yy < yLo && yy >= (logy ? -6 : -1e9)) yLo = yy;
     if (yy > yHi && yy <= (logy ? 20 : 1e6)) yHi = yy;
   }
-  if (yLo === Infinity || yHi === -Infinity) { yLo = logy ? -4 : 0; yHi = logy ? 20 : 1; }
+  if (yLo === Infinity || yHi === -Infinity) { yLo = logy ? -6 : 0; yHi = logy ? 20 : 1; }
   if (yHi <= yLo) yHi = yLo + 1;
   const pad = (yHi - yLo) * 0.08 + 1e-9; yLo -= pad; yHi += pad;
   const X = x => (x - xMin)/(xMax - xMin)*W;
@@ -195,11 +215,9 @@ function draw() {
   }
   const ylabelstep = ystep * Math.max(1, Math.ceil((yHi - yLo) / ystep / 9));
   for (let gy = Math.ceil(yLo/ylabelstep)*ylabelstep; gy <= yHi; gy += ylabelstep) {
-    const txt = logy ? "1e" + gy.toPrecision(3).replace(/\.?0+$/, "")
-                     : gy.toPrecision(3).replace(/\.?0+$/, "");
-    ctx.fillText(txt, 8, Y(gy) - 5);
+    ctx.fillText(axisLabel(gy, logy), 8, Y(gy) - 5);
   }
-  ctx.fillText(logy ? "sexp_b(x), log scale" : "sexp_b(x)", 130, 26);
+  ctx.fillText(logy ? "sexp_b(x), log scale (linear near 0)" : "sexp_b(x)", 130, 26);
   // Kurve (y auf Sichtbereich geklemmt: Extremwerte laufen oben raus)
   const span = yHi - yLo;
   const yc = v => Math.max(yLo - span, Math.min(yHi + span, v));
