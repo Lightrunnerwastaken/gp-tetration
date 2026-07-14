@@ -39,11 +39,19 @@
 </div>
 <div class="readout" id="readout">Move the mouse over the plot to read values.</div>
 <div class="foot">Engine: gp-tetration base atlas (Kneser tetration, fatou.gp by Sheldonison; fork + atlas 2026).
-Accuracy of this demo: ~6–9 digits (less near the edge b→e^{1/e}); the underlying library delivers up to 972 proven digits.</div>
+Accuracy of this demo: ~7–9 digits at table bases (incl. b = 2, e, 10), ~4–5 digits between them, ~2–3 near the edge b→e^{1/e}; the underlying library delivers up to 972 proven digits.</div>
 <script id="calcdata" type="application/json">__DATA__</script>
 <script>
 "use strict";
-const D = JSON.parse(document.getElementById("calcdata").textContent);
+let D;
+try { D = JSON.parse(document.getElementById("calcdata").textContent); }
+catch (e) {
+  document.body.innerHTML = "<h1>Tetration Explorer — build template</h1>" +
+    "<p>This file is the <b>template</b> (no data embedded). Open " +
+    "<b>tetration_calculator.html</b> instead, or rebuild it by replacing " +
+    "the DATA placeholder with the contents of <code>calc_data.json</code>.</p>";
+  throw e;
+}
 const A = D.anchor, AV = A.values, AY0 = A.y0, AST = A.step, AN = AV.length;
 const E = Math.E, LN = Math.log;
 
@@ -51,8 +59,12 @@ function sexpE(y) {                       // Anker: kubische Interpolation + Rek
   if (y > 3.5) { const t = sexpE(y - 1); return t > 700 ? Infinity : Math.exp(t); }
   if (y < -2)  { const t = sexpE(y + 1); return t > 0 ? LN(t) : NaN; }
   const u = (y - AY0) / AST;
-  let i = Math.floor(u); i = Math.max(1, Math.min(AN - 3, i));
+  let i = Math.floor(u); i = Math.max(2, Math.min(AN - 3, i));
   const f = u - i, m1 = AV[i-1], p0 = AV[i], p1 = AV[i+1], p2 = AV[i+2];
+  if (m1 > 0 && p0 > 0 && p1 > 0 && p2 > 0) {
+    // Log-Raum: monoton + kein kubischer Overshoot im steilen Endbereich
+    return Math.exp(crom(LN(m1), LN(p0), LN(p1), LN(p2), f));
+  }
   return p0 + 0.5*f*(p1 - m1 + f*(2*m1 - 5*p0 + 4*p1 - p2 + f*(3*(p0 - p1) + p2 - m1)));
 }
 
@@ -92,14 +104,38 @@ function sexpB(b, x, tab) {                // Atlas-Fastpath in float64
   const th = x - Math.floor(x);
   const n = 8 + Math.max(0, Math.ceil(-tab.mu));
   const h = n + x + phi(tab, th);
-  let j = Math.ceil(h - 1 - 3.3); if (j < 1) j = 1;
+  let j = Math.ceil(h - 1 - 3.3); if (j < 1) j = 1; if (j > n) j = n;
   let a = h - 1 - j;
   let t = sexpE(a);
   while (t <= 37 && j > 1) { t = Math.exp(t); j -= 1; }
-  if (!isFinite(t)) return NaN;
+  if (!isFinite(t)) return Infinity;       // Turm jenseits float64: echtes +unendlich
   let v = t - lnlnb;
   while (j < n) { if (v <= 0) return NaN; v = LN(v) - lnlnb; j++; }
   return v > 700 ? Infinity : Math.exp(v);
+}
+
+function sexpBLog10(b, x, tab) {           // log10 sexp ohne Overflow (fuer log-y)
+  if (Math.abs(b - E) < 1e-12) {
+    const y = sexpE(x);
+    if (isFinite(y)) return y > 0 ? Math.log10(y) : NaN;
+    const t = sexpE(x - 1);                // eine Ebene tiefer: log10 = t*log10(e)
+    return isFinite(t) ? t * Math.LOG10E : Infinity;
+  }
+  if (x < -0.5) {
+    const y = sexpB(b, x, tab);
+    return y > 0 ? Math.log10(y) : NaN;
+  }
+  const lnb = LN(b), lnlnb = LN(lnb);
+  const th = x - Math.floor(x);
+  const n = 8 + Math.max(0, Math.ceil(-tab.mu));
+  const h = n + x + phi(tab, th);
+  let j = Math.ceil(h - 1 - 3.3); if (j < 1) j = 1; if (j > n) j = n;
+  let t = sexpE(h - 1 - j);
+  while (t <= 37 && j > 1) { t = Math.exp(t); j -= 1; }
+  if (!isFinite(t)) return Infinity;
+  let v = t - lnlnb;
+  while (j < n) { if (v <= 0) return NaN; v = LN(v) - lnlnb; j++; }
+  return v * Math.LOG10E;                  // log10(e^v) direkt, kein exp-Overflow
 }
 
 // --- UI ---
@@ -122,14 +158,22 @@ function draw() {
   const NPX = 700;
   for (let i = 0; i <= NPX; i++) {
     const x = xMin + (i/NPX)*(xMax - xMin);
-    let y = sexpB(curB, x, curTab);
-    if (!isFinite(y) || isNaN(y)) { pts.push(null); continue; }
-    let yy = logy ? Math.log10(Math.max(y, 1e-12)) : y;
-    if (!logy && yy > 1e6) { pts.push(null); continue; }
+    let yy;
+    if (logy) {
+      yy = sexpBLog10(curB, x, curTab);    // log-Raum: kein Overflow-Zerreissen
+    } else {
+      const y = sexpB(curB, x, curTab);
+      yy = (isFinite(y) && y <= 1e6) ? y : NaN;
+    }
+    if (!isFinite(yy)) { pts.push(null); continue; }
     pts.push([x, yy]);
-    if (yy < yLo) yLo = yy; if (yy > yHi) yHi = yy;
+    if (yy < yLo) yLo = yy;
+    // Autoscale nur ueber den darstellbaren Bereich; extremere Punkte
+    // laufen oben aus dem Bild, statt die Skala zu zerstoeren
+    if (yy > yHi && yy <= (logy ? 340 : 1e6)) yHi = yy;
   }
   if (yLo === Infinity) return;
+  if (yHi <= yLo) yHi = yLo + 1;
   const pad = (yHi - yLo) * 0.08 + 1e-9; yLo -= pad; yHi += pad;
   const X = x => (x - xMin)/(xMax - xMin)*W;
   const Y = y => H - (y - yLo)/(yHi - yLo)*H;
@@ -147,14 +191,22 @@ function draw() {
   for (let gx = Math.ceil(xMin); gx <= xMax; gx += Math.max(1, Math.round((xMax-xMin)/10))) {
     ctx.fillText(String(gx), X(gx) + 4, H - 8);
   }
-  ctx.fillText(logy ? "log10 sexp_b(x)" : "sexp_b(x)", 12, 26);
-  // Kurve
+  const ylabelstep = ystep * Math.max(1, Math.ceil((yHi - yLo) / ystep / 9));
+  for (let gy = Math.ceil(yLo/ylabelstep)*ylabelstep; gy <= yHi; gy += ylabelstep) {
+    const txt = logy ? "1e" + gy.toPrecision(3).replace(/\.?0+$/, "")
+                     : gy.toPrecision(3).replace(/\.?0+$/, "");
+    ctx.fillText(txt, 8, Y(gy) - 5);
+  }
+  ctx.fillText(logy ? "sexp_b(x), log scale" : "sexp_b(x)", 130, 26);
+  // Kurve (y auf Sichtbereich geklemmt: Extremwerte laufen oben raus)
+  const span = yHi - yLo;
+  const yc = v => Math.max(yLo - span, Math.min(yHi + span, v));
   ctx.globalAlpha = 1; ctx.lineWidth = 3.5; ctx.strokeStyle = "#e33";
   ctx.beginPath(); let pen = false;
   for (const p of pts) {
     if (!p) { pen = false; continue; }
-    if (!pen) { ctx.moveTo(X(p[0]), Y(p[1])); pen = true; }
-    else ctx.lineTo(X(p[0]), Y(p[1]));
+    if (!pen) { ctx.moveTo(X(p[0]), Y(yc(p[1]))); pen = true; }
+    else ctx.lineTo(X(p[0]), Y(yc(p[1])));
   }
   ctx.stroke();
   cv._map = { xMin, xMax };
@@ -175,7 +227,14 @@ cv.addEventListener("pointermove", ev => {
   const r = cv.getBoundingClientRect();
   const x = xMin + (ev.clientX - r.left)/r.width*(xMax - xMin);
   const y = sexpB(curB, x, curTab);
-  readout.textContent = `b = ${curB.toFixed(6)}   x = ${x.toFixed(4)}   sexp_b(x) = ${isFinite(y) ? y.toPrecision(8) : "∞/overflow"}`;
+  let txt;
+  if (isFinite(y)) txt = y.toPrecision(8);
+  else if (isNaN(y)) txt = "undefined";
+  else {
+    const l = sexpBLog10(curB, x, curTab);
+    txt = isFinite(l) ? "10^(" + l.toPrecision(6) + ")" : "beyond float range";
+  }
+  readout.textContent = `b = ${curB.toFixed(6)}   x = ${x.toFixed(4)}   sexp_b(x) = ${txt}`;
 });
 update();
 </script>
