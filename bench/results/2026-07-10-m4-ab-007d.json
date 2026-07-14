@@ -3,7 +3,7 @@
   "label": "m4-ab-007d",
   "date": "2026-07-10T10:22:01",
   "gp_exe": "C:\\Program Files (x86)\\Pari64-2-17-3\\gp.exe",
-  "fatou": "src\\fatou_backend\\vendor\\fatou_fork.gp",
+  "fatou": "src/fatou_backend/vendor/fatou_fork.gp",
   "repeat": 2
  },
  "runs": [

@@ -10,6 +10,9 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = ["mpmath>=1.3"]
 
+[project.urls]
+Repository = "https://github.com/Lightrunnerwastaken/gp-tetration"
+
 [project.scripts]
 fatou-cli = "fatou_backend.cli:main"
 mixed-phase-cli = "fatou_backend.mixed_phase:main"
@@ -21,4 +24,4 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-fatou_backend = ["vendor/fatou.gp"]
+fatou_backend = ["vendor/fatou.gp", "vendor/fatou_fork.gp"]

@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Tetration Explorer — Basisatlas</title>
+<title>Tetration Explorer — base atlas</title>
 <style>
   :root { color-scheme: light dark; }
   body { font-family: system-ui, sans-serif; margin: 0; padding: 16px;
@@ -26,20 +26,20 @@
 </head>
 <body>
 <h1>Tetration Explorer</h1>
-<div class="sub">sexp<sub>b</sub>(x) für kontinuierliche Basen — via Basisatlas (e-Anker + Φ-Moden), kein Server, reine Tabellen-Mathematik.</div>
+<div class="sub">sexp<sub>b</sub>(x) for continuous bases — via the base atlas (e-anchor + Φ modes), no server, pure table math.</div>
 <div class="row">
-  <label>Basis b = <span class="val" id="bval">2.000</span></label>
+  <label>Base b = <span class="val" id="bval">2.000</span></label>
   <input type="range" id="bslider" min="0" max="1000" value="380">
   <button id="logy">log-y</button>
 </div>
 <canvas id="plot" width="1600" height="900"></canvas>
 <div class="row">
-  <label>x-Bereich: <span class="val" id="xrange">−2 … 4</span></label>
+  <label>x range: <span class="val" id="xrange">−2 … 4</span></label>
   <input type="range" id="xmax" min="1" max="45" value="20">
 </div>
-<div class="readout" id="readout">Maus über den Plot bewegen für Werte.</div>
-<div class="foot">Engine: gp-tetration Basisatlas (Kneser-Tetration, fatou.gp nach Sheldonison; Fork + Atlas 2026).
-Genauigkeit dieser Demo: ~6–9 Stellen (nahe der Kante b→e^{1/e} weniger); die zugrundeliegende Bibliothek liefert bis 972 bewiesene Stellen.</div>
+<div class="readout" id="readout">Move the mouse over the plot to read values.</div>
+<div class="foot">Engine: gp-tetration base atlas (Kneser tetration, fatou.gp by Sheldonison; fork + atlas 2026).
+Accuracy of this demo: ~6–9 digits (less near the edge b→e^{1/e}); the underlying library delivers up to 972 proven digits.</div>
 <script id="calcdata" type="application/json">__DATA__</script>
 <script>
 "use strict";

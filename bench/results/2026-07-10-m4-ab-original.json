@@ -3,7 +3,7 @@
   "label": "m4-ab-original",
   "date": "2026-07-10T10:13:06",
   "gp_exe": "C:\\Program Files (x86)\\Pari64-2-17-3\\gp.exe",
-  "fatou": "D:\\Users\\janis\\Documents\\Tetration\\gp-tetration\\src\\fatou_backend\\vendor\\fatou.gp",
+  "fatou": "src/fatou_backend/vendor/fatou.gp",
   "repeat": 2
  },
  "runs": [
