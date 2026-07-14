@@ -24,4 +24,4 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-fatou_backend = ["vendor/fatou.gp", "vendor/fatou_fork.gp"]
+fatou_backend = ["vendor/fatou.gp", "vendor/fatou_fork.gp", "vendor/NOTICE.md"]

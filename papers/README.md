@@ -6,6 +6,9 @@ The series develops the mathematics behind the base atlas in this
 repository (`fatou_backend.basechange`); this repository is the
 computational companion cited by the papers.
 
+© 2026 Janis Justus, all rights reserved (per the Zenodo records) —
+the PDFs are *not* covered by the repository's MIT license.
+
 | # | File | Title | DOI |
 |---|------|-------|-----|
 | I | [`paper1_phase_law.pdf`](paper1_phase_law.pdf) | A Phase Law for Mixed-Base Tetration: Logarithmic Tails, Cocycle Structure, and Singular Asymptotics | [10.5281/zenodo.21346803](https://doi.org/10.5281/zenodo.21346803) |

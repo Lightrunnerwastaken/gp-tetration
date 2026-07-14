@@ -92,10 +92,18 @@ slow gate block).
 
 ## Credits & license
 
-- `fatou.gp` © Sheldon Levenstein, published on the Tetration Forum;
-  vendored unmodified as `src/fatou_backend/vendor/fatou.gp`, optimized fork
-  alongside as `fatou_fork.gp`. This project exists thanks to that work.
+- `fatou.gp` © Sheldon Levenstein ("sheldonison"), published on the
+  Tetration Forum in the thread
+  ["new fatou.gp program"](https://tetrationforum.org/showthread.php?tid=1017)
+  (2015). It is vendored unmodified as `src/fatou_backend/vendor/fatou.gp`;
+  the optimized fork `fatou_fork.gp` is a derivative work of it. The
+  original carries no explicit license — see
+  `src/fatou_backend/vendor/NOTICE.md` for the full attribution and terms
+  status. This project exists thanks to that work.
 - Base-change mathematics: the mixed-base tetration paper series
-  (J. Justus, 2026), included in `papers/` and permanently archived
-  on Zenodo (DOIs in `papers/README.md`).
-- Wrapper, fork optimizations, references, atlas: this repository, 2026.
+  (Janis Justus, 2026), included in `papers/` and permanently archived
+  on Zenodo (DOIs in `papers/README.md`; © the author, all rights
+  reserved).
+- Everything else — wrapper, fork optimizations, references, atlas,
+  tools — is © 2026 Janis Justus under the [MIT license](LICENSE)
+  (the two vendor files and the papers are excluded, as stated there).
