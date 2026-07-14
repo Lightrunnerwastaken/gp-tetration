@@ -20,6 +20,10 @@ invabeli=1/4;
 complextaylor=1;
 superfk=8;
 efam=0; /* exp-011b: set by loop() — base-e family gets the fft extraction */
+subeta=0; /* set by loop(): real base <= eta = e^(1/e), i.e. kc <= 0 — the
+   walk lives at the real attracting fixed point there; the exp-032/033/034
+   cache/quantization extensions broke that regime, so sub-eta bases take
+   the exact pre-exp-032 code path (they are fast anyway). */
 /* exp-012: the fs/finv walk in sfunc depends only on the base map, NOT on
    the evolving ct/theta state — cache walk endpoints per sample index
    across loop iterations while the sampling grid is unchanged. */
@@ -272,12 +276,12 @@ thtaylor(n,samples) = {
      unchanged for ~20-30 iterations — prerequisite for the caches below. */
   /* exp-034: theta quantization+caches for all REAL bases (complex bases
      alternate n=1/n=2 and would thrash the single-slot cache). */
-  if ((efam || (complextaylor==0)) && (n==1) && (samples>64), samples = 64*ceil(samples/64));
+  if ((subeta==0) && (efam || (complextaylor==0)) && (n==1) && (samples>64), samples = 64*ceil(samples/64));
   terms=samples-1;
   t_est    = vector (samples,i,0);
   tcrc     = vector (samples,i,0);
   wtaylor=0;
-  if ((efam || (complextaylor==0)) && (n==1),
+  if ((subeta==0) && (efam || (complextaylor==0)) && (n==1),
     thfull = 1;
     if ((thskey == samples) && (type(icct) == "t_POL"),
       thdct = ct - icct;
@@ -1313,7 +1317,7 @@ staylor( w,r,samples) = {
        the grid for a few iterations so the walk/isuperf caches and the
        incremental Horner apply. Small steps to respect the delicate
        sample/terms co-evolution that pow2 rounding broke (exp-011b). */
-    if (samples > 64, samples = 32*ceil(samples/32)));
+    if ((samples > 64) && (subeta==0), samples = 32*ceil(samples/32)));
   terms=samples;
   if (complextaylor==0, samples=samples/2);
   t_est    = vector (samples,i,0);
@@ -1322,8 +1326,8 @@ staylor( w,r,samples) = {
   rinv = 1/r;
 
   /* exp-012: enable the sfunc walk cache while sampling an unchanged grid
-     (e-family only; grid identity = [samples, w, r]). */
-  if (1,
+     (exp-032: all bases except sub-eta; grid identity = [samples, w, r]). */
+  if (subeta==0,
     if (swkey != [samples, w, r],
       swkey = [samples, w, r];
       swz = vector(samples);
@@ -1386,9 +1390,9 @@ staylor( w,r,samples) = {
      (research/tools/fft_extraction_proto.gp). exp-033: since exp-032 the
      grid is quantized (32-steps) for ALL bases and bluedft handles exact N,
      so every base takes this path now — the exp-011b fragility came from
-     pow2 grid doubling, not from the transform. Rotation loop below is
-     dead code kept for reference. */
-  if (1,
+     pow2 grid doubling, not from the transform. The rotation loop below
+     stays live for sub-eta bases (attracting-fixed-point regime). */
+  if (subeta==0,
     /* exp-027: on an unchanged grid, extract only the diff of the samples
        at reduced precision (the transform is linear); full extract at
        stretch starts. exdig from the diff's scale like exp-021. */
@@ -1486,6 +1490,7 @@ loop(kc,nlim,nskip,looplim) = {
      kc==1. Widened window still excludes the fragile fast bases
      (b=2: kc~0.63, b=10: kc~1.83). */
   efam = (abs(kc-1) < 0.12);
+  subeta = ((imag(kc)==0) && (real(kc) <= 0));
   initsch(kc);
   /* exp-023: for the base-e family a smaller sampling radius trades a
      slightly slower rate (~2.05 -> ~1.7 digits/iter) for a much smaller
