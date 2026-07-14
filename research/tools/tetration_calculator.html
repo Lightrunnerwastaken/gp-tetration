@@ -161,18 +161,20 @@ function draw() {
     let yy;
     if (logy) {
       yy = sexpBLog10(curB, x, curTab);    // log-Raum: kein Overflow-Zerreissen
+      if (yy === Infinity) yy = 1e9;       // weit ueber der Kappe: laeuft oben raus
     } else {
       const y = sexpB(curB, x, curTab);
-      yy = (isFinite(y) && y <= 1e6) ? y : NaN;
+      yy = (y === Infinity) ? 1e12 : y;
     }
     if (!isFinite(yy)) { pts.push(null); continue; }
     pts.push([x, yy]);
-    if (yy < yLo) yLo = yy;
-    // Autoscale nur ueber den darstellbaren Bereich; extremere Punkte
-    // laufen oben aus dem Bild, statt die Skala zu zerstoeren
-    if (yy > yHi && yy <= (logy ? 340 : 1e6)) yHi = yy;
+    // Autoscale gekappt: der Pol bei x=-1 (log -> -unendlich) und die
+    // Turm-Explosion duerfen die Skala nicht dominieren — die Struktur
+    // um sexp(0)=1 bleibt sichtbar, Extreme laufen aus dem Bild
+    if (yy < yLo && yy >= (logy ? -4 : -1e9)) yLo = yy;
+    if (yy > yHi && yy <= (logy ? 20 : 1e6)) yHi = yy;
   }
-  if (yLo === Infinity) return;
+  if (yLo === Infinity || yHi === -Infinity) { yLo = logy ? -4 : 0; yHi = logy ? 20 : 1; }
   if (yHi <= yLo) yHi = yLo + 1;
   const pad = (yHi - yLo) * 0.08 + 1e-9; yLo -= pad; yHi += pad;
   const X = x => (x - xMin)/(xMax - xMin)*W;
