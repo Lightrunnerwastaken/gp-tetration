@@ -1,7 +1,8 @@
 """Apply the approved v2 reference correction (HUMAN-APPROVED runs only).
 
-Run with --confirm "Option A" after the user approved
-research/DECISION_reference_v2.md. Steps:
+Run with --confirm "Option A" after the user approved the v2 decision
+record (kept in the private lab notes; summarized in
+research/METHODS.md section 1). Steps:
   1. Replace base-e entries in research/reference/values.json with the
      verified values from values_v2_proposed.json (provenance recorded).
   2. Recalibrate gate REQUIRED_DIGITS for base-e groups: measure the current

@@ -29,9 +29,21 @@ term (e.g. dps 60 → engine ε ≈ 1e−33, *not* the naive 1e−55).
 
 Every entry in `values.json` records its full provenance in the meta
 block (engine, dps pair, measured error-vector delta, runtimes) —
-German strings, but complete. `research/DECISION_reference_v2.md`
-documents why the original v1 base-e references had to be replaced
-(correlated-error artifacts of an iteration-capped engine).
+German strings, but complete.
+
+**The v2 reference correction** (referenced as `DECISION_reference_v2.md
+Option A` in `gate.py` and the `values.json` meta; the original decision
+record lives in the private lab notes): the initial v1 base-e reference
+values beyond ~digit 64 were *correlated-error artifacts* — the wrapper
+passed an iteration cap of 30 everywhere, base e converges at ~2.1
+digits/iteration, so every v1 base-e number carried only ~64 true digits
+while self-comparisons showed spurious full-precision agreement
+(identical iteration trajectories on both sides). Decorrelated runs at
+different iteration caps exposed this. With user approval ("Option A",
+2026-07-10) the base-e entries were replaced by converged,
+error-vector-verified values and the gate thresholds recalibrated, then
+re-frozen. This episode is why the error-vector method (§ above) is the
+only verification this project accepts.
 
 **Proven reference ladder** (`research/reference/values.json`):
 
