@@ -96,5 +96,6 @@ slow gate block).
   vendored unmodified as `src/fatou_backend/vendor/fatou.gp`, optimized fork
   alongside as `fatou_fork.gp`. This project exists thanks to that work.
 - Base-change mathematics: the mixed-base tetration paper series
-  (J. Justus, 2026), included in `papers/`.
+  (J. Justus, 2026), included in `papers/` and permanently archived
+  on Zenodo (DOIs in `papers/README.md`).
 - Wrapper, fork optimizations, references, atlas: this repository, 2026.

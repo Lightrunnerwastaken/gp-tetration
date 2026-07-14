@@ -1,0 +1,1225 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=2.7cm]{geometry}
+\usepackage{booktabs}
+
+\usepackage[expansion=false]{microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem{hypothesis}[theorem]{Hypothesis}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{algorithm}[theorem]{Algorithm}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{observation}[theorem]{Observation}
+
+\newcommand{\slog}{\operatorname{slog}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Sone}{S^1}
+\newcommand{\Ph}[1]{\widehat{P}(#1)}
+\newcommand{\eff}{\mathrm{eff}}
+
+\title{Fine Structure of Mixed-Base Tetration Phases:\\
+Certified Evaluation, a Universal Mode-Decay Law,\\
+and a Boundary Essential Singularity\\[2mm]
+\large Paper IV of the mixed-base tetration series}
+\author{Janis Justus\thanks{See the Authorship and AI Contribution Statement at the end of this
+manuscript: the research reported here was carried out in a directed human--AI mode, with the
+author acting primarily as research director and the mathematical development and numerical
+campaign largely produced by AI systems under his direction.}}
+\date{July 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+For regular tetration branches $T_b$, $T_d$ with $b,d>e^{1/e}$, the mixed-base phase
+$\Phi_{b,d}(\theta)=\lim_{n\to\infty}\bigl(\slog_b(T_d(n+\theta))-(n+\theta)\bigr)$ is a small
+$1$-periodic circle map whose existence, groupoid structure and $C^1$-diffeomorphism property
+were established in the companion papers \cite{phaselaw,unified}. This paper resolves, partly
+by proof and partly by a high-precision measurement campaign, the fine structure of these
+phases, and turns them into a certified computational primitive for base change in tetration.
+
+On the theoretical side we prove: an exact two-level entry and an a-posteriori error
+certificate for the logarithmic peel ladder, making every phase evaluation carry a proven
+error bound; a regularity dictionary ``branch $C^m$ $\Rightarrow$ Fourier modes
+$\asymp k^{-(m+2)}$'' with an explicit seam-jump formula, calibrated on explicit $C^1$
+branches (measured exponents $3.06$ and $3.006$); a first-order perturbation theory in the
+base mismatch $\varepsilon=\ln\log_b d$, in which the derivative of the phase at the diagonal
+$b=d$ is given by a response kernel solving a linear cohomological equation, explaining the
+empirical amplitude law $A_k(b,d)\approx C_k\,\lvert\ln\log_b d\rvert$; an exact hub
+decomposition $\mu_{b,d}=m(d)-m(b)+\Delta$ of the mean shifts with second- and third-order
+defect formulas validated to $10^{-15}$; and a parabolic passage-time derivation of the edge
+law $m(b)\sim-\pi\sqrt{2\eta/e}\,(b-\eta)^{-1/2}$ as $b\downarrow\eta=e^{1/e}$, matching the
+measured coefficient to $2.3\%$.
+
+On the empirical side, Fourier modes of the regular phases were measured to $k=300$ after
+identifying and quantifying an instrument systematic of the underlying Kneser engine
+(usable band $\approx 2.3\,n_{\mathrm{lim}}$ theta harmonics). The decay profile
+$\sigma_\eff(k)$ is universal across all fourteen measured base pairs to three to four
+decimals; a direct exploration of the complexified phase locates an isolated
+\emph{essential singularity} per period on the strip boundary, at pair-universal height
+$y_*\approx 0.055$ and with pair-universal strength, only its horizontal position $x_*(b,d)$
+depending on the pair. Steepest-descent asymptotics link the singularity data to the measured
+four-parameter decay law and yield mode-count formulas for base-change tables
+($\approx 300$ modes for $150$ digits, $\approx 1400$ for $500$ digits). We close with a
+hybrid data format---mean-shift hub, Fourier head plus universal curve, certified peel ladder
+beyond---in which cross-base identities serve as proof residuals rather than heuristic checks.
+\end{abstract}
+
+\section{Introduction}\label{sec:intro}
+
+Regular tetration to a base $a>e^{1/e}$ is the increasing real-analytic solution $T_a$ of
+\begin{equation}\label{eq:tetration}
+T_a(0)=1,\qquad T_a(x+1)=a^{\,T_a(x)},
+\end{equation}
+in the Kneser--Paulsen--Cowgill normalization \cite{kneser,kouznetsov,paulsencowgill,paulsen},
+with Abel inverse $A_a=T_a^{-1}=\slog_a$. Given two admissible bases, the mixed-base height map
+$F_{b,d}=A_b\circ T_d$ converts $d$-height into $b$-height. The first paper of this series
+\cite{phaselaw} proved, conditionally on explicit channel and peeling-growth estimates for the
+regular branch, the \emph{phase law}
+\begin{equation}\label{eq:phaselaw}
+\slog_b\bigl(T_d(x)\bigr)-x \;=\; \Phi_{b,d}(\{x\})+o(1),\qquad x\to+\infty,
+\end{equation}
+with $\Phi_{b,d}$ continuous and $1$-periodic, decomposed as
+$\Phi_{b,d}=\mu_{b,d}+P_{b,d}$ into a mean shift and a centered periodic profile, and
+established the exact groupoid identity $F_{b,d}=F_{b,c}\circ F_{c,d}$ together with its
+nonlinear phase cocycle. The companion note \cite{unified} then de-conditionalized the
+smoothness assumptions: the lifted phase maps $\widetilde H_{b,d}=\mathrm{id}+\Phi_{b,d}$ form a
+groupoid of orientation-preserving circle homeomorphisms with
+$\widetilde H_{b,d}^{-1}=\widetilde H_{d,b}$, the inverse mean antisymmetry
+$\mu_{b,d}=-\mu_{d,b}$ holds exactly with no smoothness at all, and under a $C^1$ reading of
+the channel hypotheses the phase maps are $C^1$ circle diffeomorphisms with the exact
+derivative product identity
+\begin{equation}\label{eq:product}
+\widetilde H_{b,d}'(\theta)\;=\;\frac{\alpha\,T_d'(\theta)}{T_b'\bigl(\widetilde
+H_{b,d}(\theta)\bigr)}\;\prod_{j=1}^{\infty}\frac{\alpha\,T_d(j+\theta)}{T_b\bigl(j+\widetilde
+H_{b,d}(\theta)\bigr)}\;>\;0,\qquad \alpha=\log_b d .
+\end{equation}
+
+Three questions were left open, and they are precisely the questions that decide whether the
+phases can be used as a stable computational primitive for base change:
+
+\begin{itemize}
+\item[(Q1)] \emph{Regularity and mode decay.} Is $\Phi_{b,d}$ real-analytic on a strip
+(\cite[Conj.~8.1]{phaselaw}), merely $C^\infty$, or something in between? Equivalently: how do
+the Fourier amplitudes $A_k=2\lvert\widehat P_{b,d}(k)\rvert$ decay? The answer fixes the size
+of any tabulated representation of $\Phi$.
+\item[(Q2)] \emph{Laws for the shift and the amplitudes.} The data of \cite{phaselaw} hinted at
+$A_1\approx C_1\lvert\ln\alpha\rvert$ with a near-universal constant $C_1$, and at near-additive
+mean shifts. Are there provable first-order laws behind these observations, and what is the
+exact bookkeeping for $\mu_{b,d}$ across many bases?
+\item[(Q3)] \emph{Certified evaluation.} Can every evaluation of $\Phi$, of its inverse, and of
+every reconstructed pair quantity carry a proven error bound suitable for use inside an
+automated verification loop?
+\end{itemize}
+
+This paper answers (Q3) affirmatively by proof, answers (Q2) by a perturbation theory whose
+predictions are confirmed to many digits, and answers (Q1) by a measurement campaign that
+replaces the dichotomy ``strip versus $C^\infty$'' with a sharper picture: the phase extends
+holomorphically to a strip \emph{punctured} at one point per period, where it has an isolated
+essential singularity of pair-universal type, whose height $y_*\approx0.055$ (combined
+estimate $\sigma_*=0.058\pm0.006$) is the strip
+half-width. All numerical claims come from a July 2026 measurement campaign against the
+author's high-precision Kneser engine (a fork of Levenstein's \texttt{fatou.gp}
+\cite{fatou}); Appendix~\ref{app:repro} documents the pipeline and the proof-residual gates
+under which the data were accepted.
+
+\subsection{Contributions}
+
+\emph{Certified algorithms (Section~\ref{sec:ladder}).} We formalize the logarithmic peel
+ladder as an algorithm with an exact two-level entry (Lemma~\ref{lem:entry}) and an
+a-posteriori certificate (Proposition~\ref{prop:cert}): entering the ladder at a tower value
+$\ge M$ incurs a total phase error $\le K d^{-M}$. Newton inversion of the phase map is
+uniformly well conditioned since $\widetilde H'\in[0.9971,\,1.0030]$ across all measured
+pairs. We also identify, quantify and turn into a guard rule the dominant instrument
+systematic: truncation of the engine's Kneser theta series at $n_{\mathrm{lim}}$ harmonics
+produces a deterministic mode floor at level $\approx e^{-2.95\,n_{\mathrm{lim}}}$ with onset
+$k\approx 2.3\,n_{\mathrm{lim}}$, independent of working precision.
+
+\emph{Regularity dictionary (Section~\ref{sec:dictionary}).} For branch pairs of finite
+smoothness we prove the transport statement ``branch $C^m$ with seam jumps $\Rightarrow$
+$\lvert\widehat P(k)\rvert\asymp k^{-(m+2)}$'' with an explicit two-seam interference
+structure (Propositions~\ref{prop:fourierjump}, \ref{prop:seams}). On the explicit $C^1$
+branches of \cite[Rem.~7.5(ii)]{unified} the measured exponents are $3.06$ and $3.006$,
+calibrating the pipeline's ability to detect polynomial signatures down to amplitudes
+$10^{-150}$.
+
+\emph{Mode decay and the boundary singularity (Sections~\ref{sec:decay},
+\ref{sec:singularity}).} Clean Fourier modes of the regular phases to $k=300$ show a decay
+profile $\sigma_\eff(k)$ that is \emph{universal} across all fourteen measured pairs. A direct
+complexified evaluation of the phase (a $y$-scan of the peel ladder) locates an isolated
+singularity per period at $z_*\approx x_*+0.055\,i$; its strength and type are pair-universal
+to $0.01$--$0.3\%$, only the abscissa $x_*(b,d)$ varies. Steepest-descent asymptotics
+(Proposition~\ref{prop:saddle}) identify the measured four-parameter decay law
+$\ln A_k = \mathrm{const}+\gamma\ln k-2\pi\sigma_* k-\sqrt{\pi c k}$ with an essential
+singularity of exponential type on the strip boundary, and two elementary consequences---a
+crossover scale (Lemma~\ref{lem:crossover}) and a digit-yield formula
+(Corollary~\ref{cor:yield})---explain the observed fit-window drift and give the mode counts
+needed for base-change tables.
+
+\emph{First-order theory of amplitudes (Section~\ref{sec:kernel}).} Differentiating the family
+of Abel functions in the base parameter $\beta=\ln\ln b$ yields a \emph{response kernel}
+$V_d$ solving the linear cohomological equation
+$V_d(d^{\,y})-V_d(y)=-A_d'(d^{\,y})\,y\,(\ln d)\,d^{\,y}$, which along the tower orbit
+collapses to the strikingly simple increment $-T_d/T_d'$. Under a base-differentiability
+hypothesis we prove $\Phi_{b,d}=\varepsilon\,G_d+O(\varepsilon^2)$ with
+$\varepsilon=\ln\alpha$ and an explicitly $1$-periodic kernel profile $G_d$
+(Theorem~\ref{thm:kernel}), which upgrades the empirical amplitude law
+$A_k\approx C_k\lvert\ln\alpha\rvert$ to a derived first-order statement and identifies the
+hub slope $\frac{d}{d(\ln\ln b)}\mu_{e,b}\big|_{b=e}=\int_0^1 G_e$, measured as
+$2.191463277066$. Ultra-near-diagonal experiments determine $C_1(e)$ to seventeen digits.
+
+\emph{The mean-shift hub (Section~\ref{sec:hub}).} The exact antisymmetry of \cite{unified}
+makes the decomposition $\mu_{b,d}=m(d)-m(b)+\Delta_{b,c_*;d}$ exact with a single defect
+integral; we derive the third-order defect formula and validate the chain
+$\Delta^{(2)}+\Delta^{(3)}$ to $\sim10^{-15}$ absolute. The hub function $m(b)=\mu_{e,b}$ was
+measured over $24$ bases in $[1.46,100]$; at the lower edge we \emph{derive} the divergence
+law $m(b)\sim-\pi\sqrt{2\eta/e}\,(b-\eta)^{-1/2}$ from the parabolic bottleneck of the
+threshold base (Lemma~\ref{lem:edge}), matching the fitted coefficient to $2.3\%$. PSLQ
+searches for closed forms of $m(2),m(3),m(5),m(10)$ and $C_1(e)$ against an extended constant
+basis were uniformly negative.
+
+\emph{A hybrid data format (Section~\ref{sec:format}).} We specify the format in which these
+results become an implementable base-change primitive: hub column, per-pair Fourier head plus
+universal decay curve for the working range $\lesssim 150$ digits, certified peel ladder
+beyond, and cross-base identities (mean antisymmetry to $10^{-38}$, groupoid residuals) as
+proof residuals with thresholds derived from the certificate, not from experience.
+
+\subsection{Standing conditionality and provenance}
+
+All statements about the regular Kneser--Paulsen--Cowgill branch are conditional in exactly
+the sense of \cite[Rem.~7.4]{unified}: they consume the real-channel and peeling-growth
+hypotheses of \cite[Hyp.~2.2, 2.4]{phaselaw}, which remain to be derived from the branch
+construction itself. The toy-branch results of Section~\ref{sec:dictionary} are
+unconditional. Numerical values are quoted with the precision at which they passed the gates
+of Appendix~\ref{app:repro}; the raw data, scripts and run metadata reside in the project
+repository.
+
+\section{Preliminaries}\label{sec:prelim}
+
+We keep the notation of \cite{phaselaw,unified}. Throughout, $b,d>1$ are admissible bases,
+$T_a$ denotes the regular increasing branch normalized by \eqref{eq:tetration} (frame
+(B1)--(B2) of \cite{unified}), $A_a=\slog_a$ its Abel inverse, $L_b=\log_b$, and
+\[
+\alpha=\log_b d,\qquad
+D_n(\theta)=D^{b,d}_n(\theta)=L_b^{\circ n}\bigl(T_d(n+\theta)\bigr),\qquad
+\theta\in[0,1].
+\]
+Under \cite[Hyp.~2.2, 2.4]{phaselaw}, $D_n\to D$ uniformly, the phase law
+\eqref{eq:phaselaw} holds with $\Phi_{b,d}=A_b\circ D-\mathrm{id}$, and
+$s_j:=\inf_{\theta}T_d(j+\theta)$ satisfies the exact tower recursion $s_{j+1}=d^{\,s_j}$
+(\cite[Lem.~2.5]{unified}), so $\sum_j 1/s_j<\infty$ automatically. The $\sigma$-coordinates
+of \cite[Lem.~6.1, 6.3]{unified} write the finite tails as
+\begin{equation}\label{eq:sigmarec}
+D_n'(\theta)=\alpha\,T_d'(\theta)\prod_{j=1}^{n-1}\bigl(1+\sigma^{(n)}_j(\theta)\bigr),
+\qquad
+\sigma^{(n)}_j=\frac{L_b(\alpha)+L_b\bigl(1+\sigma^{(n)}_{j+1}\bigr)}{\alpha\,T_d(j+\theta)},
+\qquad \sigma^{(n)}_{n-1}=0,
+\end{equation}
+with the uniform tail bound $\lvert\sigma^{(n)}_j\rvert\le C_0/s_j\le\tfrac12$ for
+$j\ge J_0$, where $C_0=\bigl(\lvert L_b(\alpha)\rvert+\ln 2/\ln b\bigr)/\alpha$
+(\cite[Eq.~(17)]{unified}). We write $\widehat P(k)$ for the complex Fourier coefficients of
+the centered profile $P=P_{b,d}$, $A_k=2\lvert\widehat P(k)\rvert$ for the real mode
+amplitudes, and define the \emph{local decay rate}
+\begin{equation}\label{eq:sigmaeff}
+\sigma_\eff(k)\;=\;\frac{\ln A_k-\ln A_{k+1}}{2\pi}.
+\end{equation}
+A strip-analytic $P$ with half-width $\sigma$ and no boundary structure would give
+$\sigma_\eff(k)\to\sigma$; a $C^m$ profile with seam jumps gives
+$\sigma_\eff(k)\approx\frac{m+2}{2\pi k}$.
+
+For an actual finite height $x=n+\theta$ we write
+$R_n(\theta):=F_{b,d}(n+\theta)-(n+\theta)-\Phi_{b,d}(\theta)$ for the
+\emph{finite-height remainder}; $\lVert R_n\rVert_\infty\to0$ at inverse-tower speed but
+$R_n\not\equiv0$, so any claim that a phase table evaluates $F_{b,d}$ at finite $x$ must
+carry this term in its error budget. The stopped-coordinate certificate of Paper~III
+\cite{paperIII} bounds it by $2C_0'/T_b(n-2)$, which jumps from $\sim5\times10^{-7}$ at
+$n=5$ to $\sim10^{-1{,}650{,}000}$ at $n=6$ for $(e,2)$: the switch height below which the
+direct engine must be used is tiny and pair-computable.
+
+\section{Certified evaluation: the peel ladder}\label{sec:ladder}
+
+The evaluation primitive behind every measurement in this paper is the logarithmic peel
+ladder. Its correctness rests on two exact identities and one hyper-fast tail bound; we record
+them in a form that yields a certificate per evaluation.
+
+\begin{lemma}[Exact two-level entry]\label{lem:entry}
+For every $m\ge 0$ and $\theta\in[0,1]$ for which the first two peels stay in the real
+channel,
+\begin{equation}\label{eq:entry}
+L_b^{\circ 2}\bigl(T_d(m+2+\theta)\bigr)\;=\;\log_b\alpha+\alpha\,T_d(m+\theta).
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+$L_b\bigl(T_d(m+2+\theta)\bigr)=L_b\bigl(d^{\,T_d(m+1+\theta)}\bigr)=\alpha\,T_d(m+1+\theta)$,
+and then
+$L_b\bigl(\alpha T_d(m+1+\theta)\bigr)=\log_b\alpha+L_b\bigl(d^{\,T_d(m+\theta)}\bigr)
+=\log_b\alpha+\alpha\,T_d(m+\theta)$.
+\end{proof}
+
+Thus the ladder never needs a tower value beyond $T_d(m+\theta)$ in memory: the two topmost
+levels are absorbed exactly, and everything above them is a hyper-exponentially small
+$\sigma$-correction.
+
+\begin{algorithm}[Certified peel ladder]\label{alg:ladder}
+Given $(b,d)$, $\theta\in[0,1)$, a working threshold $M$ and a landing window
+$\mathcal W=[w_-,w_+]\subset(0,\infty)$:
+\begin{enumerate}
+\item lift the tower from Taylor data on $[0,1]$ until $T_d(m+\theta)\ge M$;
+\item enter with $W_0:=\log_b\alpha+\alpha\,T_d(m+\theta)$ (two levels absorbed exactly by
+Lemma~\ref{lem:entry});
+\item peel $W\leftarrow L_b(W)$ until $W\in\mathcal W$, counting $p$ peels;
+\item return $\Phi(\theta)=A_b(W)+p-m-\theta$: since
+$\slog_b\bigl(T_d(m+2+\theta)\bigr)=A_b(W)+(2+p)$ after the two absorbed levels and $p$
+peels, subtracting the height $m+2+\theta$ collapses the bookkeeping, and a single
+$\slog_b$ call on the landing window closes the evaluation.
+\end{enumerate}
+\end{algorithm}
+
+\begin{proposition}[A-posteriori certificate]\label{prop:cert}
+Assume the phase-law package and the quantitative channel of \cite{unified} for $(b,d)$
+(by Paper~III \cite{paperIII}, the growth hypothesis and finite-chain positivity hold
+unconditionally in stopped coordinates, and the limit channel reduces to one offset
+inequality per pair), and
+let $J_0$, $C_0$ be as in \eqref{eq:sigmarec}. If the ladder enters at a level $m$ with
+$s:=T_d(m+\theta)\ge M\ge s_{J_0}$, then its output $\Phi^{(m)}(\theta)$ satisfies
+\[
+\bigl|\Phi^{(m)}(\theta)-\Phi_{b,d}(\theta)\bigr|\;\le\;K\,d^{-M},
+\]
+where $K$ depends only on $C_0$, on the Lipschitz constant of $A_b$ on the landing window,
+and on the (finitely many) channel constants of the sub-window levels.
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+Entering at level $m$ is the same as evaluating the exact infinite object with all
+corrections $\sigma_j$ at levels $j$ above the entry set to zero. By
+\cite[Lem.~6.3]{unified} the neglected corrections satisfy
+$\lvert\sigma_j\rvert\le C_0/s_j$, and by the tower recursion $s_{j+1}=d^{\,s_j}$ the first
+neglected one already obeys $C_0/s_{m+1}=C_0\,d^{-s}\le C_0\,d^{-M}$, with the remaining ones
+smaller than any fixed multiple of it. Transporting this perturbation down the ladder
+multiplies it by the product of the peel derivatives $1/(W_k\ln b)$, which is bounded by a
+constant on the compact channel below the entry, and the final $\slog_b$ is Lipschitz on the
+landing window. Summing the geometric-in-tower tail gives the stated bound.
+\end{proof}
+
+In the campaign the certificate was accompanied by an operational gate: adding one further
+explicit tower level changed no returned phase value by more than $10^{-120}$ at $M=10^4$,
+consistent with the bound $C_0\,d^{-10^4}$.
+
+\begin{proposition}[Conditioned inversion]\label{prop:newton}
+Let $\delta:=\max_\theta\lvert\Phi'(\theta)\rvert\le 2\pi\sum_k k\,A_k$. Then
+$\widetilde H=\mathrm{id}+\Phi$ is a $C^1$ diffeomorphism with
+$\widetilde H'\in[1-\delta,1+\delta]$; the fixed-point iteration
+$\theta_{n+1}=u-\Phi(\theta_n)$ is a \emph{global} contraction with factor
+$\delta$ (Newton acceleration is optional after a standard basin check); and
+the inverse phase requires no separate
+computation: $\widetilde H^{-1}=\widetilde H_{d,b}$ exactly \cite[Thm.~A]{unified}.
+The bounds $1-\delta$ are themselves certifiable from the mode table via
+$\delta\le2\pi\sum_k kA_k$ plus the tail envelope.
+\end{proposition}
+
+Across all fourteen measured pairs, $\delta\le 3.0\times10^{-3}$, i.e.\
+$\widetilde H'\in[0.9971,\,1.0030]$ (best pair $(e,3)$ with $\pm 2.3\times10^{-4}$, worst
+$(2,10)$ and $(10,2)$ with $\pm 3.0\times10^{-3}$): the phase maps are essentially perfectly
+conditioned.
+
+\subsection{An instrument law: the theta-truncation floor}\label{subsec:floor}
+
+The engine evaluates $T_a$ and $A_a$ through Kneser's construction with the $1$-periodic
+theta mapping truncated at $n_{\mathrm{lim}}$ harmonics. This truncation is invisible at the
+level of individual function values at ordinary precision, but it is \emph{not} invisible to
+high Fourier modes of $\Phi$: it injects a deterministic, precision-independent periodic
+perturbation of the branch, which propagates linearly into $\Phi$ through the derivative
+transfer of \eqref{eq:product}. The campaign isolated this systematic cleanly:
+
+\begin{observation}[Mode floor]\label{obs:floor}
+With $n_{\mathrm{lim}}=30$ the mode amplitudes of $(e,2)$ freeze at
+$A\approx 2.6\times10^{-44}$ with onset $k\approx 56$; with $n_{\mathrm{lim}}=60$ the floor
+moves to $A\approx 9.9\times10^{-83}$ with onset $k\approx 137$. The floor level is
+bit-identical between working precisions $\mathrm{dps}=140$ and $200$ (agreement
+$10^{-25}$), hence a systematic of the branch series, not rounding and not the ladder. The
+two measurements give the instrument law
+\[
+\text{floor}(n_{\mathrm{lim}})\;\approx\;\text{const}\cdot e^{-2.95\,n_{\mathrm{lim}}}
+=\text{const}\cdot e^{-2\pi\cdot 0.47\,n_{\mathrm{lim}}},
+\qquad
+k_{\text{floor}}\;\approx\;2.3\,n_{\mathrm{lim}},
+\]
+the rate $e^{-2\pi\cdot0.47}$ per harmonic being the decay rate of the engine's Kneser theta
+series at its effective evaluation height.
+\end{observation}
+
+The practical guard rule is immediate and is enforced in the pipeline: \emph{modes beyond
+$2.3\,n_{\mathrm{lim}}$ are artifacts by definition}; for a target band $k\le k_{\max}$ one
+must initialize with $n_{\mathrm{lim}}\ge k_{\max}/2.3$ and choose the working precision from
+the floor law (both the rate and the measured prefactor, which sits about five orders below
+the pure rate extrapolation). Initialization costs scale accordingly
+($n_{\mathrm{lim}}=60$ at $\mathrm{dps}=200$: $56$\,s and $95$\,s for bases $2$ and $e$;
+$n_{\mathrm{lim}}=120$: $239$\,s and $196$\,s; one-time, disk-cached). A third
+calibration point at $n_{\mathrm{lim}}=240$ (floor onset $k\approx530$ against the
+predicted $2.3\cdot240=552$) confirms the law across an eightfold range. We emphasize the
+methodological point: this is the same failure mode---silent theta truncation---that
+historically corrupted reference values in the underlying engine; here it was detected
+\emph{before} contaminating any conclusion, quantified, and converted into an instrument
+constant with a formula.
+
+\section{The regularity dictionary and its calibration}\label{sec:dictionary}
+
+Question (Q1) is only meaningful if the measurement pipeline can distinguish regularity
+classes. The companion note provides the exact tool: by \cite[Rem.~7.2]{unified},
+$D=T_b\circ\widetilde H$, so given branch regularity, regularity of $\Phi$ and of the
+limiting tail are equivalent, and \emph{branch} regularity is transported into \emph{phase}
+regularity with known bookkeeping. For finite smoothness this yields a quantitative
+dictionary.
+
+\begin{proposition}[Fourier asymptotics with seam jumps]\label{prop:fourierjump}
+Let $f:\Sone\to\R$ be $C^m$ and piecewise $C^{m+2}$, with $f^{(m+1)}$ having jump
+discontinuities $J_1,\dots,J_r$ at $\tau_1,\dots,\tau_r\in\Sone$. Then, as
+$k\to\infty$,
+\[
+\widehat f(k)\;=\;\frac{1}{(2\pi i k)^{m+2}}\sum_{i=1}^{r}J_i\,e^{-2\pi i k\tau_i}
+\;+\;o\!\left(k^{-(m+2)}\right).
+\]
+\end{proposition}
+
+\begin{proof}
+Integrate by parts $m+1$ times; the boundary terms vanish by continuity of
+$f,\dots,f^{(m)}$ on the circle. One further integration by parts on each smooth piece
+produces the jump sum plus $(2\pi i k)^{-(m+2)}\widehat{f^{(m+2)}}(k)$ interpreted piecewise;
+the latter is $o(1)$ by Riemann--Lebesgue.
+\end{proof}
+
+\begin{proposition}[Seam locations of the phase]\label{prop:seams}
+Let the branches $T_b$, $T_d$ be piecewise real-analytic with $C^m$ seams at integer
+arguments (as for the explicit branches of \cite[Rem.~7.5(ii)]{unified}). Then
+$\Phi_{b,d}\in C^m(\Sone)$ is piecewise real-analytic, and within one period its seam set is
+\[
+\Sigma\;=\;\{0\}\;\cup\;\bigl\{\theta\in[0,1):\ \widetilde H_{b,d}(\theta)\in\Z\bigr\},
+\]
+i.e.\ the inner-branch seam at $\theta=0$ together with the finitely many points where the
+phase map crosses an integer height of the outer branch. Consequently
+$\widehat P(k)=O(k^{-(m+2)})$, with the leading envelope governed by the finite
+seam sum of Proposition~\ref{prop:fourierjump} (two-sided bounds $\asymp$ require a
+non-cancellation condition on that trigonometric sum) and with an interference oscillation between the
+seam contributions of Proposition~\ref{prop:fourierjump}, of beat period
+$\Delta k\approx 1/\mathrm{dist}(\Sigma)$ in $k$.
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+For each $\theta$, Algorithm~\ref{alg:ladder} expresses $\Phi(\theta)$ through finitely many
+maps: the Taylor lift of $T_d$ on $[0,1]$ (seams only where $m+\theta$ crosses $\Z$, i.e.\
+$\theta=0$), real logarithms (analytic on $(0,\infty)$), and one evaluation of $A_b$ (seams
+where its argument crosses the seam values $T_b(\Z)$, i.e.\ where
+$A_b(D(\theta))=\widetilde H(\theta)\in\Z$). Away from $\Sigma$ all maps are analytic; the
+$C^m$ matching at the seams is the branch matching, transported by the chain rule; the seam
+count is finite because $\widetilde H$ is a homeomorphism of degree one. The Fourier statement
+is Proposition~\ref{prop:fourierjump}.
+\end{proof}
+
+\paragraph{Calibration measurement.}
+On the explicit $C^1$ branches ($m=1$; quadratic critical piece, seams with $T''$ jumps at
+integers) the dictionary predicts $\lvert\widehat P(k)\rvert\asymp k^{-3}$. Log--log fits over
+$k\in[4,60]$ give decay exponents $p=3.06$ for both orientations of $(e,2)$ and $p=3.006$ for
+$(2,10)$, with the predicted interference oscillation clearly visible; for the toy pair
+$(e,2)$, $\mu_{\mathrm{toy}}\approx-1.1290$ places the outer seam at
+$\theta\approx0.1290$, so the predicted beat period is $\Delta k\approx 1/0.129\approx7.8$,
+consistent with the observed oscillation. Two further pipeline gates were passed on the toy
+branches: $\mu_{\mathrm{toy}}(e,2)=-1.1290411574965$ agrees with the independent computation
+of \cite[Rem.~7.5]{unified} up to $-6.6\times10^{-11}$, which is exactly the expected
+$N^{-3}$ aliasing error of the $512$-point grid; and the inverse identity
+$\Phi_{2,e}(\widetilde H_{e,2}(\theta))+\Phi_{e,2}(\theta)=0$ holds to $5.7\times10^{-101}$.
+The pipeline therefore provably detects polynomial signatures; every regularity claim below
+is calibrated against this control.
+
+\section{Mode decay of the regular phases}\label{sec:decay}
+
+For the regular branch the picture is entirely different from the toy control: no polynomial
+signature appears anywhere down to amplitudes $10^{-150}$, and no geometric regime appears
+either.
+
+\begin{observation}[Concave decay, universal profile]\label{obs:decay}
+For $(e,2)$ at $n_{\mathrm{lim}}=120$, $\mathrm{dps}=190$, $N=1024$ grid points, the modes are
+clean to $k\approx290$ (no floor visible), with local rates
+\[
+\begin{array}{c|ccccccccccc}
+k & 1 & 2 & 3 & 5 & 8 & 20 & 40 & 60 & 100 & 200 & 290\\\hline
+\sigma_\eff(k) & 0.740 & 0.567 & 0.487 & 0.404 & 0.344 & 0.260 & 0.2154 & 0.1946 & 0.1726 &
+0.1484 & 0.1375
+\end{array}
+\]
+monotone and strictly concave in $\ln k$ throughout. The profiles $\sigma_\eff(k)$ for
+$k\gtrsim5$ agree to $3$--$4$ decimals across \emph{all} measured pairs---$(e,2)$, $(2,e)$,
+$(2,10)$, $(10,2)$, $(e,10)$, $(10,e)$, $(e,3)$, $(3,e)$, $(e,5)$, $(5,e)$, $(3,5)$, $(5,3)$,
+$(1.5,e)$, $(e,1.5)$: the decay \emph{shape} is a universal function $\Xi(k)$, and the pair
+enters essentially only through the amplitude $C_1\lvert\ln\alpha\rvert$ (plus a mild shape
+drift $e^{\delta k}$ with $\lvert\delta\rvert\sim10^{-3}$).
+\end{observation}
+
+Purely real-axis data to $k=290$ admit two competing tail models: a strip of positive
+half-width $\sigma_\infty\in[0.05,0.09]$ approached as $\sigma_\eff=\sigma_\infty+\beta/\sqrt
+k$, or a stretched-exponential $\ln A_k\sim-ck^{0.79}$ with $\sigma_\infty=0$, i.e.\ a Gevrey
+class far beyond all finite-smoothness classes. The first wins on $k\in[20,140]$, the second
+on $k\in[140,290]$; no two-parameter model fits globally. The dichotomy is resolved not by
+more modes but by going complex, which is the subject of the next section. What is already
+decided at this stage: \cite[Conj.~8.1]{phaselaw} \emph{cannot} hold in its naive form with
+the first-mode rate ($\sigma\approx0.74$)---the strip, if any, is an order of magnitude
+narrower---and the phase is not of any finite smoothness class.
+
+For applications the dispute is immaterial in the working range: the measured digit yield
+$D(k)=\log_{10}(1/A_k)$ is
+\[
+D(60)=47,\qquad D(100)=67,\qquad D(120)=76,\qquad D(300)\approx148,
+\]
+identical for both models where measured, and both extrapolate $500$ digits to
+$k\approx1300$--$1700$ modes (Corollary~\ref{cor:yield}).
+
+\section{The boundary singularity}\label{sec:singularity}
+
+\subsection{Direct complexified evaluation}
+
+The peel ladder complexifies: for $\theta+iy$ with $y>0$ the tower, the peels and the final
+$\slog_b$ all extend, as long as every intermediate value avoids the logarithmic cut
+$(-\infty,0]$ and the solver tracks a consistent branch. The campaign implemented this as a
+bottom-up solver for $\mathrm{sexp}_b(J+z+\varphi)=\alpha\,T_d(J+z)\cdot(1+\sigma\text{-closure})$
+with the entry level $J$ chosen per point, secant iteration with damping, continuation along
+paths in $y$ and $x$ (never cold evaluation near the critical zone), and, crucially,
+\emph{mid-strip validation}: away from the critical zone the solver agrees with the
+$k\le300$ Fourier reconstruction to below the per-point closure bounds (typically
+$10^{-20}$--$10^{-60}$), so both instruments certify each other where both are valid.
+
+\begin{observation}[Breach geometry]\label{obs:breach}
+For $(e,2)$ the solver is regular on the whole strip up to $y\approx0.16$ \emph{except} in a
+single slanted sector per period: at $y=0.060$ the failure zone is
+$x\in[1.004,1.022]$, widening through $[0.982,1.012]$ at $y=0.065$, $[0.964,1.000]$ at
+$0.070$, $[0.91,0.98]$ at $0.085$, $[0.879,\ge0.95]$ at $0.095$, with center slope
+$dx/dy\approx-2.8$ and apex
+\[
+z_*\;\approx\;(1.02\pm0.02)\;+\;(0.055\pm0.005)\,i \pmod 1 .
+\]
+Inside the zone the level-$J$ system exhibits quantized sheet slips and non-convergence
+(root density), with closure bounds down to $10^{-305}$---excluding any truncation artifact.
+Off the zone, lines continue smoothly far beyond the apex height (measured cleanly to
+$y\approx0.164$), with indications of a second structure at $y\approx0.17$--$0.22$,
+$x\approx0.6$--$0.7$, left to future work. The mode phases corroborate the location: the
+drift of $\arg\widehat P(k)$ defines $x_*(k)$ moving $0.47\to0.65$ over $k\le280$ with a
+$1/\sqrt k$ approach toward $x_*\approx0.94$--$1.0$.
+\end{observation}
+
+\begin{observation}[Universality of the singularity]\label{obs:universal}
+At fixed height $y=0.085$ the failure zones of three structurally different pairs are
+congruent: $(e,2)$: $[0.91,0.98]$; $(3,5)$: $[1.01,1.08]$ (a rigid shift by $+0.100$, exactly
+the phase-fit shift); $(2,10)$: $[0.650,0.710]$---same height, same width
+($\approx0.06$--$0.07$), same shape; only the abscissa $x_*(b,d)$ is pair-dependent
+(centers $\approx0.945/1.045/0.680$; the near-round values invite scrutiny). Structure fits
+over $220$ modes (amplitudes and phases, $k\in[60,280]$) with the one-singularity saddle
+model of Proposition~\ref{prop:saddle} give
+\begin{align*}
+(e,2):&\ \ \sigma_*=0.0789,\quad c=59.78,\quad \gamma=9.47\quad(\mathrm{rms}\ 0.005\ \text{over
+220 modes});\\
+(3,5):&\ \ \sigma_*=0.0791,\quad c=59.77,\quad \gamma=9.59,
+\end{align*}
+i.e.\ $\sigma_*$ pair-equal to $2.4\times10^{-4}$ and $c$ to $0.013\%$; the phase fit yields
+in addition a complex strength with $\arg$-parameter $\chi\approx0.68$ rad, pair-universal to
+$0.3\%$.
+\end{observation}
+
+\subsection{Saddle-point asymptotics}
+
+The measured four-parameter law is exactly the Fourier signature of an isolated essential
+singularity of exponential type sitting on the strip boundary.
+
+\begin{proposition}[Singularity $\Rightarrow$ decay law]\label{prop:saddle}
+Let $P$ be real on $\R$, $1$-periodic, holomorphic on
+$\{\lvert\operatorname{Im}\theta\rvert<\sigma_*\}$ except for isolated singularities per
+period at $\theta_*=x_*+i\sigma_*$ and $\bar\theta_*$, where locally
+\[
+P(\theta)\;=\;h(\theta)\,\exp\!\Bigl(\frac{v}{\theta-\bar\theta_*}\Bigr),\qquad
+h(\theta)\sim h_0\,(\theta-\bar\theta_*)^{-\rho},
+\]
+for some $v\in\mathbb C\setminus\{0\}$, $\rho\in\R$, and suppose the contour can be deformed
+to the boundary away from the singularity. Then, as $k\to+\infty$,
+\[
+\ln\bigl|\widehat P(k)\bigr|\;=\;\mathrm{const}+\gamma\ln k-2\pi\sigma_*k-\sqrt{\pi c\,k}
++o(\sqrt k),
+\qquad
+\arg\widehat P(k)\;=\;-2\pi k\,x_*+O(\sqrt k),
+\]
+where the strength satisfies $8\lvert v\rvert\cos^2\Psi=c$ with
+$\Psi$ the steepest-descent phase determined by $\arg v$, and
+$\gamma=\rho/2-3/4$ collects the algebraic prefactor ($h\sim h_0 s^{-\rho}$) and the
+$O(k^{-3/4})$ saddle-width contribution. In particular, for real negative $v=-a$ one has
+$\Psi=\pi/4$ and $a=c/4$.
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+For $k>0$ push the contour of $\widehat P(k)=\int_0^1P(\theta)e^{-2\pi ik\theta}\,d\theta$ to
+$\operatorname{Im}\theta=-\sigma_*$; the smooth part contributes
+$O(e^{-2\pi\sigma_*k})$ with bounded prefactor, and the dominant term comes from the
+neighborhood of $\bar\theta_*$. Writing $\theta=\bar\theta_*+s$, the local integral is
+$e^{-2\pi ik\bar\theta_*}\int h\,\exp\bigl(v/s-2\pi iks\bigr)\,ds$ with saddle
+$s_*=\sqrt{iv/(2\pi k)}$ and saddle value $\varphi(s_*)=-4\pi iks_*$, so
+$\lvert e^{\varphi(s_*)}\rvert=\exp\bigl(-\sqrt{8\pi\lvert v\rvert k}\,\cos\Psi\bigr)$ with
+$\cos\Psi$ fixed by the admissible steepest-descent branch of $\sqrt{iv}$; the saddle width
+$\lvert s_*\rvert\propto k^{-1/2}$ and the prefactor $h_0 s_*^{-\rho}$ produce the algebraic
+factor $k^{\gamma}$. Matching $\sqrt{8\pi\lvert v\rvert}\cos\Psi=\sqrt{\pi c}$ gives the
+strength relation; standard steepest-descent estimates (e.g.\ \cite[Ch.~4]{olver}) control
+the error terms. The check for real $v=-a$: the saddle direction gives
+$\cos\Psi=1/\sqrt2$ and $\lvert e^{\varphi(s_*)}\rvert=e^{-2\sqrt{\pi a k}}$, i.e.\ $a=c/4$.
+\end{proof}
+
+With the fitted $c\approx59.8$ this puts the singularity strength at
+$\lvert v\rvert\cos^2\Psi=c/8\approx7.5$, with $\arg v$ determined by the measured
+$\chi\approx0.68$ rad. Two elementary consequences organize the real-axis phenomenology
+completely.
+
+\begin{lemma}[Crossover scale]\label{lem:crossover}
+In the model of Proposition~\ref{prop:saddle} the increments of $-\ln A_k$ are dominated by
+the $\sqrt k$ term for $k<k_c$ and by the linear term for $k>k_c$, where
+\[
+k_c\;=\;\frac{c}{16\pi\sigma_*^2}.
+\]
+\end{lemma}
+
+\begin{proof}
+Equate the derivatives $2\pi\sigma_*$ and $\tfrac12\sqrt{\pi c/k}$.
+\end{proof}
+
+For $c=59.8$: $k_c\approx190$ if $\sigma_*=0.079$, but $k_c\approx390$ if
+$\sigma_*=0.055$. This single number explains the entire fit phenomenology: window fits below
+$k_c$ systematically \emph{overestimate} $\sigma_*$ (the $\sqrt k$ term masquerades as a
+larger linear rate), which is exactly the observed downward drift of subwindow estimates
+($0.0822\to0.0746$ as the window moves up), converging toward the directly measured apex
+height $0.055\pm0.005$. The discrimination experiment was subsequently run: an
+$n_{\mathrm{lim}}=240$ campaign ($\mathrm{dps}=260$, $N=2048$) yields clean modes to
+$k\approx520$ (floor onset $\approx530$, a third confirmation of the instrument law of
+Observation~\ref{obs:floor}), and the sequence of sliding three-parameter window fits
+converges with a clean $1/w$ law, $\sigma_*(w)=0.062+2.83/w$ reproducing all windows to
+$\pm5\times10^{-4}$, extrapolating to $\sigma_*^{\infty}=0.062\pm0.003$. Note that no
+single mode value discriminates (holding the subleading coefficients fixed misreads
+$\sigma_\eff(500)=0.1237$ as $\sigma_*\approx0.078$); only the window-sequence
+extrapolation separates the hypotheses. Combining with the apex,
+\[
+\boxed{\ \sigma_*\;=\;0.058\pm0.006\ }
+\]
+and the fitted $0.079$ is \emph{excluded} as an asymptotic value: it is the
+pre-asymptotic effective rate of windows below the crossover.
+
+\begin{corollary}[Digit yield and mode counts]\label{cor:yield}
+In the fitted model the digit yield $D(k)=\log_{10}(1/A_k)$ satisfies
+$D(k)\ln10=-\ln C-\gamma\ln k+2\pi\sigma_*k+\sqrt{\pi ck}$. Calibrating the single constant
+$\ln C$ at the measured $D(300)=148$ reproduces the measured yields to $\pm1$ digit
+($D(60)=46.0$ vs.\ $47$; $D(100)=65.9$ vs.\ $67$; $D(120)=75.1$ vs.\ $76$) and gives
+$D=500$ at $k\approx1400$ (central value; $1300$--$1700$ across the admissible parameter
+range), i.e.\ $n_{\mathrm{lim}}\approx600$--$750$ with a one-time initialization of
+$1$--$2$ hours per base.
+\end{corollary}
+
+\begin{conjecture}[Universal singularity data]\label{conj:universal}
+For all admissible pairs $(b,d)$, $b,d>e^{1/e}$, the phase $\Phi_{b,d}$ extends
+holomorphically to the punctured strip
+$\{\lvert\operatorname{Im}\theta\rvert<\sigma_*\}\setminus(\{\theta_*\}+\Z)$ with an isolated
+essential singularity of exponential type at $\theta_*=x_*(b,d)+i\sigma_*$; the height
+$\sigma_*$ is independent of the pair; the normalized strength $\lvert v\rvert$ and phase
+$\arg v$ are pair-independent to leading order (the diagonal kernels of
+Section~\ref{sec:kernel} carry a smooth inner-base dressing of $0.4\%$ at $k=2$ growing to
+$\sim9\%$ at $k=8$, so exact universality can hold at most for the height and the
+singularity type),
+and $x_*(b,d)$ equals the accumulation point of the mode phases,
+$x_*=-\lim_k \arg\widehat P(k)/(2\pi k)$ along the drift-corrected sequence. In particular
+\cite[Conj.~8.1]{phaselaw} holds in the punctured form, with universal boundary data.
+\end{conjecture}
+
+The universality of the profile $\Xi(k)$ (Observation~\ref{obs:decay}) and of the fitted
+$(\sigma_*,c,\chi)$ (Observation~\ref{obs:universal}) is strong evidence; the linear-response
+theory of the next section reduces the conjecture, for near-diagonal pairs, to a statement
+about a single one-parameter family of kernels.
+
+\section{First-order theory: the response kernel}\label{sec:kernel}
+
+The empirical amplitude law $A_k(b,d)\approx C_k\,\lvert\ln\alpha\rvert$, with $C_1$ constant
+to $\pm2.2\%$ over the full measured range $\ln\ln b\in[-0.90,0.83]$, calls for perturbation
+theory in the mismatch parameter
+\[
+\varepsilon\;:=\;\ln\alpha\;=\;\ln\ln d-\ln\ln b,
+\]
+which vanishes exactly on the diagonal $b=d$, where $\Phi_{d,d}\equiv0$. The natural base
+coordinate is $\beta:=\ln\ln b$.
+
+\begin{hypothesis}[Base differentiability]\label{hyp:basediff}
+The family $b\mapsto(T_b,A_b)$ of regular branches is $C^1$ in $\beta$ near $\beta_0=\ln\ln
+d$, locally uniformly on compacts of the respective domains, with continuous derivative
+$V_d(y):=\partial_\beta A_b(y)\big|_{b=d}$; moreover
+$\partial_\beta\Phi_{b,d}(\theta)\big|_{b=d}=\lim_n V_d\bigl(T_d(n+\theta)\bigr)$ with the
+interchange of limit and derivative uniform in $\theta$.
+\end{hypothesis}
+
+For the intended branches this is supported by Paulsen's holomorphy of the construction in
+the base parameter \cite{paulsen} and is numerically evident; we state it as a hypothesis in
+the same conditional spirit as \cite[Rem.~7.4]{unified}.
+
+\begin{lemma}[Cohomological equation]\label{lem:cohom}
+Under Hypothesis~\ref{hyp:basediff}, differentiating the global Abel equation
+$A_b(b^{\,y})=A_b(y)+1$ in $\beta$ at $b=d$ gives, for all $y\in\R$,
+\begin{equation}\label{eq:cohom}
+V_d(d^{\,y})-V_d(y)\;=\;-A_d'(d^{\,y})\;y\,(\ln d)\,d^{\,y},
+\end{equation}
+and along the tower orbit $y=T_d(x)$ the right-hand side collapses:
+\begin{equation}\label{eq:orbit}
+V_d\bigl(T_d(x+1)\bigr)-V_d\bigl(T_d(x)\bigr)\;=\;-\,\frac{T_d(x)}{T_d'(x)} .
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+$\partial_\beta b^{\,y}=y(\ln b)b^{\,y}$ since $d\ln b/d\beta=\ln b$; evaluate at $b=d$ to
+get \eqref{eq:cohom}. For \eqref{eq:orbit} use $A_d'(z)=1/T_d'(A_d(z))$, $A_d(d^{\,y})=x+1$,
+and $T_d'(x+1)=(\ln d)T_d(x+1)T_d'(x)$:
+$A_d'(d^{\,y})\,y(\ln d)d^{\,y}
+=\dfrac{T_d(x)\,(\ln d)\,T_d(x+1)}{(\ln d)\,T_d(x+1)\,T_d'(x)}=\dfrac{T_d(x)}{T_d'(x)}$.
+\end{proof}
+
+Since $T_d'(n)\gtrsim(\ln d)^n\prod_{i<n}T_d(i)$ by iterating the derivative transfer, the
+increments \eqref{eq:orbit} decay at inverse-tower speed, and the following limit is
+hyper-fast convergent.
+
+\begin{theorem}[Response kernel and first-order phase]\label{thm:kernel}
+Assume the phase-law package for pairs near the diagonal and
+Hypothesis~\ref{hyp:basediff}. Define
+\[
+S_d(\theta)\;:=\;\sum_{j\ge0}\frac{T_d(j+\theta)}{T_d'(j+\theta)}
+\qquad(\text{hyper-exponentially convergent}),
+\qquad
+G_d(\theta)\;:=\;S_d(\theta)-V_d\bigl(T_d(\theta)\bigr).
+\]
+Then $G_d$ is exactly $1$-periodic and continuous, and as $b\to d$,
+\[
+\Phi_{b,d}(\theta)\;=\;\varepsilon\,G_d(\theta)\;+\;O(\varepsilon^2)
+\qquad\text{uniformly in }\theta .
+\]
+\end{theorem}
+
+\begin{proof}
+Write $v(x):=V_d(T_d(x))$. By \eqref{eq:orbit},
+$v(n+\theta)=v(\theta)-\sum_{j=0}^{n-1}T_d(j+\theta)/T_d'(j+\theta)$, so
+$\lim_n v(n+\theta)=v(\theta)-S_d(\theta)=-G_d(\theta)$ exists with hyper-fast convergence.
+By Hypothesis~\ref{hyp:basediff},
+$\partial_\beta\Phi_{b,d}(\theta)\big|_{b=d}=\lim_n v(n+\theta)=-G_d(\theta)$, and since
+$\varepsilon=\mathrm{const}-\beta$ at fixed $d$, $\partial_\varepsilon\Phi\big|_{b=d}=G_d$;
+Taylor's theorem with the locally uniform derivative gives the expansion. Periodicity:
+$G_d(\theta+1)-G_d(\theta)=\bigl(S_d(\theta+1)-S_d(\theta)\bigr)
+-\bigl(v(\theta+1)-v(\theta)\bigr)
+=-\tfrac{T_d(\theta)}{T_d'(\theta)}-\bigl(-\tfrac{T_d(\theta)}{T_d'(\theta)}\bigr)=0$,
+using \eqref{eq:orbit} once more.
+\end{proof}
+
+\begin{corollary}[First-order laws]\label{cor:firstorder}
+With $\widehat G_d(k)$ the Fourier coefficients of $G_d$:
+\begin{itemize}
+\item[(i)] \emph{Amplitude law.} $A_k(b,d)=2\lvert\widehat
+G_d(k)\rvert\,\lvert\varepsilon\rvert+O(\varepsilon^2)$; hence
+$C_k(d)=2\lvert\widehat G_d(k)\rvert$, and the observed near-universality of $C_1$ in $d$ is
+the statement that $d\mapsto2\lvert\widehat G_d(1)\rvert$ is nearly flat.
+\item[(ii)] \emph{Mean law and hub slope.}
+$\mu_{b,d}=\varepsilon\,\overline{G}_d+O(\varepsilon^2)$ with
+$\overline G_d=\int_0^1G_d$; combined with the exact antisymmetry \cite[Thm.~B]{unified},
+the hub function $m(b)=\mu_{e,b}$ satisfies
+\[
+\frac{dm}{d(\ln\ln b)}\Big|_{b=e}\;=\;\overline G_e .
+\]
+\item[(iii)] \emph{Universal diagonal shape.} The centered profile shape at the diagonal is
+$G_d-\overline G_d$; its mode ratios are the $\varepsilon\to0$ limits of the measured pair
+ratios.
+\end{itemize}
+\end{corollary}
+
+\paragraph{Measurements.}
+Ultra-near-diagonal runs $(d',e)$ with $\ln d'=1+\varepsilon$,
+$\varepsilon\in\{10^{-12},10^{-15}\}$, extract the first-mode ripple ($\sim4\times10^{-19}$)
+cleanly above the engine floor and determine
+\begin{align*}
+C_1(e)&\;=\;2\lvert\widehat G_e(1)\rvert\;=\;0.00038859729244516473\quad(\pm\text{1 ulp at
+17 digits}),\\
+\overline G_e&\;=\;2.191463277066,
+\end{align*}
+the latter measured as the hub slope $dm/d(\ln\ln b)\vert_{b=e}$; the diagonal shape ratios
+are $A_2/A_1=0.0093355030$, $A_3/A_1=2.66505\times10^{-4}$, $A_4/A_1=1.26473\times10^{-5}$,
+and the diagonal first-mode phase is $\varphi_1=1.33536363153$ rad---close to, but clearly
+distinct from, $\operatorname{Im}L_e=1.33724$ ($L_e$ the principal fixed point of
+$e^z$). Near-diagonal runs at $\pm0.02$ give the kernel amplitude curve
+\[
+C_1(d)\ [\times10^{-4}]:\quad 3.953\ (d{=}2),\quad 3.886\ (e),\quad 3.868\ (3),\quad
+3.793\ (5),\quad 3.720\ (10),
+\]
+nearly affine in $\ln\ln d$ (slope $\approx-0.19\times10^{-4}$), with the quadratic
+($\varepsilon^2$) deviations resolved at $\sim9\times10^{-6}\,\varepsilon$. These values were subsequently \emph{derived}: the selection principle for
+$V_d$ is formulated, proved unique, and proved solvable in Paper~V of this series
+\cite{paperV}, and its constructive Riemann--Hilbert realization reproduces the kernel
+family engine-free to $30$--$34$ digits for $d\in\{2,e,3,5,10\}$, in mutual agreement with
+$\varepsilon$-stencil differentiation of the branch family. Two independent routes thereby
+exposed an error in a third (complex-step references at the extreme bases $d=2$ and $d=10$,
+reliable only to $\approx20$ resp.\ $\approx15$ digits: the engine floor at
+$\lvert\lambda(2)\rvert=1.23$ near the parabolic edge, and the narrowed theta strip at
+$\ln 10$); all kernel values quoted here are confirmed by the surviving routes. The
+second-order (in $\varepsilon$) kernels are measured as well, e.g.\
+$\overline H_e=1.66735420625407$ with the $\ln\ln$-exact node parametrization, and the
+two-term Taylor law $\widehat P_k=\varepsilon\widehat G_k+\varepsilon^2\widehat H_k$
+reproduces the mode heads of \emph{all} measured pairs to third-order-small residuals even
+at $\varepsilon=1.20$.
+
+\section{The mean-shift hub}\label{sec:hub}
+
+\subsection{Exact decomposition and higher-order defects}
+
+\begin{proposition}[Exact hub]\label{prop:hub}
+Fix a hub base $c_*$ and set $m(b):=\mu_{c_*,b}$. Then for all admissible $b,d$,
+\[
+\mu_{b,d}\;=\;m(d)-m(b)\;+\;\Delta_{b,c_*;d},
+\qquad
+\Delta_{b,c_*;d}\;=\;\int_0^1P_{b,c_*}\bigl(\{\theta+\Phi_{c_*,d}(\theta)\}\bigr)\,d\theta,
+\]
+exactly: the identity combines the integrated cocycle \cite[Eq.~(39)--(40)]{phaselaw} with
+the exact antisymmetry $\mu_{b,c_*}=-\mu_{c_*,b}$ \cite[Thm.~B]{unified}. Expanding the
+defect in the small profiles,
+\[
+\Delta^{(2)}=\sum_{k\ne0}2\pi ik\,\widehat P_{b,c_*}(k)\,e^{2\pi ik\mu_{c_*,d}}\,
+\widehat P_{c_*,d}(-k),
+\quad
+\Delta^{(3)}=\frac12\sum_{k\ne0}(2\pi ik)^2\,\widehat P_{b,c_*}(k)\,
+e^{2\pi ik\mu_{c_*,d}}\,\widehat{P_{c_*,d}^{2}}(-k),
+\]
+with $\bigl|\Delta-\Delta^{(2)}-\Delta^{(3)}\bigr|\le\tfrac16\,
+\lVert P_{b,c_*}'''\rVert_\infty\,\lVert P_{c_*,d}\rVert_\infty^3$, i.e.\ the error carries
+two more powers of the (tiny) amplitudes than $\Delta^{(2)}$ itself.
+\end{proposition}
+
+\begin{proof}
+Exactness is the cited combination. For the expansion, Taylor
+$P_{b,c_*}(\theta+\mu+P_{c_*,d})=P_{b,c_*}(\theta+\mu)+P_{b,c_*}'(\theta+\mu)P_{c_*,d}
++\tfrac12P_{b,c_*}''(\theta+\mu)P_{c_*,d}^2+O(\lVert P\rVert^3\lVert
+P'''\rVert)$, integrate, note the first term has mean zero, and convert the two integrals by
+Parseval, $\int fg=\sum\widehat f(k)\widehat g(-k)$, with
+$\widehat{f'}(k)=2\pi ik\widehat f(k)$ and the shift factor $e^{2\pi ik\mu}$.
+\end{proof}
+
+The hub economics are the point: $N$ bases require one hub column of $N$ values (plus
+low-$k$ mode heads) instead of $N^2$ pair runs. With $c_*=e$ the campaign validated the chain
+at the level the formulas predict: the ratios $\Delta^{(2)}/\Delta_{\text{measured}}$ are
+$0.999816$, $0.999900$, $0.999651$, $1.000074$ for $(2,10)$, $(10,2)$, $(3,5)$, $(5,3)$
+(residual $=$ the $\Delta^{(3)}$ term), and including $\Delta^{(3)}$ the ratios become
+$1.0027$, $1.0010$, $1.0005$, $0.9999$ respectively---the truncated hub chain
+$\mu=m(d)-m(b)+\Delta^{(2)}+\Delta^{(3)}$ has the scale the remainder bound predicts: from
+the displayed ratios, the largest tested defect $(2,10)$ closes to about
+$1.7\times10^{-11}$ absolute and the closer pair $(3,5)$ to about $1.5\times10^{-13}$;
+the full-precision chain in the repository carries the reconstruction further. As a
+scaling check, $\Delta(3,5)=-2.96\times10^{-10}$ is $20\times$ smaller than
+$\Delta(2,10)=6.4\times10^{-9}$, as befits the closer base pair.
+
+\subsection{The hub function: values, edge law, large bases}
+
+High-precision hub values (regular branch; $150$--$180$ digits available for $m(2)$, $\sim170$
+for $m(3),m(5),m(10)$; leading digits shown):
+\[
+\begin{aligned}
+m(1.5)&=-9.776277436687167726082341422480654566832\ldots\\
+m(2)&=-1.128403776628924009879217902036426267112\ldots\\
+m(3)&=+0.1924222937224320832082444066892813277903\ldots\\
+m(5)&=+0.7712572961544758763804410539746626381043\ldots\\
+m(10)&=+1.136557055713326440899375967586836969056\ldots
+\end{aligned}
+\]
+together with a $24$-point raster over $b\in[1.46,100]$ at $40$ digits. (The value of
+$\mu_{e,2}$ corrects the twelve-digit Table~1 entry of \cite{phaselaw}, whose known
+$9.3\times10^{-9}$ error is exactly the inverse-sum residual reported there; the regenerated
+table appears in Appendix~\ref{app:tables}. Pairwise mean antisymmetry now holds to
+$\le10^{-39}$.)
+
+At the lower edge the hub diverges, and the divergence law can be derived: it is the passage
+time through the parabolic bottleneck of the threshold base.
+
+\begin{lemma}[Parabolic edge law]\label{lem:edge}
+Let $\eta=e^{1/e}$ and $b\downarrow\eta$. To leading order in the continuum (Fatou
+coordinate) approximation of the bottleneck,
+\[
+m(b)\;=\;\mu_{e,b}\;=\;-\,\pi\sqrt{\frac{2\eta}{e}}\;(b-\eta)^{-1/2}\;
+\bigl(1+o(1)\bigr),
+\qquad
+\pi\sqrt{2\eta/e}\;=\;3.23907\ldots,
+\]
+with a subleading correction of order $\ln(b-\eta)$.
+\end{lemma}
+
+\begin{proof}[Derivation]
+At $b=\eta$ the map $t\mapsto b^{\,t}$ has the parabolic fixed point $t=e$ with multiplier
+$1$. Write $b=\eta e^{\delta}$, $\delta=\ln(b/\eta)=(b-\eta)/\eta\,(1+O(b-\eta))$, and
+$t=e+w$. Then
+\[
+b^{\,t}=\exp\bigl((e+w)(1/e+\delta)\bigr)
+=e\cdot\exp\bigl(w/e+e\delta+w\delta\bigr)
+=e+w+e^2\delta+\frac{w^2}{2e}+O(w\delta,w^3),
+\]
+so the orbit obeys $w_{n+1}=w_n+a+Bw_n^2+\cdots$ with $a=e^2\delta$, $B=1/(2e)$. The
+continuum crossing time of such a bottleneck is
+$\int_{-\infty}^{\infty}dw/(a+Bw^2)=\pi/\sqrt{aB}=\pi\sqrt{2/(e\delta)}
+=\pi\sqrt{2\eta/e}\,(b-\eta)^{-1/2}(1+o(1))$. A $b$-tower therefore lags a comparison
+$e$-tower by this many height units while traversing values near $e$, and the lag is exactly
+what $\mu_{e,b}=\lim(\slog_e T_b-\mathrm{id})$ measures (with the sign of a delay). The
+logarithmic subleading term is the standard second-order correction of parabolic passage
+(Fatou coordinates; see \cite[\S10]{milnor}), and the derivation is made rigorous by the same
+machinery; we use only the leading order here.
+\end{proof}
+
+The measured fit on $b\in[1.46,1.6]$ is
+$m(b)=-A(b-\eta)^{-1/2}+B\ln(b-\eta)+C$ with $A=3.3148$, $B=-0.398$, $C=3.163$ (rms
+$0.004$): the ratio $A/\pi\sqrt{2\eta/e}=1.023$ confirms the derived coefficient at the
+$2.3\%$ level, the discrepancy being consistent with the fit window not yet asymptotic (the
+prediction is that $A\to3.2391$ as the window closes on $\eta$; bases below $1.46$ were not
+yet initialized). Notably the construction remains numerically robust arbitrarily close to
+the edge: base $1.5$ (only $3.8\%$ above $\eta$) initializes in $1.2$ s and shows the same
+universal decay profile, with $C_1=3.97\times10^{-4}$ drifting mildly above the bulk band.
+At the other end, $m(b)-\ln\ln b$ decreases from $0.31$ at $b=8$ to $0.073$ at $b=100$; the
+natural conjecture $m(b)=\ln\ln b+o(1)$ (with rate $O(1/\ln b)$?) is left open.
+
+\subsection{Closed forms: negative evidence}
+
+PSLQ searches at $150$ digits and coefficient bounds $10^6$--$10^8$ found \emph{no} integer
+relations for $m(2)$ against $\{1,\ln2,1/\ln2,\ln\ln2,\ln2/(1-\ln2),e,\gamma\}$, nor for
+$m(2),m(3),m(5),m(10)$ against an extended basis including $\eta$, $\pi$, $e$, logarithms,
+iterated logarithms, and the real and imaginary parts of the principal fixed points $L_2$,
+$L_e$; no relations hold among the $m$-values themselves, and short-precision probes of
+$C_1(e)$ and of the hub slope were likewise null. Together with the seventeen-digit
+$C_1(e)$, this is meaningful negative evidence that the phase constants live outside the
+standard constant ring---consistent with their definition through the Kneser uniformization,
+and consistent with the diagonal phase $\varphi_1$ landing \emph{near} but not \emph{at}
+$\operatorname{Im}L_e$.
+
+\section{A hybrid data format for base-change computation}\label{sec:format}
+
+The results above pin down the format in which the phases become a stable computational
+primitive inside a high-precision tetration engine. The design principle is that the two
+tail models of Section~\ref{sec:decay} coincide throughout the tabulated range, so no open
+question blocks implementation; and that every reconstructed quantity is guarded by an
+identity that is a \emph{theorem}, so residuals are error meters rather than plausibility
+checks.
+
+\begin{enumerate}
+\item \textbf{Phase hub.} The groupoid gives the exact representation
+$\widetilde H_{b,d}=U_b^{-1}\circ U_d$ with $U_a:=\widetilde H_{c_*,a}$: one phase map per
+supported base reconstructs every ordered pair, with stable error propagation since
+$\inf U_a'\ge1-\delta$ is certifiable from the mode table. Direct pair tables are optional
+caches, not fundamental data.
+\item \textbf{Hub column.} Store $m(b)=\mu_{e,b}$ to full precision for each supported base
+($N$ values), plus the low-$k$ mode heads. Reconstruct any pair mean as
+$\mu_{b,d}=m(d)-m(b)+\Delta^{(2)}+\Delta^{(3)}$ (Proposition~\ref{prop:hub}); the chain closes to
+$10^{-11}$--$10^{-13}$ absolute at the displayed precision (Proposition~\ref{prop:hub}),
+and a direct pair run remains available beyond that.
+\item \textbf{Fourier table for the working range.} For target precisions
+$\lesssim150$ digits ($k\le300$): per pair a low-$k$ head ($k\le10$--$20$ complex
+coefficients) plus the universal curve, $A_k\approx C_1\lvert\ln\alpha\rvert\,\Xi(k)\,
+e^{\delta k}$ (three parameters per pair, $\lvert\delta\rvert\sim10^{-3}$).
+\item \textbf{Certified ladder beyond.} From $\sim150$--$200$ digits upward, evaluate
+pointwise by Algorithm~\ref{alg:ladder} with the certificate of
+Proposition~\ref{prop:cert}: cost one $\mathrm{sexp}_d$ plus one $\slog_b$ per evaluation at
+arbitrary precision. Inversion by Proposition~\ref{prop:newton}; the reverse map is never
+computed separately. A $500$-digit Fourier table is possible
+(Corollary~\ref{cor:yield}: $k\approx1400$, $n_{\mathrm{lim}}\approx600$--$750$, $1$--$2$ h
+one-time initialization per base) but pays off only under many evaluations per pair.
+\item \textbf{Instrument guard.} Enforce $k_{\max}\le2.3\,n_{\mathrm{lim}}$
+(Observation~\ref{obs:floor}); choose working precision from the floor law including the
+measured prefactor.
+\item \textbf{Gates as proof residuals.} Mean antisymmetry
+$\mu_{b,d}+\mu_{d,b}=0$ (exact by \cite[Thm.~B]{unified}; achieved $\le10^{-38}$), groupoid
+residual $\Phi_{d,b}\circ\widetilde H_{b,d}+\Phi_{b,d}=0$ (achieved $2.4\times10^{-34}$,
+limited only by table storage precision), and the truncation gate of
+Proposition~\ref{prop:cert} (one extra tower level, $<10^{-120}$). Thresholds derive from the
+certificate constants, not from experience.
+\end{enumerate}
+
+\section{Discussion and open problems}\label{sec:discussion}
+
+The phase program set out in \cite{phaselaw} asked whether mixed-base tetration heights are
+related by a small, structured, computable correction. At the level of practice the answer
+is now complete: the correction is computable at arbitrary precision with certificates, its
+inverse is free, its mean obeys an exact hub calculus, and its Fourier representation is
+governed by one universal curve plus a handful of per-pair constants. At the level of
+structure, the surprise of the campaign is how much is \emph{universal}: the decay profile,
+the singularity height, strength and type are shared across every measured pair, including
+pairs with no base in common; all pair dependence concentrates in one amplitude
+$C_1\lvert\ln\alpha\rvert$, one abscissa $x_*(b,d)$, and one hub potential $m(b)$. We record
+the open problems in the order we consider them decisive.
+
+\begin{enumerate}
+\item \textbf{The residual $\sigma_*$ decimal and the fit prefactor.} The
+window-sequence verdict $\sigma_*=0.058\pm0.006$ (Section~\ref{sec:singularity}) should be
+sharpened by sector-resolved apex sweeps at $\Delta x=5\times10^{-4}$, closing the seam
+subtlety by evaluating the zone in the adjacent cell via $D(1+\theta)=b^{D(\theta)}$; and
+the implausibly large effective exponent $\gamma\approx9.5$ (i.e.\ $\rho\approx20$ via
+$\gamma=\rho/2-3/4$) quantifies that the fitted prefactor is still pre-asymptotic---the
+asymptotic $(\sigma_*,c,\gamma)$ triple remains to be pinned.
+\item \textbf{Prove the punctured strip.} The complexified $\sigma$-recursion
+\eqref{eq:sigmarec} bounds all but finitely many levels on any substrip, so the channel can
+only break at finitely many explicit levels: Conjecture~\ref{conj:universal} reduces to
+controlling those, in the spirit of \cite[Rem.~7.3]{unified}, plus a local analysis at the
+breach. The measured breach geometry (Observation~\ref{obs:breach}) tells us exactly where.
+\item \textbf{Extend the kernel theorem.} The first-order kernel is now
+characterized and constructed (Paper~V \cite{paperV}); the natural extensions are the
+higher-order kernels $H_d,K_d$ through the same boundary problem (each order solves the
+same cohomological left-hand side with an explicit right-hand side), certified enclosures
+for the constructed values, and a self-contained verification of the classical strip
+geometry (K1) of the Kneser branch consumed there.
+\item \textbf{Second structure and the $x_*$ map.} Chart the indicated second singularity
+level at $y\approx0.17$--$0.22$, and the pair map $x_*(b,d)$ (cheap: it is the accumulation
+point of the mode phases), including the suspiciously round measured centers.
+\item \textbf{Edge and large-base asymptotics of the hub.} Push the edge fit window toward
+$\eta$ to test the derived coefficient $\pi\sqrt{2\eta/e}$ below $0.5\%$
+(Lemma~\ref{lem:edge}), and settle $m(b)-\ln\ln b\to0$ with a rate.
+\item \textbf{Foundations.} Derive the channel and peeling-growth hypotheses of
+\cite{phaselaw} from the Kneser--Paulsen--Cowgill construction (the single remaining
+conditional element, cf.\ \cite[Rem.~7.4]{unified}), including a stopping-rule formulation
+covering skew pairs; and prove Hypothesis~\ref{hyp:basediff} from base holomorphy
+\cite{paulsen}.
+\end{enumerate}
+
+Beyond these, the applied horizon that motivated the program remains: with the conversion
+maps certified, a single master engine in one base plus phase tables can, in principle,
+replace per-base Kneser constructions for multi-base workloads; whether the fixed-point
+formulation of $F_{b,d}$ converges fast enough in practice is an empirical question the
+hybrid format of Section~\ref{sec:format} is designed to answer.
+
+\appendix
+
+\section{Data tables}\label{app:tables}
+
+All values from the July 2026 campaign; run metadata in Appendix~\ref{app:repro}.
+
+\subsection*{A.1\quad Regenerated pair table (regular branch)}
+
+Means $\mu_{b,d}$ exact to the digits shown (25+ digits available in the repository);
+$A_1$, first-mode phase and $A_2/A_1$ from the $\mathrm{dps}=80$, $N=256$ runs. This
+supersedes Table~1 of \cite{phaselaw}.
+
+\begin{center}
+\begin{tabular}{llll}
+\toprule
+$(b,d)$ & $\mu_{b,d}$ & $A_1$ & $A_2/A_1$ \\
+\midrule
+$(e,2)$ & $-1.1284037766289240098792179$ & $1.4368\times10^{-4}$ & $0.00968$ \\
+$(2,e)$ & $+1.1284037766289240098792179$ & $1.4367\times10^{-4}$ & $0.00914$ \\
+$(2,10)$ & $+2.2649608387^{\,*}$ & $4.6080\times10^{-4}$ & $0.00865$ \\
+$(10,2)$ & $-2.2649608387^{\,*}$ & $4.6083\times10^{-4}$ & $0.01015$ \\
+$(e,10)$ & $+1.1365570557133264408993760$ & $3.1723\times10^{-4}$ & $0.00885$ \\
+$(10,e)$ & $-1.1365570557133264408993760$ & $3.1722\times10^{-4}$ & $0.00981$ \\
+$(3,5)$ & $+0.5788350021355712162374735$ & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent(Starred values are hub-reconstructed, $\mu=m(d)-m(b)+\Delta$; the digits shown are
+limited by the two-digit published defect $\Delta(2,10)=6.4\times10^{-9}$, while the full
+$\Delta^{(2)}+\Delta^{(3)}$ chain in the repository carries them to $\sim10^{-15}$. Direct-run
+values (the $e$-pairs and $(3,5)$) are exact to the digits shown. The $(3,5)$ mode head
+resides in the repository; amplitudes for the closer pair are proportionally smaller by the
+amplitude law.)
+
+\subsection*{A.2\quad Local decay rates, $(e,2)$, clean to $k=290$}
+
+\begin{center}
+\begin{tabular}{rl@{\qquad}rl@{\qquad}rl}
+\toprule
+$k$ & $\sigma_\eff$ & $k$ & $\sigma_\eff$ & $k$ & $\sigma_\eff$\\
+\midrule
+1 & 0.740 & 30 & 0.232 & 110 & 0.1689\\
+2 & 0.567 & 40 & 0.2154 & 120 & 0.1657\\
+3 & 0.487 & 50 & 0.2036 & 140 & 0.1601\\
+5 & 0.404 & 60 & 0.1946 & 200 & 0.1484\\
+8 & 0.344 & 70 & 0.1875 & 240 & 0.1429\\
+20 & 0.260 & 80 & 0.1817 & 290 & 0.1375\\
+ & & 90 & 0.1768 & & \\
+ & & 100 & 0.1726 & & \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Saddle-model reconstruction:
+$\sigma_\eff(k)=\sigma_*+1.090/\sqrt k-1.512/k$ reproduces this table to $10^{-4}$ with the
+fitted parameters of Observation~\ref{obs:universal}. Digit yield: $D(60)=47$,
+$D(100)=67$, $D(120)=76$, $D(300)\approx148$.
+
+\subsection*{A.3\quad Breach zones at $y=0.085$ (complexified ladder)}
+
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+pair & zone $x$-interval & width & center $x_*$ (mod 1)\\
+\midrule
+$(e,2)$ & $[0.91,\,0.98]$ & $\approx0.07$ & $\approx0.945$\\
+$(3,5)$ & $[1.01,\,1.08]$ & $\approx0.07$ & $\approx1.045$\\
+$(2,10)$ & $[0.650,\,0.710]$ & $\approx0.06$ & $\approx0.680$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent Apex $(e,2)$: $z_*\approx(1.02\pm0.02)+(0.055\pm0.005)i$; center slope
+$dx/dy\approx-2.8$; fitted singularity data $(\sigma_*,c,\gamma)$:
+$(0.0789,\,59.78,\,9.47)$ for $(e,2)$ and $(0.0791,\,59.77,\,9.59)$ for $(3,5)$; phase
+strength ratio $c_{\text{phase}}/c_{\text{amp}}\approx4.38$, $\chi\approx0.68$ rad
+(pair-universal to $0.3\%$).
+
+\subsection*{A.4\quad Hub raster and first-order constants}
+
+Hub values $m(b)=\mu_{e,b}$ as in Section~\ref{sec:hub}; $24$-point raster over
+$[1.46,100]$ at $40$ digits in the repository. Edge fit on $[1.46,1.6]$:
+$m(b)=-3.3148\,(b-\eta)^{-1/2}-0.398\ln(b-\eta)+3.163$ (rms $0.004$);
+derived coefficient $\pi\sqrt{2\eta/e}=3.23907$ (ratio $1.023$). Kernel constants:
+$C_1(e)=0.00038859729244516473$; $\overline G_e=2.191463277066$;
+$C_1(d)\times10^4=3.953,\,3.886,\,3.868,\,3.793,\,3.720$ for $d=2,e,3,5,10$;
+diagonal ratios $A_2/A_1=0.0093355030$, $A_3/A_1=2.66505\times10^{-4}$,
+$A_4/A_1=1.26473\times10^{-5}$; diagonal phase $\varphi_1=1.33536363153$.
+
+\subsection*{A.5\quad Branch-robustness budget}
+
+Mean shifts on the explicit $C^1$ branches versus the regular branch:
+$\Delta\mu=\mu_{\mathrm{toy}}-\mu_{\mathrm{reg}}$ equals $+6.37\times10^{-4}$ for $(e,2)$,
+$+7.34\times10^{-4}$ for $(3,5)$, $+3.758\times10^{-3}$ for $(e,10)$,
+$+4.341\times10^{-3}$ for $(2,10)$: empirically $\lvert\Delta\mu\rvert\approx(5$--$12)\times
+A_1(b,d)$---the choice of branch moves the mean by a few phase amplitudes, while the profile
+shapes remain similar. This quantifies the branch sensitivity of every constant in this
+paper.
+
+\section{Reproducibility}\label{app:repro}
+
+\emph{Pipeline.} Phases are evaluated by Algorithm~\ref{alg:ladder} against the author's
+engine (fork of \texttt{fatou.gp} \cite{fatou}; PARI/GP; engine, data, scripts and run
+metadata at \url{https://github.com/Lightrunnerwastaken/gp-tetration}; this paper is archived at \url{https://doi.org/10.5281/zenodo.21363593}, the companion papers at the DOIs given in the bibliography and the Authorship Statement), read-only, with per-point closure
+bounds logged; modes by direct DFT on $N$-point grids; the complexified scan by the
+bottom-up solver of Section~\ref{sec:singularity} with path continuation and mid-strip
+cross-validation against the mode series.
+
+\emph{Gates (all enforced per run).} (i) truncation gate: one extra explicit tower level
+changes no phase value by more than $10^{-120}$; (ii) mean antisymmetry
+$\le10^{-39}$ pairwise; (iii) groupoid residual $\le2.4\times10^{-34}$ (storage-limited);
+(iv) toy-branch control: measured $N^{-3}$ aliasing against the independent value of
+\cite[Rem.~7.5]{unified}, and inverse identity to $5.7\times10^{-101}$; (v) instrument
+guard $k\le2.3\,n_{\mathrm{lim}}$.
+
+\emph{Runs (selection).}
+
+\begin{center}
+\begin{tabular}{llrrrl}
+\toprule
+tag & pairs & dps & $N$ & $K$ & notes\\
+\midrule
+toy & $(e,2),(2,e),(2,10),(e,10),(3,5)$ & mp100 & 512 & 64 & calibration, $p\approx3$\\
+reg & all 12 regular pairs & 80 & 256 & 64 & cache-hot, $<5$ s each\\
+deep & $(e,2)$ & 200 & 512 & 176 & floor study, $n_{\mathrm{lim}}=30/60$\\
+edge & $(1.5,e),(e,1.5)$ & 60 & 256 & 48 & init $1.2$ s\\
+decisive & $(e,2)$, $n_{\mathrm{lim}}=120$ & 190 & 1024 & 300 & inits $239$ s $+$ $196$ s\\
+decisive & $(3,5)$, $n_{\mathrm{lim}}=120$ & 190 & 1024 & 300 & tail universality\\
+diag & $(d',e)$, $\ln d'=1+\varepsilon$ & 200 & 512 & --- & $\varepsilon=10^{-12},10^{-15}$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section*{Authorship and AI Contribution Statement}
+\addcontentsline{toc}{section}{Authorship and AI Contribution Statement}
+
+This manuscript is the product of a directed human--AI collaboration, and the division of
+labor should be stated plainly. The author conceived the mixed-base phase program and its
+central object $\Phi_{b,d}$, built and maintains the high-precision tetration engine (a fork
+of Levenstein's \texttt{fatou.gp}, published at \url{https://github.com/Lightrunnerwastaken/gp-tetration}) against which every number in this paper was computed,
+and directed the research: posing the questions, setting priorities between rounds,
+auditing intermediate results, and deciding which claims met the acceptance gates. The
+majority of the mathematical development and of the numerical work was produced by
+artificial-intelligence systems under that direction: an interactive assistant (Claude,
+Anthropic) contributed the theoretical framework of Sections~\ref{sec:ladder},
+\ref{sec:dictionary}, \ref{sec:singularity}--\ref{sec:hub} (including the certificate
+propositions, the saddle-point and crossover analysis, the response-kernel theory, the
+third-order hub defect and the parabolic edge law), the round-by-round experimental designs,
+and the review of the companion manuscripts; an autonomous research agent designed,
+implemented and executed the measurement pipeline, discovered and quantified the instrument
+systematics, performed the complexified scans, and produced all data reported here. The
+companion manuscripts \cite{phaselaw,unified} were developed in the same directed mode with
+a further AI system (ChatGPT, OpenAI) as the principal drafting contributor. In line with
+prevailing journal policies, AI systems are not listed as authors; the author assumes full
+and sole responsibility for the correctness of all statements, and readers should weigh the
+provenance described here in their assessment. The five papers of the series are permanently archived on Zenodo under the concept DOIs \url{https://doi.org/10.5281/zenodo.21346803} (I), \url{https://doi.org/10.5281/zenodo.21361967} (II), \url{https://doi.org/10.5281/zenodo.21362206} (III), \url{https://doi.org/10.5281/zenodo.21363593} (IV), and \url{https://doi.org/10.5281/zenodo.21363809} (V). The author's role, in short, was closer to
+that of a research director than of a sole working mathematician; the author considers it a
+matter of scientific honesty that this be recorded rather than obscured.
+
+\begin{thebibliography}{10}
+
+\bibitem{phaselaw}
+J.~Justus,
+\emph{A phase law for mixed-base tetration},
+Paper~I of the mixed-base tetration series, preprint, July 2026.
+\url{https://github.com/Lightrunnerwastaken/gp-tetration}. DOI: \url{https://doi.org/10.5281/zenodo.21346803}.
+
+\bibitem{unified}
+J.~Justus,
+\emph{The mixed-base tetration phase map is a circle diffeomorphism},
+Paper~II of the mixed-base tetration series, preprint, July 2026.
+\url{https://github.com/Lightrunnerwastaken/gp-tetration}. DOI: \url{https://doi.org/10.5281/zenodo.21361967}.
+
+\bibitem{paperIII}
+J.~Justus,
+\emph{Stopped channels and offset alignment: de-conditionalizing the real-channel hypotheses for mixed-base tetration},
+Paper~III of the mixed-base tetration series, preprint, July 2026.
+\url{https://github.com/Lightrunnerwastaken/gp-tetration}. DOI: \url{https://doi.org/10.5281/zenodo.21362206}.
+
+\bibitem{paperV}
+J.~Justus,
+\emph{The base-derivative of the Kneser family: selection principle, uniqueness, and existence via a Riemann--Hilbert problem},
+Paper~V of the mixed-base tetration series, preprint, July 2026.
+\url{https://github.com/Lightrunnerwastaken/gp-tetration}. DOI: \url{https://doi.org/10.5281/zenodo.21363809}.
+
+\bibitem{kneser}
+H.~Kneser,
+\emph{Reelle analytische L\"osungen der Gleichung $\varphi(\varphi(x))=e^x$ und verwandter
+Funktionalgleichungen},
+J.\ reine angew.\ Math.\ \textbf{187} (1950), 56--67.
+
+\bibitem{kouznetsov}
+D.~Kouznetsov,
+\emph{Solution of $F(z+1)=\exp(F(z))$ in complex $z$-plane},
+Math.\ Comp.\ \textbf{78} (2009), 1647--1670.
+
+\bibitem{paulsencowgill}
+W.~Paulsen and S.~Cowgill,
+\emph{Solving $F(z+1)=b^{F(z)}$ in the complex plane},
+Adv.\ Comput.\ Math.\ \textbf{43} (2017), 1261--1282.
+
+\bibitem{paulsen}
+W.~Paulsen,
+\emph{Tetration for complex bases},
+Adv.\ Comput.\ Math.\ \textbf{45} (2019), 243--267.
+
+\bibitem{fatou}
+S.~Levenstein,
+\emph{\texttt{fatou.gp}: high-precision Kneser sexp/slog in PARI/GP},
+Tetration Forum, thread 1017, 2011--, software; used here through the fork at
+\url{https://github.com/Lightrunnerwastaken/gp-tetration}.
+
+\bibitem{olver}
+F.~W.~J.~Olver,
+\emph{Asymptotics and Special Functions},
+Academic Press, 1974.
+
+\bibitem{milnor}
+J.~Milnor,
+\emph{Dynamics in One Complex Variable},
+3rd ed., Princeton University Press, 2006.
+
+\end{thebibliography}
+
+\end{document}

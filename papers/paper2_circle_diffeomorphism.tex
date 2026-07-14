@@ -1,0 +1,1252 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1.1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[T1]{fontenc}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue]{hyperref}
+
+\newtheorem{theoremA}{Theorem}
+\renewcommand{\thetheoremA}{\Alph{theoremA}}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{hypothesis}[theorem]{Hypothesis}
+\newtheorem{example}[theorem]{Example}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Sone}{S^{1}}
+\newcommand{\Lb}{L_{b}}
+\newcommand{\Ab}{A_{b}}
+\newcommand{\Tb}{T_{b}}
+\newcommand{\Td}{T_{d}}
+\newcommand{\expb}{\exp_{b}}
+\newcommand{\frc}[1]{\{#1\}}
+\newcommand{\Ht}{\widetilde H}
+\newcommand{\Kt}{\widetilde K}
+\DeclareMathOperator{\slog}{slog}
+\DeclareMathOperator{\Var}{Var}
+
+\title{The Mixed-Base Tetration Phase Map Is a Circle Diffeomorphism\\[2mm]
+\large Paper II of the mixed-base tetration series: companion to ``A Phase Law for Mixed-Base Tetration'' \cite{J}}
+\author{Janis Justus}
+\date{July 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Proposition~6.6 of \cite{J} derives the exact inverse mean antisymmetry
+$\mu_{b,d}=-\mu_{d,b}$ for the mixed-base tetration phase under the
+\emph{assumption} that $H(\theta)=\theta+\Phi_{b,d}(\theta)$ is an
+orientation-preserving $C^{1}$ circle diffeomorphism. This paper removes
+that assumption in four graded steps. \textbf{(A)}~Given the phase law of
+\cite{J} for the two ordered pairs $(b,d)$ and $(d,b)$, the lift
+$\Ht_{b,d}=\mathrm{id}+\Phi_{b,d}$ is unconditionally an
+orientation-preserving circle \emph{homeomorphism} with inverse
+$\Ht_{d,b}$, and the mixed-base phase maps form a groupoid in
+$\mathrm{Homeo}_{+}(\Sone)$. \textbf{(B)}~Already at this topological
+level, $\mu_{b,d}=-\mu_{d,b}$ holds exactly, by a Riemann--Stieltjes
+substitution---no smoothness whatsoever. \textbf{(C)}~A minimal-regularity
+principle: if \emph{both} phases are $C^{1}$ on the circle, the phase
+maps are automatically mutually inverse $C^{1}$ diffeomorphisms; no
+positivity estimate is needed, and an explicit example shows that
+one-sided $C^{1}$ regularity would not suffice. \textbf{(D)}~Under an
+explicit $C^{1}$ strengthening of the channel hypotheses of
+\cite{J}---differentiable strict monotonicity of the branches and
+quantitative positivity of the logarithmic channel, both satisfied by the
+regular Kneser/Paulsen--Cowgill branch---the forward phase alone is
+$C^{1}$ with $\Ht'>0$. The engine of (D) is an \emph{exact} product
+identity for the derivative of the logarithmic tails,
+\[
+D_n'(\theta)\;=\;\alpha\,\Td'(\theta)\prod_{j=1}^{n-1}
+\frac{\alpha\,\Td(j+\theta)}{\expb^{\circ j}\!\big(D_n(\theta)\big)},
+\qquad \alpha=\log_b d,
+\]
+in which all tower-sized factors cancel; the summability of reciprocal
+tower minima that drives the limit is itself automatic, since taking
+infima in the tower recursion yields $s_{j+1}=d^{\,s_j}$. In the limit,
+\[
+\Ht_{b,d}'(\theta)\;=\;\frac{\alpha\,\Td'(\theta)}{\Tb'(\Ht_{b,d}(\theta))}
+\prod_{j=1}^{\infty}\frac{\alpha\,\Td(j+\theta)}{\Tb\!\big(j+\Ht_{b,d}(\theta)\big)}\;>\;0 .
+\]
+All statements are validated numerically, including an end-to-end check
+on explicit $C^{1}$ tetration branches.
+\end{abstract}
+
+\section{Introduction and statement of results}\label{sec:intro}
+
+We keep the notation of \cite{J}. For admissible bases $a$, $T_a$ denotes
+the regular tetration branch with $T_a(0)=1$ and $T_a(x+1)=a^{T_a(x)}$, and
+$A_a=T_a^{-1}=\slog_a$ its Abel inverse. For an ordered pair $(b,d)$ one
+sets $F_{b,d}=\Ab\circ\Td$, $\alpha=\log_b d$, $\Lb=\log_b$, and, for
+$x=n+\theta$ with $n\in\N$, $\theta\in[0,1]$,
+\[
+D_n(\theta)=D_n^{b,d}(\theta):=\Lb^{\circ n}\big(\Td(n+\theta)\big).
+\]
+Under Hypotheses~2.2 and 2.4 of \cite{J}, Theorems~5.6 and 5.7 of \cite{J}
+give the uniform limit $D=D_{b,d}=\lim_n D_n$ on $[0,1]$ and the phase law
+\begin{equation}\label{eq:phaselaw}
+\slog_b(\Td(x))-x \;=\; \Phi_{b,d}(\frc{x})+o(1),
+\qquad x\to+\infty,
+\qquad
+\Phi_{b,d}(\theta)=\Ab(D(\theta))-\theta ,
+\end{equation}
+with $\Phi_{b,d}$ continuous and, by Lemma~5.8 of \cite{J}, well defined on
+the circle. Write $\mu_{b,d}=\int_0^1\Phi_{b,d}$ and
+$P_{b,d}=\Phi_{b,d}-\mu_{b,d}$.
+
+Proposition~6.6 of \cite{J} proves the exact inverse antisymmetry
+$\mu_{b,d}=-\mu_{d,b}$ under the standing \emph{assumption} that
+\[
+H(\theta)=\theta+\Phi_{b,d}(\theta)
+\]
+is an orientation-preserving $C^{1}$ circle diffeomorphism in the lifted
+sense $H(\theta+1)=H(\theta)+1$, $H'>0$. The purpose of this paper is to
+prove that assumption. Throughout, for a $1$-periodic continuous
+$\Phi:\R\to\R$ we write
+\[
+\Ht(x):=x+\Phi(x),\qquad x\in\R,
+\]
+for the associated \emph{lift}; $\Ht(x+1)=\Ht(x)+1$ holds automatically.
+Our results form a ladder of four statements, graded by the regularity
+they consume: a topological theorem, a measure-level theorem, a formal
+$C^{1}$ principle, and an analytic $C^{1}$ theorem.
+
+\begin{theoremA}[Homeomorphism; no smoothness required]\label{thm:A}
+Assume the phase-law package \textup{(P)} of Section~\ref{sec:setting}
+holds for both ordered pairs $(b,d)$ and $(d,b)$ (in particular, this is
+the case under Hypotheses~2.2 and 2.4 of \cite{J} for both pairs). Then
+$\Ht_{b,d}=\mathrm{id}+\Phi_{b,d}$ is a strictly increasing homeomorphism
+of $\R$ commuting with the unit translation, and
+\[
+\Ht_{b,d}^{-1}=\Ht_{d,b}.
+\]
+Consequently $\Ht_{b,d}$ descends to an orientation-preserving
+homeomorphism $H_{b,d}$ of the circle $\Sone=\R/\Z$ with
+$H_{b,d}^{-1}=H_{d,b}$. More generally, whenever the package \textup{(P)}
+holds for the pairs $(p,q),(q,r),(p,r)$, the lifts compose exactly,
+$\Ht_{p,r}=\Ht_{p,q}\circ\Ht_{q,r}$; the mixed-base phase maps form a
+groupoid inside $\mathrm{Homeo}_{+}(\Sone)$.
+\end{theoremA}
+
+\begin{theoremA}[Exact inverse mean antisymmetry without smoothness]\label{thm:B}
+Under the hypotheses of Theorem~\textup{\ref{thm:A}},
+\[
+\mu_{b,d}=-\mu_{d,b}
+\]
+holds exactly. In particular, the $C^{1}$ diffeomorphism assumption in
+Proposition~6.6 of \cite{J} can be dropped entirely: the conclusion of
+that proposition is valid whenever the phase law holds for both ordered
+pairs.
+\end{theoremA}
+
+Theorem~\ref{thm:B} explains why the inverse-pair sums in Table~1 of
+\cite{J} vanish to $10^{-9}$--$10^{-11}$: they are exactly zero in the
+limit, and the observed residuals are numerical error.
+
+\begin{theoremA}[Minimal-regularity principle]\label{thm:C}
+Let $\Phi,\Psi:\R\to\R$ be $1$-periodic functions of class $C^{1}$
+satisfying the inverse phase equations
+\begin{equation}\label{eq:invpair}
+\Psi\big(x+\Phi(x)\big)=-\Phi(x),
+\qquad
+\Phi\big(u+\Psi(u)\big)=-\Psi(u),
+\qquad x,u\in\R .
+\end{equation}
+Then $\Ht=\mathrm{id}+\Phi$ and $\Kt=\mathrm{id}+\Psi$ satisfy
+$\Kt\circ\Ht=\Ht\circ\Kt=\mathrm{id}$ and $\Ht'>0$, $\Kt'>0$ everywhere;
+they are lifts of mutually inverse orientation-preserving $C^{1}$ circle
+diffeomorphisms. Under \textup{(H1)}+\textup{(H2)} of
+Section~\ref{sec:setting}, the equations \eqref{eq:invpair} hold
+automatically for $\Phi=\Phi_{b,d}$, $\Psi=\Phi_{d,b}$
+(Lemma~\ref{lem:comp}), so two-sided $C^{1}$ regularity of the phases
+already implies the full diffeomorphism conclusion, with no separate
+positivity assumption. One-sided $C^{1}$ regularity does not suffice
+(Example~\ref{ex:counter}).
+\end{theoremA}
+
+\begin{theoremA}[Analytic $C^{1}$ theorem]\label{thm:D}
+Assume, for the ordered pair $(b,d)$, Hypotheses~2.2 and 2.4 of \cite{J}
+together with the strengthenings \textup{(S)} and \textup{(R$'$)} of
+Section~\ref{sec:setting}. Then:
+\begin{enumerate}
+\item[\textup{(i)}] $D_n\to D$ in $C^{1}([0,1])$, $D\in C^{1}([0,1])$,
+and $D'>0$ with the absolutely and uniformly convergent product
+representation
+\begin{equation}\label{eq:Dprime}
+D'(\theta)\;=\;\alpha\,\Td'(\theta)\,
+\prod_{j=1}^{\infty}\frac{\alpha\,\Td(j+\theta)}{E_j(\theta)},
+\qquad
+E_j(\theta):=\expb^{\circ j}\big(D(\theta)\big),
+\end{equation}
+where $\expb(t)=b^{t}$.
+\item[\textup{(ii)}] $\Phi_{b,d}$ extends to a $1$-periodic $C^{1}$
+function on $\R$, and the lift $\Ht_{b,d}=\mathrm{id}+\Phi_{b,d}$
+satisfies $\Ht_{b,d}'=(A_b'\circ D)\,D'>0$; explicitly,
+\begin{equation}\label{eq:Hprime}
+\Ht_{b,d}'(\theta)\;=\;\frac{\alpha\,\Td'(\theta)}{\Tb'\big(\Ht_{b,d}(\theta)\big)}\,
+\prod_{j=1}^{\infty}
+\frac{\alpha\,\Td(j+\theta)}{\Tb\big(j+\Ht_{b,d}(\theta)\big)}\;>\;0 .
+\end{equation}
+\item[\textup{(iii)}] $H_{b,d}$ is an orientation-preserving $C^{1}$
+circle diffeomorphism; in particular the standing assumption of
+Proposition~6.6 of \cite{J} is a theorem under these hypotheses. If in
+addition the package \textup{(P)} holds for $(d,b)$, then
+$H_{d,b}=H_{b,d}^{-1}$ is automatically $C^{1}$ as well, i.e.\
+$\Phi_{d,b}\in C^{1}(\Sone)$ comes for free.
+\item[\textup{(iv)}] The residual converges in the $C^{1}$ topology:
+with $R_n(\theta):=F_{b,d}(n+\theta)-(n+\theta)$ one has $R_n\to\Phi_{b,d}$
+in $C^{1}([0,1])$; equivalently, $F_{b,d}'(n+\theta)\to
+\Ht_{b,d}'(\theta)$ uniformly on $[0,1]$.
+\end{enumerate}
+\end{theoremA}
+
+The engine of Theorem~\ref{thm:D} is the exact identity of
+Lemma~\ref{lem:product} below, in which the mismatch constant $\alpha$
+cancels against the first logarithmic peel and \emph{all} tower-sized
+quantities cancel in closed form, leaving a product whose factors converge
+to $1$ at the hyper-fast rate $O(1/s_j)$, $s_j=\inf_\theta\Td(j+\theta)$.
+The summability of $1/s_j$ that drives the limit is not an extra
+hypothesis: taking infima over the phase in the tower recursion gives
+$s_{j+1}=d^{\,s_j}$ exactly (Lemma~\ref{lem:growth}), so the qualitative
+divergence $s_j\to\infty$ of \cite[Hyp.~2.4]{J} self-improves to geometric
+growth. As a by-product one obtains the sharp value-level comparison
+\[
+\Tb\big(j+\Ht_{b,d}(\theta)\big)=\alpha\,\Td(j+\theta)\big(1+O(1/s_j)\big)
+\]
+(Remark~\ref{rem:onelevel}): the base-mismatch factor $\alpha$ sits
+exactly one tower level down.
+
+The four statements interlock as follows. Theorem~\ref{thm:D}, applied to
+the single pair $(b,d)$, already yields the diffeomorphism property
+including positivity. Theorem~\ref{thm:C} shows that once \emph{both}
+phases are known to be $C^{1}$---by Theorem~\ref{thm:D} applied to both
+pairs, or by any future route such as strip analyticity
+(Remark~\ref{rem:Cr})---positivity is automatic and free of channel
+estimates. Example~\ref{ex:counter} delimits Theorem~\ref{thm:C}:
+$C^{1}$ regularity of the forward phase alone is compatible with a
+critical point, so the analytic positivity of Theorem~\ref{thm:D} is
+genuinely needed in the one-sided situation. Theorems~\ref{thm:A} and
+\ref{thm:B} need no smoothness at all.
+
+\section{Setting and hypotheses}\label{sec:setting}
+
+\subsection{Branch frame}
+Throughout, $b,d>1$. We use the following normalization of the regular
+branches, satisfied by the Kneser/Paulsen--Cowgill tetration for real
+bases above $e^{1/e}$ \cite{Kneser,PC}.
+
+\begin{itemize}
+\item[\textup{(B1)}] $\Tb:(-2,\infty)\to\R$ is a continuous, strictly
+increasing bijection onto $\R$ with $\Tb(0)=1$ and
+$\Tb(x+1)=b^{\Tb(x)}$ for $x>-2$. Its inverse
+$\Ab=\slog_b:\R\to(-2,\infty)$ then satisfies the \emph{global Abel
+equation}
+\begin{equation}\label{eq:abel}
+\Ab(b^{y})=\Ab(y)+1\qquad\text{for all }y\in\R .
+\end{equation}
+\item[\textup{(B2)}] $\Td:[0,\infty)\to(0,\infty)$ is continuous with
+$\Td(0)=1$ and $\Td(x+1)=d^{\Td(x)}$ for $x\ge 0$.
+\end{itemize}
+
+Equation \eqref{eq:abel} follows from (B1): if $x=\Ab(y)$ then
+$b^{y}=b^{\Tb(x)}=\Tb(x+1)$, so $\Ab(b^{y})=x+1$. Note also
+$\Tb(-1)=0$ and $\Tb>0$ exactly on $(-1,\infty)$, directly from the
+functional equation.
+
+\subsection{The phase-law package}
+For an ordered pair $(p,q)$ of admissible bases we say that the
+\emph{phase-law package} (P) holds if the conclusions of Theorems~5.6,
+5.7 and Lemma~5.8 of \cite{J} are available for that pair, namely:
+$D_n^{p,q}\to D_{p,q}$ uniformly on $[0,1]$; the residual satisfies
+\eqref{eq:phaselaw} with the $o(1)$ uniform in the phase; and
+$\Phi_{p,q}$ is continuous on $[0,1]$ with $\Phi_{p,q}(1)=\Phi_{p,q}(0)$,
+so that its $1$-periodic extension (still denoted $\Phi_{p,q}$) is
+continuous on $\R$. By \cite{J} this package holds under Hypotheses~2.2
+and 2.4 of \cite{J} for the pair $(p,q)$; the endpoint identity is
+re-proved in sharpened form in Lemma~\ref{lem:endpoint} below. For the
+diagonal pairs the package is trivial: $F_{p,p}=\mathrm{id}$ exactly, so
+$\Phi_{p,p}\equiv 0$.
+
+We label:
+\begin{itemize}
+\item[\textup{(H1)}] the package (P) holds for $(b,d)$;
+\item[\textup{(H2)}] the package (P) holds for $(d,b)$.
+\end{itemize}
+
+\subsection{$C^{1}$ strengthenings}
+The following two conditions upgrade the channel hypotheses of \cite{J}
+to the $C^{1}$ category. Recall $s_j:=\inf_{0\le\theta\le1}\Td(j+\theta)$
+from Hypothesis~2.4 of \cite{J}.
+
+\begin{itemize}
+\item[\textup{(S)}] \emph{(Smooth strictly increasing branches.)}
+$\Tb\in C^{1}((-2,\infty))$ with $\Tb'>0$, and
+$\Td\in C^{1}([0,\infty))$ with $\Td'>0$. Consequently
+$\Ab\in C^{1}(\R)$ with
+\begin{equation}\label{eq:Abprime}
+\Ab'(y)=\frac{1}{\Tb'(\Ab(y))}>0 ,\qquad y\in\R .
+\end{equation}
+\item[\textup{(R$'$)}] \emph{(Quantitative real channel.)} There is
+$N_0\in\N$ such that for all $n\ge N_0$ and all $\theta\in[0,1]$ the
+iterates
+\[
+W_k^{(n)}(\theta):=\Lb^{\circ k}\big(\Td(n+\theta)\big),
+\qquad 0\le k\le n,
+\]
+are defined and satisfy $W_k^{(n)}(\theta)>0$ for $0\le k\le n-1$.
+\end{itemize}
+
+\begin{remark}\label{rem:hyps}
+(R$'$) is precisely the quantitative reading of (R2) in Hypothesis~2.2 of
+\cite{J}: positivity of $W_0,\dots,W_{n-1}$ is what it means for the $n$
+real logarithms defining $D_n$ to exist; the final value $W_n=D_n$ may
+well be negative (and is, e.g., for $(b,d)=(e,2)$, where
+$D(0)=T_e(\Phi_{e,2}(0))<0$). See also Remarks~\ref{rem:regular} and
+\ref{rem:local}.
+\end{remark}
+
+\begin{lemma}[Positivity propagation]\label{lem:positivity}
+Let $T\in C^{1}$ satisfy the tetration equation $T(x+1)=a^{T(x)}$
+\textup{(}$a>1$\textup{)} on its domain as in \textup{(B1)} or
+\textup{(B2)}. If $T'>0$ on the single period $[0,1]$, then $T'>0$ on the
+whole domain \textup{(}all of $(-2,\infty)$ in case \textup{(B1)}, all of
+$[0,\infty)$ in case \textup{(B2)}\textup{)}.
+\end{lemma}
+
+\begin{proof}
+Differentiating the functional equation,
+\begin{equation}\label{eq:Tprimerec}
+T'(x+1)=(\ln a)\,T(x+1)\,T'(x).
+\end{equation}
+Forward: for $x\ge0$ one has $T(x+1)>0$, so $T'>0$ on $[k,k+1]$ implies
+$T'>0$ on $[k+1,k+2]$; induction covers $[0,\infty)$. Backward (case
+(B1)): for $x\in[-1,0)$ we have $x+1\in[0,1)$, hence $T(x+1)>0$ and
+$T'(x+1)>0$, so \eqref{eq:Tprimerec} gives
+$T'(x)=T'(x+1)/\big((\ln a)T(x+1)\big)>0$; the same step with
+$x\in(-2,-1)$ (where $x+1\in(-1,0)$, $T(x+1)>0$) finishes the proof.
+\end{proof}
+
+Thus (S) only needs to be checked on one fundamental interval.
+
+\begin{remark}\label{rem:regular}
+For the regular Kneser/Paulsen--Cowgill branch with real bases
+$b,d>e^{1/e}$ \cite{Kneser,PC,Paulsen}, $T_a$ is real-analytic and
+strictly increasing on $(-2,\infty)$ with $T_a((-2,\infty))=\R$, so
+(B1)--(B2) hold. Concerning (S): we are not aware of an explicit
+statement $T_a'>0$ in the literature; it is numerically evident, it is
+presupposed by the numerical scheme of \cite[App.~A]{J} on its inversion
+window, and by Lemma~\ref{lem:positivity} it only needs to be checked on
+a single period. (By \eqref{eq:Tprimerec}, the zero set of $T_a'$ is
+moreover invariant under $x\mapsto x+1$ wherever $T_a>0$, so a single
+critical point would force one in every period.) Under (S), $\Td$ is
+increasing, so $s_j=\Td(j)$ and
+$\sup_{0\le\theta\le1}\Td(j+\theta)=\Td(j+1)$. Thus for the intended
+branch the only genuinely \emph{analytic} inputs remain
+Hypotheses~2.2(R2) and 2.4 of \cite{J} themselves---the same conditional
+status as the phase law of \cite{J}; no new type of estimate is
+introduced by Theorem~\ref{thm:D}.
+\end{remark}
+
+\begin{remark}[Local sufficiency]\label{rem:local}
+Inspection of the proofs shows that of (S) only the following is actually
+used: $\Td\in C^{1}$ with $\Td'>0$ on $[0,\infty)$, and $\Ab$ of class
+$C^{1}$ with $\Ab'>0$ on a compact neighborhood of $D([0,1])$, together
+with the Abel identity \eqref{eq:abel} near $D([0,1])$ (for
+Remark~\ref{rem:ext} also near $b^{\,D([0,1])}$). The global frame (B1)
+is assumed for expository convenience and holds for the intended branch
+anyway.
+\end{remark}
+
+\subsection{Automatic geometric growth of the tower minima}
+
+The derivative estimates of Section~\ref{sec:C1} pivot on the summability
+$\sum_j 1/s_j<\infty$. Remarkably, this is not an additional hypothesis:
+the tower functional equation supplies it.
+
+\begin{lemma}[Automatic geometric growth]\label{lem:growth}
+Assume \textup{(R1)} of Hypothesis~2.2 of \cite{J} and $s_j\to\infty$
+from Hypothesis~2.4 of \cite{J}. Then
+\[
+s_{j+1}=d^{\,s_j}\qquad\text{for all }j\ge0,
+\]
+and consequently there is $J_1$ with $s_{j+1}\ge 2s_j$ for all $j\ge J_1$;
+in particular
+\[
+\sum_{j\ge1}\frac{1}{s_j}<\infty .
+\]
+\end{lemma}
+
+\begin{proof}
+Fix $j$. Taking the infimum over $\theta\in[0,1]$ in
+$\Td(j+1+\theta)=d^{\,\Td(j+\theta)}$ and using that $t\mapsto d^{t}$ is
+increasing and continuous gives $s_{j+1}=d^{\,s_j}$; both infima run over
+the same compact phase interval, and $s_j>0$ by (R1). Since $d>1$,
+$d^{t}/t\to\infty$, so there is $t_0>0$ with $d^{t}\ge 2t$ for $t\ge t_0$;
+choose $J_1$ with $s_j\ge t_0$ for $j\ge J_1$ (possible as
+$s_j\to\infty$). Then $s_{J_1+k}\ge 2^{k}s_{J_1}$, and $\sum_j 1/s_j$
+converges by comparison with a geometric series.
+\end{proof}
+
+\begin{remark}\label{rem:growthrole}
+Lemma~\ref{lem:growth} shows that the qualitative divergence
+$s_j\to\infty$ self-improves to geometric (indeed tower) growth. This is
+special to the tetration recursion: in an abstract iterated-logarithm
+scheme lacking the exact functional equation, divergence of $\sum 1/s_j$
+with $\log_b\alpha\neq0$ would make the derivative products of
+Section~\ref{sec:C1} degenerate to $0$ or $\infty$, so summability is
+exactly the right condition---and here it is free.
+\end{remark}
+
+\subsection{Endpoint identities}
+The following sharpening of Lemma~5.8 of \cite{J} will be used at both
+the $C^{0}$ and the $C^{1}$ level. Only (H1) and the branch frame are
+needed.
+
+\begin{lemma}[Endpoint identities]\label{lem:endpoint}
+Assume \textup{(H1)}. Then
+\begin{equation}\label{eq:D1}
+D(1)=b^{\,D(0)},
+\qquad\text{and consequently}\qquad
+\Phi_{b,d}(1)=\Phi_{b,d}(0).
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Since $\Lb^{\circ(n+1)}=\Lb\circ\Lb^{\circ n}$,
+\[
+D_{n+1}(0)=\Lb^{\circ(n+1)}\big(\Td(n+1)\big)
+=\Lb\big(\Lb^{\circ n}(\Td(n+1))\big)=\Lb\big(D_n(1)\big),
+\]
+i.e.\ $D_n(1)=b^{\,D_{n+1}(0)}$ for every $n$ for which the quantities are
+defined. Letting $n\to\infty$ and using $D_n\to D$ uniformly together with
+continuity of $t\mapsto b^{t}$ gives $D(1)=b^{\,D(0)}$. Then, by the global
+Abel equation \eqref{eq:abel},
+\[
+\Phi_{b,d}(1)=\Ab(D(1))-1=\Ab\big(b^{\,D(0)}\big)-1=\Ab(D(0))=\Phi_{b,d}(0).
+\qedhere
+\]
+\end{proof}
+
+In particular the $1$-periodic extension of $\Phi_{b,d}$ is continuous on
+$\R$, and $x\mapsto\Phi_{b,d}(\frc{x})$ is continuous on all of $\R$,
+\emph{including at the integers}. This last point is what allows
+fractional parts to be composed safely below.
+
+\section{The topological theorem}\label{sec:topo}
+
+Throughout this section all phases are extended $1$-periodically to
+$\R$; thus for a pair $(p,q)$ with package (P) we write
+$\Phi_{p,q}:\R\to\R$ (continuous, $1$-periodic) and
+$\Ht_{p,q}=\mathrm{id}+\Phi_{p,q}$, so that
+$\Ht_{p,q}(x+1)=\Ht_{p,q}(x)+1$ and $\Phi_{p,q}(x)=\Phi_{p,q}(\frc x)$.
+
+\begin{lemma}[Exact composition of lifted phase maps]\label{lem:comp}
+Let $(p,q)$, $(q,r)$, $(p,r)$ be ordered pairs for which the package
+\textup{(P)} holds. Then
+\[
+\Ht_{p,r}=\Ht_{p,q}\circ\Ht_{q,r}
+\qquad\text{on }\R .
+\]
+\end{lemma}
+
+\begin{proof}
+Fix $\theta\in[0,1)$ and let $x=n+\theta$, $n\to\infty$. By
+Proposition~6.1 of \cite{J}, $F_{p,r}=F_{p,q}\circ F_{q,r}$ exactly. By
+(P) for $(q,r)$,
+\[
+y_n:=F_{q,r}(n+\theta)=n+\theta+\Phi_{q,r}(\theta)+\varepsilon_n,
+\qquad \varepsilon_n\to0 .
+\]
+By (P) for $(p,q)$, $F_{p,q}(y)=y+\Phi_{p,q}(\frc y)+o(1)$ as
+$y\to+\infty$; applying this along $y_n\to+\infty$ and using that
+$u\mapsto\Phi_{p,q}(\frc u)=\Phi_{p,q}(u)$ is continuous on $\R$ (the
+periodic extension; Lemma~\ref{lem:endpoint} for $(p,q)$), we get
+\[
+F_{p,r}(n+\theta)-(n+\theta)
+=\Phi_{q,r}(\theta)+\varepsilon_n
++\Phi_{p,q}\big(\theta+\Phi_{q,r}(\theta)+\varepsilon_n\big)+o(1)
+\;\longrightarrow\;
+\Phi_{q,r}(\theta)+\Phi_{p,q}\big(\theta+\Phi_{q,r}(\theta)\big).
+\]
+The left side converges to $\Phi_{p,r}(\theta)$ by (P) for $(p,r)$. Hence
+\begin{equation}\label{eq:cocycle}
+\Phi_{p,r}(\theta)=\Phi_{q,r}(\theta)
++\Phi_{p,q}\big(\theta+\Phi_{q,r}(\theta)\big),
+\qquad\theta\in[0,1),
+\end{equation}
+and by periodicity for all $\theta\in\R$. (This is Proposition~6.4 of
+\cite{J}; the continuity of the periodic extension across integer values
+of $\theta+\Phi_{q,r}(\theta)$, provided by Lemma~\ref{lem:endpoint}, is
+what makes the limit of the composed fractional parts legitimate.)
+Adding $\theta$ to \eqref{eq:cocycle},
+\[
+\Ht_{p,r}(\theta)
+=\big(\theta+\Phi_{q,r}(\theta)\big)
++\Phi_{p,q}\big(\theta+\Phi_{q,r}(\theta)\big)
+=\Ht_{p,q}\big(\Ht_{q,r}(\theta)\big).
+\qedhere
+\]
+\end{proof}
+
+\begin{proof}[Proof of Theorem \textup{\ref{thm:A}}]
+Apply Lemma~\ref{lem:comp} to the triples $(d,b,d)$ and $(b,d,b)$; since
+$\Phi_{d,d}\equiv0\equiv\Phi_{b,b}$ (diagonal packages are exact), this
+gives
+\[
+\Ht_{d,b}\circ\Ht_{b,d}=\Ht_{d,d}=\mathrm{id},
+\qquad
+\Ht_{b,d}\circ\Ht_{d,b}=\Ht_{b,b}=\mathrm{id}.
+\]
+Thus $\Ht:=\Ht_{b,d}$ is a continuous bijection of $\R$ with continuous
+inverse $\Ht_{d,b}$. A continuous injection of $\R$ is strictly
+monotone; since $\Ht(x+1)=\Ht(x)+1>\Ht(x)$, it is strictly
+\emph{increasing}. Because $\Ht$ commutes with $x\mapsto x+1$, it descends
+to a homeomorphism $H_{b,d}$ of $\Sone$, orientation-preserving since the
+lift is increasing of degree one, and $H_{b,d}^{-1}=H_{d,b}$. The groupoid
+statement is Lemma~\ref{lem:comp}.
+\end{proof}
+
+\begin{remark}
+Theorem~\ref{thm:A} upgrades the ``nonlinear phase cocycle'' of
+\cite[Prop.~6.4]{J} to literal composition in
+$\mathrm{Homeo}_{+}(\Sone)$: the family
+$\{H_{p,q}\}$ is a groupoid of circle homeomorphisms, and
+\eqref{eq:cocycle} is nothing but $H_{p,r}=H_{p,q}\circ H_{q,r}$ read in
+the lift.
+\end{remark}
+
+\section{Antisymmetry of the mean shifts without smoothness}\label{sec:anti}
+
+\begin{proof}[Proof of Theorem \textup{\ref{thm:B}}]
+Write $\Phi=\Phi_{b,d}$, $\Psi=\Phi_{d,b}$ (both $1$-periodic and
+continuous on $\R$), $\Ht=\Ht_{b,d}$, $\Ht_{d,b}=\Ht^{-1}$
+(Theorem~\ref{thm:A}). The inverse case of \eqref{eq:cocycle} (triple
+$(d,b,d)$) reads
+\begin{equation}\label{eq:inverse}
+\Psi\big(\Ht(\theta)\big)=-\Phi(\theta),\qquad\theta\in\R .
+\end{equation}
+
+Since $\Ht$ is increasing with $\Ht(\theta+1)=\Ht(\theta)+1$, the function
+$\Phi=\Ht-\mathrm{id}$ is continuous and of bounded variation on every
+interval of length $1$, with
+$\Var_{[t,t+1]}\Phi\le\Var_{[t,t+1]}\Ht+1=\big(\Ht(t+1)-\Ht(t)\big)+1=2$.
+
+Let $t_0:=\Ht_{d,b}(0)$, so $\Ht(t_0)=0$ and $\Ht(t_0+1)=1$. Since $\Ht$
+is a continuous increasing bijection of $[t_0,t_0+1]$ onto $[0,1]$ and
+$\Psi$ is continuous, the Riemann--Stieltjes change of variables
+$u=\Ht(\theta)$ \cite[Thm.~7.7]{Apostol} gives, using $1$-periodicity of
+$\Psi$ in the first step and \eqref{eq:inverse} in the third,
+\[
+\mu_{d,b}=\int_0^1\Psi(u)\,du
+=\int_{t_0}^{t_0+1}\Psi\big(\Ht(\theta)\big)\,d\Ht(\theta)
+=-\int_{t_0}^{t_0+1}\Phi(\theta)\,d\big(\theta+\Phi(\theta)\big)
+=-\int_{t_0}^{t_0+1}\Phi\,d\theta-\int_{t_0}^{t_0+1}\Phi\,d\Phi .
+\]
+All Stieltjes integrals exist because the integrands are continuous and
+the integrators are of bounded variation, and the splitting uses linearity
+of $g\mapsto\int f\,dg$. By periodicity of $\Phi$,
+$\int_{t_0}^{t_0+1}\Phi\,d\theta=\mu_{b,d}$. For the last integral,
+integration by parts for Riemann--Stieltjes integrals
+\cite[Thm.~7.6]{Apostol} with $f=g=\Phi$ (continuous, BV) yields
+\[
+2\int_{t_0}^{t_0+1}\Phi\,d\Phi
+=\Phi(t_0+1)^2-\Phi(t_0)^2=0
+\]
+by periodicity. Hence $\mu_{d,b}=-\mu_{b,d}$.
+\end{proof}
+
+\begin{remark}\label{rem:deconditional}
+The proof of Proposition~6.6 in \cite{J} is exactly this computation with
+$d\Ht(\theta)=H'(\theta)\,d\theta$; the Stieltjes formulation shows that
+only monotonicity---automatic by Theorem~\ref{thm:A}---is needed, not
+differentiability. Together with Theorem~\ref{thm:A}, this
+\emph{de-conditionalizes} Proposition~6.6 of \cite{J} completely.
+\end{remark}
+
+\begin{remark}[The smooth substitution, with the interval shift]\label{rem:smoothsub}
+If in addition $\Phi,\Psi\in C^{1}$ (as under the hypotheses of
+Theorem~\ref{thm:D} for both pairs, or of Theorem~\ref{thm:C}), the
+substitution reads classically:
+\[
+\mu_{d,b}=\int_0^1\Psi(u)\,du
+=\int_{\Ht(0)}^{\Ht(0)+1}\Psi(u)\,du
+=\int_0^1\Psi\big(\Ht(\theta)\big)\Ht'(\theta)\,d\theta
+=-\int_0^1\Phi\,(1+\Phi')\,d\theta
+=-\mu_{b,d}-\tfrac12\big[\Phi^2\big]_0^1=-\mu_{b,d},
+\]
+where the first equality uses $1$-periodicity of $\Psi$: the map $\Ht$
+carries $[0,1]$ onto $[\Ht(0),\Ht(0)+1]$ rather than onto $[0,1]$, and
+periodicity supplies the missing shift. This is the computation of
+\cite[Prop.~6.6]{J} with that point made explicit.
+\end{remark}
+
+\section{A minimal-regularity principle}\label{sec:minreg}
+
+Theorem~\ref{thm:C} is a purely formal statement about pairs of
+$1$-periodic $C^{1}$ functions coupled by the inverse phase equations;
+it consumes no channel estimates and no derivative formulas.
+
+\begin{proof}[Proof of Theorem \textup{\ref{thm:C}}]
+The equations \eqref{eq:invpair} give, for every $x\in\R$,
+\[
+\Kt\big(\Ht(x)\big)=\Ht(x)+\Psi\big(\Ht(x)\big)
+=x+\Phi(x)-\Phi(x)=x ,
+\]
+and symmetrically $\Ht(\Kt(u))=u$; thus $\Kt\circ\Ht=\Ht\circ\Kt=
+\mathrm{id}$ with $\Ht,\Kt\in C^{1}(\R)$. Differentiating the first
+identity by the chain rule,
+\[
+\Kt'\big(\Ht(x)\big)\,\Ht'(x)=1\qquad\text{for all }x\in\R ,
+\]
+so $\Ht'$ has no zeros. Being continuous on the connected set $\R$,
+$\Ht'$ has a constant sign, and
+\[
+\int_0^1\Ht'(x)\,dx=\Ht(1)-\Ht(0)=1>0
+\]
+($1$-periodicity of $\Phi$) forces the sign to be positive: $\Ht'>0$
+everywhere, and $\Kt'=1/(\Ht'\circ\Kt)>0$. A $C^{1}$ map of $\R$ with
+everywhere positive derivative and $\Ht(x+1)=\Ht(x)+1$ is a strictly
+increasing bijection of $\R$; its inverse $\Kt$ is $C^{1}$, both commute
+with the unit translation, and so they descend to mutually inverse
+orientation-preserving $C^{1}$ diffeomorphisms of $\Sone$. Finally, under
+(H1)+(H2) the equations \eqref{eq:invpair} for $\Phi=\Phi_{b,d}$,
+$\Psi=\Phi_{d,b}$ are the cases $(d,b,d)$ and $(b,d,b)$ of
+Lemma~\ref{lem:comp}.
+\end{proof}
+
+\begin{example}[One-sided $C^{1}$ regularity does not suffice]\label{ex:counter}
+Let
+\[
+\Phi_0(x):=-\frac{\sin(2\pi x)}{2\pi},
+\qquad
+\Ht_0:=\mathrm{id}+\Phi_0 .
+\]
+Then $\Phi_0$ is $1$-periodic and real-analytic,
+$\Ht_0'(x)=1-\cos(2\pi x)\ge0$ vanishes exactly at $x\in\Z$, and $\Ht_0$
+is strictly increasing: for $y>x$,
+$\Ht_0(y)-\Ht_0(x)=\int_x^y(1-\cos2\pi t)\,dt>0$ since the integrand
+vanishes only at isolated points. Hence $\Ht_0$ is the lift of a
+degree-one $C^{1}$ circle \emph{homeomorphism} which is \emph{not} a
+$C^{1}$ diffeomorphism: near $x=0$,
+\[
+\Ht_0(x)=\frac{2\pi^{2}}{3}\,x^{3}+O(x^{5}),
+\]
+so the inverse behaves like a cube root at $0$ and is not differentiable
+there; the inverse phase $\Psi_0=\Ht_0^{-1}-\mathrm{id}$ is continuous
+but not $C^{1}$. Consequently, $C^{1}$ regularity plus topological
+invertibility of the \emph{forward} lift alone do not imply the
+diffeomorphism property. Theorem~\ref{thm:C} genuinely consumes $C^{1}$
+regularity of both phases, while Theorem~\ref{thm:D} supplies the
+positivity $\Ht'>0$ for the forward pair outright.
+\end{example}
+
+\begin{corollary}\label{cor:redundant}
+Assume \textup{(H1)} and \textup{(H2)}. If $\Phi_{b,d}$ and $\Phi_{d,b}$
+are of class $C^{1}$ on the circle---however this is established---then
+$H_{b,d}$ is an orientation-preserving $C^{1}$ circle diffeomorphism with
+$C^{1}$ inverse $H_{d,b}$. In particular the separate diffeomorphism
+assumption in \cite[Prop.~6.6]{J} is redundant given two-sided $C^{1}$
+phase limits.
+\end{corollary}
+
+\begin{remark}[Logical role]\label{rem:role}
+Theorem~\ref{thm:C} decouples the diffeomorphism property from the
+specific analytic mechanism: any route to two-sided $C^{1}$ phases
+inherits the full conclusion. For instance, a proof of strip analyticity
+(\cite[Conj.~8.1]{J}; Remark~\ref{rem:Cr}) for both ordered pairs would
+immediately produce mutually inverse real-analytic circle
+diffeomorphisms. Within the present note it is not strictly needed,
+since Theorem~\ref{thm:D}(i) proves $\Ht'>0$ directly.
+\end{remark}
+
+\section{The analytic $C^{1}$ theorem}\label{sec:C1}
+
+Standing assumptions for this section: (H1), (S), (R$'$), together
+with the branch frame (B1)--(B2). We abbreviate
+$W_k=W_k^{(n)}(\theta)=\Lb^{\circ k}(\Td(n+\theta))$, so
+$W_0=\Td(n+\theta)$, $W_{k+1}=\Lb(W_k)$, $W_n=D_n(\theta)$, and, by
+(R$'$), $W_k>0$ for $0\le k\le n-1$ and $n\ge N_0$. Since
+$W_{k+1}=\Lb(W_k)$ with $W_k>0$ is equivalent to $W_k=b^{\,W_{k+1}}$, we
+record the inversion
+\begin{equation}\label{eq:inversion}
+W_{n-j}^{(n)}(\theta)=\expb^{\circ j}\big(D_n(\theta)\big),
+\qquad 1\le j\le n .
+\end{equation}
+
+\subsection{The exact derivative product identity}
+
+\begin{lemma}[Exact product identity]\label{lem:product}
+Let $n\ge\max(N_0,2)$ and $\theta\in[0,1]$. Then $D_n\in C^{1}([0,1])$,
+and with
+\begin{equation}\label{eq:sigmadef}
+1+\sigma_j^{(n)}(\theta)
+:=\frac{W_{n-j}^{(n)}(\theta)}{\alpha\,\Td(j+\theta)}
+=\frac{\expb^{\circ j}\big(D_n(\theta)\big)}{\alpha\,\Td(j+\theta)}\;>\;0,
+\qquad 1\le j\le n-1,
+\end{equation}
+one has the \emph{exact} identity
+\begin{equation}\label{eq:exact}
+D_n'(\theta)
+=\frac{\alpha\,\Td'(\theta)}{\displaystyle\prod_{j=1}^{n-1}\big(1+\sigma_j^{(n)}(\theta)\big)} ,
+\qquad\text{and}\qquad
+\sigma_{n-1}^{(n)}\equiv 0 .
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+By (S) and (R$'$), each map in the chain
+$\theta\mapsto\Td(n+\theta)=W_0\mapsto W_1\mapsto\cdots\mapsto W_n=D_n(\theta)$
+is $C^{1}$ along the orbit (the logarithms are applied to positive
+quantities, which range over a compact subset of $(0,\infty)$ as
+$\theta\in[0,1]$), so $D_n\in C^{1}([0,1])$ and the chain rule with
+$\Lb'(y)=1/(y\ln b)$ gives
+\begin{equation}\label{eq:chain}
+D_n'(\theta)=\frac{\Td'(n+\theta)}{(\ln b)^{n}\,\prod_{k=0}^{n-1}W_k}.
+\end{equation}
+Differentiating $\Td(x+1)=d^{\Td(x)}$ yields
+$\Td'(x+1)=(\ln d)\Td(x+1)\Td'(x)$, and iterating from $x=\theta$,
+\begin{equation}\label{eq:Tdprime}
+\Td'(n+\theta)=(\ln d)^{n}\,\Td'(\theta)\prod_{i=1}^{n}\Td(i+\theta).
+\end{equation}
+Next, the first peel is exact:
+\[
+W_1=\Lb\big(\Td(n+\theta)\big)=\Lb\big(d^{\,\Td(n-1+\theta)}\big)
+=\alpha\,\Td(n-1+\theta),
+\]
+which is \eqref{eq:sigmadef} with $j=n-1$ and $\sigma_{n-1}^{(n)}=0$.
+Using \eqref{eq:sigmadef} for $1\le k\le n-1$ (i.e.\ $j=n-k$),
+\[
+\prod_{k=0}^{n-1}W_k
+=\Td(n+\theta)\cdot\alpha^{\,n-1}\prod_{i=1}^{n-1}\Td(i+\theta)
+\cdot\prod_{j=1}^{n-1}\big(1+\sigma_j^{(n)}(\theta)\big).
+\]
+Substituting this and \eqref{eq:Tdprime} into \eqref{eq:chain}, the factor
+$(\ln d)^{n}/(\ln b)^{n}=\alpha^{n}$ appears, the products
+$\prod_{i=1}^{n}\Td(i+\theta)$ and
+$\Td(n+\theta)\prod_{i=1}^{n-1}\Td(i+\theta)$ cancel exactly, and
+$\alpha^{n}/\alpha^{n-1}=\alpha$ survives:
+\[
+D_n'(\theta)
+=\frac{\alpha^{n}\,\Td'(\theta)\prod_{i=1}^{n}\Td(i+\theta)}
+{\alpha^{\,n-1}\,\Td(n+\theta)\prod_{i=1}^{n-1}\Td(i+\theta)\,
+\prod_{j=1}^{n-1}(1+\sigma_j^{(n)})}
+=\frac{\alpha\,\Td'(\theta)}{\prod_{j=1}^{n-1}(1+\sigma_j^{(n)})}.
+\]
+The identification \eqref{eq:sigmadef} of $W_{n-j}$ with
+$\expb^{\circ j}(D_n)$ is \eqref{eq:inversion}.
+\end{proof}
+
+Note that \eqref{eq:exact} is an algebraic identity: it holds for
+\emph{any} $C^{1}$ germ propagated by the tower recursion, independently
+of the branch choice; see Remark~\ref{rem:numerics} for a high-precision
+numerical confirmation.
+
+\begin{remark}[Ratio identity and an alternative route]\label{rem:ratio}
+Dividing the chain-rule products for consecutive tails yields a companion
+identity. By \cite[eq.~(22)]{J}, $D_{n+1}(\theta)=\Lb^{\circ n}\big(\alpha
+\Td(n+\theta)\big)$; writing $\widetilde V_k:=\Lb^{\circ k}(\alpha
+\Td(n+\theta))$ and $\delta_k:=\widetilde V_k-W_k$---the damped
+differences of \cite[Lemma~5.3]{J}, with $\delta_1=\Lb(\alpha)$---one
+obtains, since $\widetilde V_0=\alpha W_0$ and all quantities are positive
+by \textup{(R$'$)} at level $n+1$,
+\[
+\frac{D_{n+1}'(\theta)}{D_n'(\theta)}
+=\prod_{k=1}^{n-1}\frac{W_k}{W_k+\delta_k}.
+\]
+The huge factor $\Td'(n+\theta)$ cancels identically. With the estimates
+of \cite[Lemma~5.3]{J} one gets
+$\|\log D_{n+1}'-\log D_n'\|_\infty=O(1/s_{n-1})$, summable in $n$ by
+Lemma~\ref{lem:growth}; hence $(\log D_n')$ is uniformly Cauchy, giving
+an alternative proof of Proposition~\ref{prop:C1conv} that inherits the
+hyper-exponential speed of \cite[Lemma~5.4]{J}. We follow the closed-form
+route below because it produces the limit formula \eqref{eq:Dprime} and
+the positivity bound in the same stroke.
+\end{remark}
+
+\subsection{Tail estimates}
+
+\begin{lemma}[Recursion and tail bound]\label{lem:tail}
+For $n\ge\max(N_0,2)$, $\theta\in[0,1]$, and $1\le j\le n-2$,
+\begin{equation}\label{eq:rec}
+\sigma_j^{(n)}(\theta)
+=\frac{\Lb(\alpha)+\Lb\big(1+\sigma_{j+1}^{(n)}(\theta)\big)}
+{\alpha\,\Td(j+\theta)} ,
+\qquad \sigma_{n-1}^{(n)}=0 .
+\end{equation}
+Let
+\[
+C_0:=\frac{|\Lb(\alpha)|+\dfrac{\ln 2}{\ln b}}{\alpha},
+\qquad
+J_0:=\min\Big\{J:\ \frac{C_0}{s_j}\le\tfrac12\ \text{for all }j\ge J\Big\}
+\]
+\textup{(}finite since $s_j\to\infty$\textup{)}. Then for all
+$n\ge\max(N_0,2)$ and $\theta\in[0,1]$,
+\begin{equation}\label{eq:tailbound}
+\big|\sigma_j^{(n)}(\theta)\big|\le\frac{C_0}{s_j}\le\frac12
+\qquad\text{for } J_0\le j\le n-1 .
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+For $1\le j\le n-2$, using \eqref{eq:sigmadef} at level $j+1$, the
+identity $\Lb(\Td(j+1+\theta))=\Lb(d^{\Td(j+\theta)})=\alpha\Td(j+\theta)$,
+and additivity of $\Lb$ on positive factors,
+\[
+W_{n-j}=\Lb(W_{n-j-1})
+=\Lb\Big(\alpha\,\Td(j+1+\theta)\big(1+\sigma_{j+1}^{(n)}\big)\Big)
+=\Lb(\alpha)+\alpha\,\Td(j+\theta)+\Lb\big(1+\sigma_{j+1}^{(n)}\big);
+\]
+dividing by $\alpha\Td(j+\theta)$ gives \eqref{eq:rec}. For
+\eqref{eq:tailbound} we induct downward on $j$ from $j=n-1$ to $j=J_0$.
+The base case is $\sigma_{n-1}^{(n)}=0$. If
+$|\sigma_{j+1}^{(n)}|\le\frac12$ (with $J_0\le j\le n-2$), then
+$|\ln(1+\sigma_{j+1}^{(n)})|\le\ln2$, so \eqref{eq:rec} gives
+\[
+\big|\sigma_j^{(n)}\big|
+\le\frac{|\Lb(\alpha)|+\frac{\ln2}{\ln b}}{\alpha\,\Td(j+\theta)}
+\le\frac{C_0}{s_j}\le\frac12 .
+\qedhere
+\]
+\end{proof}
+
+\begin{lemma}[Head control and limit factors]\label{lem:head}
+There is $N_1\ge\max(N_0,2)$ such that for every fixed $j\ge1$:
+\begin{enumerate}
+\item[\textup{(a)}] $1+\sigma_j^{(n)}\to 1+\sigma_j$ uniformly on
+$[0,1]$ as $n\to\infty$, where
+\[
+1+\sigma_j(\theta):=\frac{E_j(\theta)}{\alpha\,\Td(j+\theta)},
+\qquad
+E_j(\theta):=\expb^{\circ j}\big(D(\theta)\big)>0 ;
+\]
+\item[\textup{(b)}] there are constants $0<m_j\le M_j<\infty$ with
+$m_j\le 1+\sigma_j^{(n)}(\theta)\le M_j$ for all $n\ge N_1$,
+$\theta\in[0,1]$, and $m_j\le 1+\sigma_j(\theta)\le M_j$;
+\item[\textup{(c)}] $|\sigma_j(\theta)|\le C_0/s_j$ for $j\ge J_0$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+By (H1), $D_n\to D$ uniformly on $[0,1]$; choose $N_1\ge\max(N_0,2)$ with
+$\|D_n-D\|_\infty\le1$ for $n\ge N_1$ and set
+$K:=[\min_{[0,1]}D-1,\ \max_{[0,1]}D+1]$, a compact interval containing
+all values $D_n(\theta)$ ($n\ge N_1$) and $D(\theta)$. Each
+$\expb^{\circ j}$ is $C^{1}$, hence Lipschitz on $K$, and
+$\expb^{\circ j}(K)=:[c_j,C_j]\subset(0,\infty)$ for $j\ge1$. By
+\eqref{eq:inversion}, $W_{n-j}^{(n)}=\expb^{\circ j}(D_n)\to
+\expb^{\circ j}(D)=E_j$ uniformly, which gives (a); moreover
+$E_j\ge c_j>0$. By (B2) and continuity, $\Td(j+\cdot)$ has a finite
+supremum $S_j$ and infimum $s_j>0$ on $[0,1]$, so (b) holds with
+$m_j=c_j/(\alpha S_j)$, $M_j=C_j/(\alpha s_j)$. Passing to the limit
+$n\to\infty$ in \eqref{eq:tailbound} gives (c).
+\end{proof}
+
+\subsection{Uniform convergence of the product and $C^{1}$ convergence}
+
+\begin{lemma}[Uniform product convergence]\label{lem:prodconv}
+Set
+\[
+\Pi_n(\theta):=\prod_{j=1}^{n-1}\big(1+\sigma_j^{(n)}(\theta)\big),
+\qquad
+\Pi(\theta):=\prod_{j=1}^{\infty}\big(1+\sigma_j(\theta)\big).
+\]
+Then $\Pi$ converges absolutely and uniformly on $[0,1]$, is continuous,
+satisfies $0<c_\Pi\le\Pi\le C_\Pi<\infty$, and $\Pi_n\to\Pi$ uniformly on
+$[0,1]$.
+\end{lemma}
+
+\begin{proof}
+All factors are positive (Lemma~\ref{lem:product},
+Lemma~\ref{lem:head}(b)), so we may work with logarithms. For
+$|s|\le\frac12$ one has $|\ln(1+s)|\le 2|s|$; hence by
+\eqref{eq:tailbound} and Lemma~\ref{lem:head}(c),
+\begin{equation}\label{eq:logtail}
+\big|\ln\big(1+\sigma_j^{(n)}\big)\big|\le\frac{2C_0}{s_j},
+\quad
+\big|\ln\big(1+\sigma_j\big)\big|\le\frac{2C_0}{s_j}
+\qquad (j\ge J_0),
+\end{equation}
+uniformly in $n$ and $\theta$. By Lemma~\ref{lem:growth},
+$\sum_j 2C_0/s_j<\infty$, which already gives absolute and uniform
+convergence of $\ln\Pi=\sum_{j\ge1}\ln(1+\sigma_j)$ (the finitely many
+terms $j<J_0$ are bounded by Lemma~\ref{lem:head}(b)), hence continuity
+of $\Pi$ and the two-sided bound with
+$\ln C_\Pi=-\ln c_\Pi:=\sum_{j<J_0}\max(|\ln m_j|,|\ln M_j|)
++\sum_{j\ge J_0}2C_0/s_j$.
+
+For $\Pi_n\to\Pi$: given $\varepsilon>0$, choose $J\ge J_0$ with
+$\sum_{j\ge J}2C_0/s_j<\varepsilon/3$ (Lemma~\ref{lem:growth}). For
+$n-1\ge J$,
+\[
+\big|\ln\Pi_n-\ln\Pi\big|
+\le\sum_{j=1}^{J-1}\Big|\ln\big(1+\sigma_j^{(n)}\big)-\ln\big(1+\sigma_j\big)\Big|
++\sum_{j=J}^{n-1}\big|\ln\big(1+\sigma_j^{(n)}\big)\big|
++\sum_{j=J}^{\infty}\big|\ln\big(1+\sigma_j\big)\big| .
+\]
+The two tails are each $<\varepsilon/3$ by \eqref{eq:logtail}. In the
+head, each of the finitely many terms tends to $0$ uniformly by
+Lemma~\ref{lem:head}(a) and the Lipschitz continuity of $\ln$ on
+$[m_j\wedge\inf(1+\sigma_j),\infty)\subset[m_j,\infty)$. Hence
+$\limsup_n\|\ln\Pi_n-\ln\Pi\|_\infty\le\tfrac{2\varepsilon}{3}<\varepsilon$,
+so $\ln\Pi_n\to\ln\Pi$ uniformly, and applying $\exp$ (uniformly
+continuous on the compact range) gives $\Pi_n\to\Pi$ uniformly.
+\end{proof}
+
+\begin{proposition}[$C^{1}$ convergence of the tails]\label{prop:C1conv}
+$D_n\to D$ in $C^{1}([0,1])$; $D\in C^{1}([0,1])$; and
+\[
+D'(\theta)=\frac{\alpha\,\Td'(\theta)}{\Pi(\theta)}
+=\alpha\,\Td'(\theta)\prod_{j=1}^{\infty}
+\frac{\alpha\,\Td(j+\theta)}{E_j(\theta)}
+\;\ge\;\frac{\alpha\,\min_{[0,1]}\Td'}{C_\Pi}\;>\;0 .
+\]
+\end{proposition}
+
+\begin{proof}
+By Lemma~\ref{lem:product} and Lemma~\ref{lem:prodconv},
+$D_n'=\alpha\Td'/\Pi_n\to\alpha\Td'/\Pi=:G$ uniformly on $[0,1]$, with $G$
+continuous and, by (S) and Lemma~\ref{lem:prodconv}, bounded below by the
+stated positive constant. Since also $D_n\to D$ uniformly (H1), the
+standard theorem on differentiation of uniform limits
+\cite[Thm.~7.17]{Rudin} yields $D\in C^{1}$ and $D'=G$. The product form
+of $G$ is \eqref{eq:sigmadef}--\eqref{eq:exact} in the limit, i.e.\
+$(1+\sigma_j)^{-1}=\alpha\Td(j+\theta)/E_j$.
+\end{proof}
+
+\subsection{Seam matching}
+
+\begin{lemma}[$C^{1}$ seam identities]\label{lem:seam}
+Under the standing assumptions,
+\[
+D(1)=b^{\,D(0)},\qquad
+D'(1)=(\ln b)\,D(1)\,D'(0),
+\]
+and consequently, with $\Phi=\Phi_{b,d}=\Ab\circ D-\mathrm{id}$ on $[0,1]$,
+\[
+\Phi(1)=\Phi(0),
+\qquad
+\Phi'(1)=\Phi'(0).
+\]
+\end{lemma}
+
+\begin{proof}
+The value identities are Lemma~\ref{lem:endpoint}. For the derivative
+identity, evaluate the product formula of
+Proposition~\ref{prop:C1conv} at $\theta=1$ and $\theta=0$. First,
+$\Td'(1)=(\ln d)\Td(1)\Td'(0)$ by \eqref{eq:Tprimerec}. Second, by
+$D(1)=b^{D(0)}$,
+\[
+E_j(1)=\expb^{\circ j}\big(D(1)\big)
+=\expb^{\circ j}\big(b^{\,D(0)}\big)
+=\expb^{\circ(j+1)}\big(D(0)\big)
+=E_{j+1}(0),
+\qquad j\ge 1 .
+\]
+Hence, shifting the product index ($i=j+1$),
+\[
+D'(1)=\alpha\,(\ln d)\Td(1)\Td'(0)
+\prod_{j=1}^{\infty}\frac{\alpha\,\Td(j+1)}{E_{j+1}(0)}
+=\alpha\,(\ln d)\Td(1)\Td'(0)
+\prod_{i=2}^{\infty}\frac{\alpha\,\Td(i)}{E_{i}(0)} ,
+\]
+while $D'(0)=\alpha\,\Td'(0)\prod_{i=1}^{\infty}\alpha\Td(i)/E_i(0)$.
+All products converge to nonzero limits (Lemma~\ref{lem:prodconv}), so
+the termwise quotient is legitimate:
+\[
+\frac{D'(1)}{D'(0)}
+=(\ln d)\,\Td(1)\cdot\Big(\frac{\alpha\,\Td(1)}{E_1(0)}\Big)^{-1}
+=\frac{\ln d}{\alpha}\,E_1(0)
+=(\ln b)\,b^{\,D(0)}
+=(\ln b)\,D(1).
+\]
+Now differentiate the global Abel equation \eqref{eq:abel} (both sides
+$C^{1}$ by (S)) at $y=D(0)$:
+\[
+\Ab'\big(b^{\,y}\big)\,b^{\,y}\ln b=\Ab'(y)
+\quad\Longrightarrow\quad
+\Ab'(D(1))\,(\ln b)\,D(1)=\Ab'(D(0)) .
+\]
+Therefore
+\[
+\Phi'(1)+1=\Ab'(D(1))\,D'(1)
+=\frac{\Ab'(D(0))}{(\ln b)D(1)}\cdot(\ln b)D(1)\,D'(0)
+=\Ab'(D(0))\,D'(0)=\Phi'(0)+1 .
+\qedhere
+\]
+\end{proof}
+
+\begin{remark}[Seam via extended phases]\label{rem:ext}
+Alternatively: the exact transport
+$D_n(1+\theta)=b^{\,D_{n+1}(\theta)}$ (the inversion \eqref{eq:inversion}
+one level up; positivity by \textup{(R$'$)} at level $n{+}1$) carries the
+uniform convergence of $D_{n+1}$ on $[0,1]$ to that of $D_n$ on $[1,2]$,
+and every estimate of this section holds verbatim with phase range
+$[0,2]$ (with $s_j$ replaced by $\min(s_j,s_{j+1})$ in the tail bounds).
+Running Proposition~\ref{prop:C1conv} on $[0,2]$ gives
+$D\in C^{1}([0,2])$ with $D(1+\theta)=b^{\,D(\theta)}$, whence
+$\Phi(1+\theta)=\Phi(\theta)$ holds as an identity of $C^{1}$ functions on
+$[0,1]$---including the derivative match at the seam---without touching
+the product formula. This formulation extends verbatim to higher
+derivatives; see Remark~\ref{rem:Cr}.
+\end{remark}
+
+\subsection{Proof of Theorem \ref{thm:D} and corollaries}
+
+\begin{proof}[Proof of Theorem \textup{\ref{thm:D}}]
+\textup{(i)} is Proposition~\ref{prop:C1conv}.
+
+\textup{(ii)} By (S) and \eqref{eq:Abprime}, $\Ab\in C^{1}(\R)$ with
+$\Ab'>0$, so $\Phi=\Ab\circ D-\mathrm{id}\in C^{1}([0,1])$ with
+$\Phi'=(\Ab'\circ D)D'-1$. By Lemma~\ref{lem:seam}, $\Phi$ has matching
+values and one-sided derivatives at the endpoints, so its $1$-periodic
+extension is $C^{1}$ on $\R$ (the extension is differentiable at the
+integers with derivative $\Phi'(0)=\Phi'(1)$, and $\Phi'$ extends
+continuously and periodically). Hence $\Ht=\Ht_{b,d}=\mathrm{id}+\Phi\in
+C^{1}(\R)$, $\Ht(x+1)=\Ht(x)+1$, and on $[0,1]$ (hence on $\R$ by
+periodicity of $\Ht'$)
+\[
+\Ht'=1+\Phi'=(\Ab'\circ D)\,D'
+\;\ge\;\delta_0:=\min_{[0,1]}\big[(\Ab'\circ D)\,D'\big]>0 ,
+\]
+using Proposition~\ref{prop:C1conv} and continuity on the compact
+interval. For the closed form \eqref{eq:Hprime}: since
+$\Ht(\theta)=\Ab(D(\theta))$, we have $\Tb(\Ht(\theta))=D(\theta)$, hence
+by iterating $\Tb(x+1)=b^{\Tb(x)}$,
+\[
+\Tb\big(j+\Ht(\theta)\big)=\expb^{\circ j}\big(\Tb(\Ht(\theta))\big)
+=\expb^{\circ j}\big(D(\theta)\big)=E_j(\theta),
+\qquad j\ge1,
+\]
+and $\Ab'(D(\theta))=1/\Tb'(\Ab(D(\theta)))=1/\Tb'(\Ht(\theta))$ by
+\eqref{eq:Abprime}; substituting into
+$\Ht'=(\Ab'\circ D)D'$ and \eqref{eq:Dprime} gives \eqref{eq:Hprime}.
+
+\textup{(iii)} $\Ht$ is $C^{1}$ with $\Ht'\ge\delta_0>0$ and
+$\Ht(x+1)=\Ht(x)+1$; hence $\Ht$ is a strictly increasing $C^{1}$
+bijection of $\R$ (surjectivity from the translation property), its
+inverse is $C^{1}$ by the inverse function theorem, and both $\Ht$ and
+$\Ht^{-1}$ commute with the unit translation. Therefore $\Ht$ descends to
+an orientation-preserving $C^{1}$ diffeomorphism $H_{b,d}$ of $\Sone$.
+This is precisely the hypothesis of Proposition~6.6 of \cite{J}. If
+moreover (H2) holds, Theorem~\ref{thm:A} identifies
+$\Ht^{-1}=\Ht_{d,b}=\mathrm{id}+\Phi_{d,b}$, so
+$\Phi_{d,b}=\Ht^{-1}-\mathrm{id}\in C^{1}$, i.e.\ the reversed phase is
+automatically $C^{1}$ on the circle. (Alternatively, once both phases
+are known to be $C^{1}$, Theorem~\ref{thm:C} applies.)
+
+\textup{(iv)} By Proposition~5.1 of \cite{J},
+$R_n(\theta)=F_{b,d}(n+\theta)-(n+\theta)=\Ab(D_n(\theta))-\theta$
+exactly. Hence $R_n\in C^{1}([0,1])$ and
+$R_n'=(\Ab'\circ D_n)\,D_n'-1$. Since $D_n\to D$ uniformly with values in
+the compact $K$ (Lemma~\ref{lem:head}), $\Ab'$ is uniformly continuous on
+$K$, and $D_n'\to D'$ uniformly (Proposition~\ref{prop:C1conv}), we get
+$R_n'\to(\Ab'\circ D)D'-1=\Phi'$ uniformly; together with $R_n\to\Phi$
+uniformly (Theorem~5.7 of \cite{J}) this is $C^{1}$ convergence. Finally
+$F_{b,d}'(n+\theta)=1+R_n'(\theta)\to 1+\Phi'(\theta)=\Ht'(\theta)$.
+\end{proof}
+
+\begin{corollary}[$C^{1}$ groupoid]\label{cor:groupoid}
+If the hypotheses of Theorem~\textup{\ref{thm:D}} hold for all ordered
+pairs from $\{b,c,d\}$, then all maps $H_{p,q}$ are orientation-preserving
+$C^{1}$ circle diffeomorphisms and
+$H_{p,r}=H_{p,q}\circ H_{q,r}$ in $\mathrm{Diff}^{1}_{+}(\Sone)$; the
+identity $\Phi_{p,r}=\Phi_{q,r}+\Phi_{p,q}\circ(\mathrm{id}+\Phi_{q,r})$
+of \cite[Prop.~6.4]{J} is its expression in lifts.
+\end{corollary}
+
+\begin{proof}
+Combine Theorem~\ref{thm:D} with Lemma~\ref{lem:comp}.
+\end{proof}
+
+\begin{corollary}[Proposition~6.6 of \cite{J}, discharged]\label{cor:66}
+Under \textup{(H1)} and \textup{(H2)}: $\mu_{b,d}=-\mu_{d,b}$
+(Theorem~\ref{thm:B}; no smoothness). Under \textup{(H1)},
+\textup{(S)}, \textup{(R$'$)}: $H_{b,d}$ is an orientation-preserving
+$C^{1}$ circle diffeomorphism, i.e.\ the literal hypothesis of
+\cite[Prop.~6.6]{J} holds; if \textup{(H2)} holds as well, so does its
+inverse-side counterpart, with $H_{d,b}=H_{b,d}^{-1}$ of class $C^{1}$.
+\end{corollary}
+
+\begin{proof}
+Immediate from Theorems~\ref{thm:B} and \ref{thm:D}.
+\end{proof}
+
+\section{Remarks}\label{sec:remarks}
+
+\begin{remark}[The mismatch sits one level down]\label{rem:onelevel}
+By \eqref{eq:sigmadef} in the limit and Lemma~\ref{lem:head}(c),
+\[
+\Tb\big(j+\Ht_{b,d}(\theta)\big)=E_j(\theta)
+=\alpha\,\Td(j+\theta)\,\big(1+\sigma_j(\theta)\big),
+\qquad
+|\sigma_j(\theta)|\le\frac{C_0}{s_j}\quad(j\ge J_0),
+\]
+uniformly in $\theta$. Thus measuring the $d$-tower at height $j+\theta$
+in $b$-coordinates at the \emph{phase-corrected} height
+$j+\Ht_{b,d}(\theta)$ reproduces the value up to the single factor
+$\alpha$ and a hyper-exponentially small relative error: the base
+mismatch survives exactly one tower level down. This quantifies, at the
+level of values, the damping mechanism behind Theorem~5.6 of \cite{J},
+and it is the reason the derivative product \eqref{eq:Hprime} converges
+so violently fast.
+\end{remark}
+
+\begin{remark}[Factorization $D=\Tb\circ\Ht$]\label{rem:factor}
+Since $\Ht(\theta)=\Ab(D(\theta))$, one has $D=\Tb\circ\Ht$ on $[0,1]$:
+the limiting tail is the phase map read in the $\Tb$-coordinate. With the
+extension of Remark~\ref{rem:ext}, the translation identity
+$D(1+\theta)=b^{\,D(\theta)}$ is precisely the tetration equation of
+$\Tb$ transported by $\Ht$. Given the branch regularity (S), regularity
+of $D$ and regularity of $\Ht$ are therefore equivalent.
+\end{remark}
+
+\begin{remark}[$C^{r}$ and analytic upgrades]\label{rem:Cr}
+If in (S) the branches are of class $C^{r}$ ($r\ge2$), the same scheme
+yields $\Phi_{b,d}\in C^{r}(\Sone)$ and a $C^{r}$ diffeomorphism:
+differentiate
+$\log D_n'=\log(\alpha\Td')-\sum_j\log(1+\sigma_j^{(n)})$ repeatedly, or
+run the extension bookkeeping of Remark~\ref{rem:ext}; the tail control
+is again Lemma~\ref{lem:tail} together with Lemma~\ref{lem:growth}. The
+proof is likewise stable under complexification: if the channel
+estimates and the uniform convergence $D_n\to D$ hold on a strip
+$\{|\mathrm{Im}\,\theta|<\sigma_0\}$ (with $\Td$, $\Tb$ holomorphic
+there, as they are for the regular branch), Weierstrass' theorem upgrades
+Proposition~\ref{prop:C1conv} to locally uniform convergence of
+holomorphic functions; then $D$, $\Phi_{b,d}$ and $\Ht_{b,d}$ are
+real-analytic, the Fourier coefficients of $P_{b,d}$ decay exponentially,
+and Conjecture~8.1 of \cite{J} follows---by Theorem~\ref{thm:C}, both
+phase maps are then automatically mutually inverse \emph{analytic} circle
+diffeomorphisms. The product identity \eqref{eq:exact} is already the
+correct analytic object for that program; we do not pursue the complex
+channel estimates here.
+\end{remark}
+
+\begin{remark}[What remains conditional]\label{rem:conditional}
+Theorems~\ref{thm:A} and \ref{thm:B} consume only the conclusions of the
+phase theorem of \cite{J} (for both ordered pairs); Theorem~\ref{thm:C}
+is unconditional as a statement about $C^{1}$ data; and
+Theorem~\ref{thm:D} consumes, beyond (H1), only (S) (true for the
+regular branch, and reducible to one period by
+Lemma~\ref{lem:positivity}) and (R$'$) (the quantitative reading of the
+paper's (R2)); the growth input is supplied by Lemma~\ref{lem:growth}.
+Thus the results are conditional in exactly the same sense as the main
+theorem of \cite{J}: everything reduces to the real-channel and
+peeling-growth estimates for the regular branch (Section~8.3 of
+\cite{J}); no additional analytic difficulty is introduced by the
+diffeomorphism statement.
+\end{remark}
+
+\begin{remark}[Numerical validation]\label{rem:numerics}
+\textup{(i)} \emph{The exact identity.} Identity \eqref{eq:exact} holds
+for any $C^{1}$ germ propagated by the tower recursion, so it can be
+tested independently of any branch construction: take an arbitrary
+$C^{1}$ function $f>0$ near $\theta_0$, define $T_0=f$,
+$T_j=d^{\,T_{j-1}}$, $D_n=\Lb^{\circ n}(T_n)$, and compare
+$D_n'(\theta_0)$ (central finite differences, step $10^{-30}$, $60$-digit
+arithmetic) with
+$\alpha f'(\theta_0)\prod_{j=1}^{n-1}\alpha T_j(\theta_0)/
+\expb^{\circ j}(D_n(\theta_0))$. For $(b,d)=(e,2)$ at $n=4,5$ and
+$(b,d)=(2,10)$ at $n=3,4$ (seeds $1+\theta+0.3\sin(2.7\theta+0.4)$ and
+$0.2(1+\theta)+0.05\sin(2.7\theta+0.4)$, $\theta_0=0.37$), the two sides
+agree to $31$--$33$ significant digits---the finite-difference accuracy
+limit---and the inversion \eqref{eq:inversion} holds to working
+precision ($<10^{-58}$ relative).
+
+\textup{(ii)} \emph{End-to-end validation on explicit $C^{1}$ branches.}
+For a base $a>1$ let
+\[
+q_a(x):=1+c_1x+c_2x^{2}\ \text{ on }[-1,0],
+\qquad
+c_1=\frac{2\ln a}{1+\ln a},\quad c_2=c_1-1,
+\]
+extended to $(-2,\infty)$ by the tetration equation. Then $T_a$ is a
+genuine $C^{1}$ solution of the frame (B1)--(B2) with $T_a'>0$: the
+$C^{1}$ match at the integers is exactly the constraint defining $c_1$,
+one has $q_a'\ge\min(c_1,2-c_1)>0$ on $[-1,0]$, and
+Lemma~\ref{lem:positivity} propagates; for $a=e$ this is the classical
+construction with linear critical piece, $T_e(\theta)=e^{\theta}$ on
+$[0,1]$. On these branches all hypotheses of Theorem~\ref{thm:D} are
+directly verifiable, and the recursion \eqref{eq:rec} doubles as the
+numerically stable evaluation scheme---the interleaved peeling of
+\cite[App.~A]{J} in $\sigma$-coordinates: truncating $\sigma_{j^*}=0$ at
+the first level with $\Td(j^*+\theta)$ beyond working precision
+reproduces the finite-$n$ objects exactly and the limits to full
+precision. At $60$-digit precision, for the pairs $(e,2)$ and $(2,e)$:
+the $\sigma$-scheme agrees with direct tower-plus-peeling evaluation to
+below $10^{-60}$; the increments $\|\Phi_{n+1}-\Phi_n\|$ at
+$\theta=0.37$ fall as $2.2\cdot10^{-3}$ $(n{=}4{\to}5)$ and
+$4.6\cdot10^{-19}$ $(n{=}5{\to}6)$ for $(e,2)$, and as $8.5\cdot10^{-4}$
+$(n{=}3{\to}4)$ and $2.4\cdot10^{-34}$ $(n{=}4{\to}5)$ for $(2,e)$,
+exhibiting the predicted hyper-exponential collapse; the closed formula
+\eqref{eq:Hprime} matches central finite differences at the
+finite-difference accuracy limit ($\approx10^{-36}$); the seam residuals
+$\Phi(1)-\Phi(0)$ and $\Ht'(1)-\Ht'(0)$ vanish to working precision;
+$\min_\theta\Ht'\approx0.9509$ for $(e,2)$ and $\approx0.9384$ for
+$(2,e)$, with $\int_0^1\Ht'=1$ up to quadrature error; the inverse
+identity $\Ht_{2,e}\circ\Ht_{e,2}=\mathrm{id}$ holds pointwise to below
+$10^{-60}$; and
+\[
+\mu_{e,2}=-1.129041157430\ldots,\qquad
+\mu_{2,e}=+1.129041157430\ldots,\qquad
+\mu_{e,2}+\mu_{2,e}\approx 3\cdot10^{-14}
+\]
+at $4096$ phase samples (quadrature-limited), confirming
+Theorem~\ref{thm:B} exactly on a branch different from the regular one.
+(Incidentally, these toy mean shifts differ from the regular-branch
+values $\mp1.128403\ldots$ of \cite[Table~1]{J} only in the third
+decimal.)
+\end{remark}
+
+
+\section*{Authorship and AI Contribution Statement}
+This paper is part of a five-paper series produced in a directed human--AI
+collaboration. The author conceived the mixed-base phase program, built and
+maintains the high-precision tetration engine used for every computation in
+the series (a fork of Levenstein's \texttt{fatou.gp}; engine, data and
+scripts at \url{https://github.com/Lightrunnerwastaken/gp-tetration}), and directed the research: posing the questions,
+setting priorities between rounds, auditing results, and deciding which
+claims met the acceptance gates. Substantial parts of the mathematical
+development and of the numerical work were produced by AI systems under
+that direction: Anthropic's Claude in a theory and review role, an
+autonomous research agent operating the numerical pipeline, and OpenAI's
+ChatGPT, which contributed to the original versions of Papers I and II and
+to manuscript review. In line with prevailing journal policies, AI systems
+are not listed as authors; the author assumes full and sole responsibility
+for all statements and proofs, and readers should weigh this provenance in
+their assessment. The five papers of the series are permanently archived on Zenodo under the concept DOIs \url{https://doi.org/10.5281/zenodo.21346803} (I), \url{https://doi.org/10.5281/zenodo.21361967} (II), \url{https://doi.org/10.5281/zenodo.21362206} (III), \url{https://doi.org/10.5281/zenodo.21363593} (IV), and \url{https://doi.org/10.5281/zenodo.21363809} (V).
+
+\begin{thebibliography}{9}
+
+\bibitem{J} J.~Justus, \emph{A Phase Law for Mixed-Base Tetration: Logarithmic Tails, Cocycle Structure, and Singular Asymptotics}, Paper~I of the mixed-base tetration series, preprint, July 2026. \url{https://github.com/Lightrunnerwastaken/gp-tetration}. DOI: \url{https://doi.org/10.5281/zenodo.21346803}.
+
+\bibitem{Kneser} H.~Kneser,
+\emph{Reelle analytische L\"osungen der Gleichung
+$\varphi(\varphi(x))=e^{x}$ und verwandter Funktionalgleichungen},
+J.~reine angew.~Math.\ \textbf{187} (1950), 56--67.
+
+\bibitem{PC} W.~Paulsen and S.~Cowgill,
+\emph{Solving $F(z+1)=b^{F(z)}$ in the complex plane},
+Adv.~Comput.~Math.\ \textbf{43} (2017), 1261--1282.
+
+\bibitem{Paulsen} W.~Paulsen,
+\emph{Tetration for complex bases},
+Adv.~Comput.~Math.\ \textbf{45} (2019), 243--267.
+
+\bibitem{Apostol} T.~M.~Apostol,
+\emph{Mathematical Analysis}, 2nd ed., Addison--Wesley, 1974.
+(Theorems~7.6 and 7.7: Riemann--Stieltjes integration by parts and change
+of variables.)
+
+\bibitem{Rudin} W.~Rudin,
+\emph{Principles of Mathematical Analysis}, 3rd ed., McGraw--Hill, 1976.
+(Theorem~7.17: differentiation of uniform limits.)
+
+\end{thebibliography}
+
+\end{document}

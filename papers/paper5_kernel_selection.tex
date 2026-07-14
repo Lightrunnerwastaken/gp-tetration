@@ -1,0 +1,666 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[T1]{fontenc}
+\IfFileExists{lmodern.sty}{\usepackage{lmodern}\usepackage{microtype}}{\usepackage[expansion=false]{microtype}}
+\usepackage{booktabs}
+\usepackage[hidelinks]{hyperref}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\T}{\mathbb{T}}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\Hup}{\mathbb{H}}
+\newcommand{\Sk}{\mathcal S}
+
+\title{The Base-Derivative of the Kneser Family:\\
+Selection Principle, Uniqueness, and Existence\\
+via a Riemann--Hilbert Problem\\[2mm]
+\large Paper V of the mixed-base tetration series}
+\author{Janis Justus}
+\date{July 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Let $A_b=\operatorname{slog}_b$ be the regular (Kneser/Paulsen--Cowgill)
+superlogarithm family, $\beta=\ln\ln b$, and let
+$V=\partial_\beta A_b|_{b=d}$ be its base derivative (the response kernel
+of the mixed-base phase law).  We record the selection principle that
+characterizes $V$: the cohomological equation
+$V(d^y)-V(y)=-A_d'(d^y)\,y\,(\ln d)\,d^y$, reality on $\R$, the prescribed
+fixed-point singularity with pole coefficient $dL/d\beta=\ln d\,L^2/(1-\lambda)$
+and logarithmic coefficient $d\lambda/d\beta$, and the normalization
+$V(1)=0$.  We prove \emph{uniqueness} under these conditions, reduce
+\emph{existence} to a scalar Riemann--Hilbert (conjugate-function) problem
+for the $\beta$-derivative of the Kneser theta map, and then \emph{solve}
+that boundary problem.  The solution rests on three elementary structural
+facts established here: the geometric field $G:=\partial_\beta\chi/\chi'$
+built from the Koenigs data satisfies the \emph{exact cocycle}
+$G(d^y)=(\ln d)\,d^y\,(G(y)-y)$, so that $A_d'\,G+h\circ A_d$ solves the
+cohomological equation for \emph{every} $1$-periodic $h$; the boundary
+data $u=\operatorname{Im}\bigl[(A_d'\,G)\circ T_d\bigr]$ is $1$-periodic,
+extends \emph{continuously} to the closed circle with $u(\Z)=0$ and Dini
+modulus $O(\delta\ln^2(1/\delta))$ --- the $\ln\ln$ cascade of the Koenigs
+coordinate at the punctures is annihilated by the collapse
+$|1/\chi'|=O(\delta\ln(1/\delta))$; and the one-sided limits of the
+geometric field at the punctures are the exact orbit values
+$V(T_d(m))$, e.g.\ $-e/T_e'(1)$ at $m=1$ for $d=e$ (verified to ten
+digits).  Consequently the conjugate-function step is classical
+(Privalov--Dini; no weighted class is needed), and interior recovery
+follows by Schwarz reflection, Riemann removability at the punctures, and
+the $\Sk_\beta/\Sk$ pole expansion at the fixed point.  The outcome is an
+existence-and-uniqueness theorem for the selection principle under the
+classical branch-geometry package of the Kneser solution, with the
+identification $V=\partial_\beta A_b$ under Paulsen's base holomorphy.
+The construction is exactly the graded-mesh solver already implemented,
+which reproduces the independently measured kernel to $17.8$ digits in
+the first Fourier mode and $20.0$ digits in the mean.
+\end{abstract}
+
+\section{Setting and the selection principle}
+
+Fix $d>e^{1/e}$, let $T_d$ be the regular tetration branch
+($T_d(0)=1$, $T_d(x+1)=d^{T_d(x)}$, increasing from $(-2,\infty)$ onto
+$\R$), $A_d=T_d^{-1}$, and let $L$ denote the upper primary fixed point of
+$z\mapsto d^z$, with multiplier $\lambda=L\ln d$, $|\lambda|>1$.  For the
+base family write $\beta=\ln\ln b$; by Paulsen's base holomorphy
+\cite{p19} the family $b\mapsto A_b(y)$ is differentiable in $\beta$ for
+$y$ in the real domain, and we set
+\[
+  V(y)\ :=\ \partial_\beta A_b(y)\big|_{b=d}.
+\]
+Differentiating the Abel equation $A_b(b^y)=A_b(y)+1$ in $\beta$ gives the
+\emph{cohomological equation}
+\begin{equation}\label{eq:coh}
+  V(d^{\,y})-V(y)\ =\ g_{\mathrm{inh}}(y)\ :=\ -A_d'(d^{\,y})\,y\,(\ln d)\,d^{\,y}.
+\end{equation}
+Differentiating the Kneser expansion
+$A_d(y)=\ln(y-L)/\ln\lambda+\mathcal O(1)$ at $L$ in $\beta$, with
+\begin{equation}\label{eq:dL}
+  \frac{dL}{d\beta}=\frac{\ln d\;L^2}{1-\lambda},
+  \qquad
+  \frac{d\lambda}{d\beta}=\ln d\Bigl(\frac{dL}{d\beta}+L\Bigr),
+\end{equation}
+yields the \emph{prescribed singular part}
+\begin{equation}\label{eq:S}
+  S(y)\ :=\ -\frac{dL/d\beta}{\ln\lambda\,(y-L)}
+          \ -\ \frac{d\lambda/d\beta}{\lambda(\ln\lambda)^2}\,\ln(y-L),
+\end{equation}
+together with its conjugate at $\bar L$.  Finally $A_b(1)=0$ for every $b$
+forces $V(1)=0$.
+
+\begin{definition}[Selection principle]\label{def:selection}
+$V$ is the unique function, holomorphic on the domain of $A_d$, satisfying
+(i) equation \eqref{eq:coh}; (ii) $V(\R)\subset\R$; (iii) $V-S$ is bounded
+near $L$ in the radial principal-sheet sense, with the conjugate structure
+at $\bar L$; (iv) $V(1)=0$.
+\end{definition}
+
+\subsection*{Standing hypotheses (branch-geometry package)}
+
+The existence proof uses the following classical structure of the regular
+branch; we state it explicitly so that the logical status of each step is
+transparent.
+
+\begin{itemize}
+\item[(K1)] \emph{Strip geometry.}  $T_d$ is holomorphic on the upper
+half-plane $\Hup$, continuous up to $\R$, maps $\Hup$ into the attracting
+basin of the backward dynamics avoiding the singular backward orbit of
+$0$ (so that the principal-log backward orbit, and with it the Koenigs
+data of Section~\ref{sec:data}, is defined and holomorphic on
+$T_d(\Hup)$), and $T_d(z)\to L$ as $\operatorname{Im}z\to+\infty$.
+$A_d$ is holomorphic on a neighbourhood of $T_d\bigl((-2,\infty)\bigr)$
+in $\C$ and on $T_d(\Hup)$.
+\item[(K2)] \emph{Theta structure.}  With $\chi=\ln\Sk/\ln\lambda$ the
+Koenigs--Abel coordinate (Section~\ref{sec:data}), $p:=A_d\circ
+T_{\mathrm{reg}}-\mathrm{id}$ is $1$-periodic and holomorphic on
+$\{\operatorname{Im}\chi>h_1\}$ for some $h_1$, with $p'\to0$ as
+$\operatorname{Im}\chi\to+\infty$ (Kneser's theta decay).
+\item[(K3)] \emph{Base holomorphy} (only for the identification):
+$b\mapsto A_b(y)$ is holomorphic near $b=d$, locally uniformly in $y$
+\cite{p19}.
+\end{itemize}
+
+(K1)--(K2) encode the geometry of Kneser's construction \cite{kneser};
+they involve the single base $d$ only.  (K3) is used solely to identify
+the solution produced below with $\partial_\beta A_b$; existence and
+uniqueness do not require it.
+
+\section{Uniqueness}
+
+\begin{theorem}[Uniqueness]\label{thm:unique}
+At most one function satisfies (i)--(iv) of
+Definition~\ref{def:selection}.
+\end{theorem}
+
+\begin{proof}
+Let $V_1,V_2$ be two solutions and $h_0:=V_1-V_2$.  By (i), $h_0$ solves
+the homogeneous equation $h_0(d^y)=h_0(y)$, hence $h_0=h\circ A_d$ for a
+$1$-periodic $h$ on the range of $A_d$, holomorphic where $A_d$ is (define
+$h:=h_0\circ T_d$ on a period and extend by periodicity; the functional
+equation makes the extension consistent).  Near $L$, the Kneser
+superlogarithm satisfies $\operatorname{Im}A_d\to+\infty$ radially on the
+principal sheet, and near $\bar L$, $\operatorname{Im}A_d\to-\infty$.
+Expand $h(z)=\sum_{k\in\Z}h_k e^{2\pi ikz}$.  By (iii) both $V_i$ have the
+same singular part at $L$; hence $h_0=h\circ A_d$ is bounded near $L$,
+which forces $h_k=0$ for all $k<0$ (each such mode grows like
+$e^{2\pi|k|\operatorname{Im}A_d}$).  The conjugate condition at $\bar L$
+forces $h_k=0$ for all $k>0$.  Thus $h$ is a constant, real by (ii), and
+$V_1(1)=V_2(1)=0$ gives $h=0$.
+\end{proof}
+
+\begin{remark}[Radial versus orbital reading of (iii)]\label{rem:radial}
+Condition (iii) must be read radially on the principal sheet.  Along the
+backward principal-logarithm spiral $w_{k+1}=\log_d w_k\to L$, the
+analytic continuation of $V$ has pole coefficient
+$-\bigl(1+p'(\chi)\bigr)\,\frac{dL/d\beta}{\ln\lambda}$, where
+$\chi=\ln\mathcal S/\ln\lambda$ is the Koenigs--Abel coordinate and
+$p:=A_d-\chi$ the theta correction: the theta derivative multiplies the
+pole ($|p'|\approx0.5$ for $d=e$).  An anchor built with the bare $S$ along
+the spiral therefore diverges like $|\lambda|^{n}$; this was verified
+numerically and is the reason the selection principle cannot be
+implemented as a naive orbit summation.
+\end{remark}
+
+\section{Two structural lemmas}
+
+\begin{lemma}[Gauge triviality of the natural particular solution]
+\label{lem:trivial}
+In the Abel coordinate write $U(z):=\partial_\beta T_b(z)|_{b=d}$, which
+satisfies $U(z+1)=\ln d\;T_d(z+1)\,\bigl(U(z)+T_d(z)\bigr)$.  The unique
+solution decaying up the tower,
+\[
+  U_{\mathrm{ser}}(z)\ =\ -\sum_{j\ge0}
+  \frac{T_d(z+j)}{\prod_{i=1}^{j}\bigl(\ln d\;T_d(z+i)\bigr)},
+\]
+is hyper-convergent, and the associated kernel candidate vanishes
+identically:
+\[
+  V_{\mathrm{ser}}(T_d(z))\ :=\ -\,\frac{U_{\mathrm{ser}}(z)}{T_d'(z)}
+  \ =\ \sum_{j\ge0}\frac{T_d(z+j)}{T_d'(z+j)},
+  \qquad\text{hence}\qquad
+  G_{\mathrm{ser}}\ \equiv\ 0
+\]
+for the induced periodic kernel $G(\theta)=V(T_d(\theta))-\sum_{j\ge0}
+T_d(j{+}\theta)/T_d'(j{+}\theta)$.
+\end{lemma}
+
+\begin{proof}
+Chain rule: $T_d'(z+j)=T_d'(z)\prod_{i=1}^{j}\ln d\,T_d(z+i)$, so the
+$j$-th summand of $-U_{\mathrm{ser}}/T_d'$ is exactly
+$T_d(z+j)/T_d'(z+j)$; the subtraction defining $G$ removes the entire sum.
+\end{proof}
+
+Lemma~\ref{lem:trivial} is the precise form of the warning that ``solving
+the equation teaches nothing'': every Fourier coefficient of the physical
+kernel lies in the homogeneous component that the selection principle must
+pin down.
+
+\begin{lemma}[Reduction to a boundary problem]\label{lem:reduction}
+Set $g(z):=V(T_d(z))-V_{\mathrm{geo}}(z)$, where
+$V_{\mathrm{geo}}:=(1+p'(\chi))\,\partial_\beta\chi$ is computable from the
+Koenigs data alone via the backward-orbit recursions
+\[
+  v_{k+1}=\frac{v_k}{w_k\ln d}-w_{k+1}\ \ (v_0=0,\ v_k\to dL/d\beta),\qquad
+  s_{k+1}=\frac{s_k}{w_k\ln d},
+\]
+\[
+  \ln\mathcal S=\lim_n\,[\,n\ln\lambda+\log(w_n-L)\,],\qquad
+  \partial_\beta\ln\mathcal S=\lim_n\,[\,n\,d\ln\lambda+(v_n-dL/d\beta)/(w_n-L)\,],
+\]
+and $1+p'(\chi)=\ln\lambda\,/\,(T_d'\cdot\mathcal S'/\mathcal S)$.
+Then $g=p_\beta\circ\chi\circ T_d$ with $p_\beta=\partial_\beta p$ the
+base derivative of the theta map: $g$ is $1$-periodic, holomorphic and
+bounded in the upper half-plane with a limit at $i\infty$, and continuous
+on $\R\setminus\Z$.  The Koenigs coordinate itself has the explicit
+$\ln\ln$-endpoint cascade inherited from the singularity of
+$\chi$ at the normalization orbit $1\mapsto0\mapsto-\infty$
+($\chi(\theta)\sim[\ln(\ln(\tau\theta)-L)]/\ln\lambda$ as
+$\theta\downarrow0$, $\tau=T_d'(-1)$; one cascade level deeper at
+$\theta\uparrow1$); the boundary \emph{data}, however, is continuous up to
+the punctures (Lemma~\ref{lem:data} below).  Conditions (ii)--(iv) become
+the scalar Riemann--Hilbert problem
+\begin{equation}\label{eq:RH}
+  \operatorname{Im}g(\theta)\ =\ -\operatorname{Im}V_{\mathrm{geo}}(\theta)
+  \quad(\theta\in\R\setminus\Z),
+  \qquad
+  g\in H^{+}_{\mathrm{per}},
+  \qquad
+  g(0)=0 ,
+\end{equation}
+where $H^{+}_{\mathrm{per}}$ denotes $1$-periodic boundary values of
+functions holomorphic and bounded in the upper half-plane, and the
+normalization $g(0)=0$ expresses $V(1)=0$ through
+$V_{\mathrm{geo}}(0^+)\to0$ (Lemma~\ref{lem:data}).
+\end{lemma}
+
+\begin{proof}[Proof sketch]
+$A_d=\chi+p(\chi)$ with $p$ $1$-periodic and decaying as
+$\operatorname{Im}\chi\to+\infty$ (Kneser); differentiate in $\beta$ and
+use $1+p'=dA_d/d\chi=A_d'/\chi'$.  All stated limits exist by the Koenigs
+theory; the identities were verified against the $\beta$-Koenigs equation
+to $10^{-121}$.  Composition with $\chi\circ T_d$, which maps the upper
+half-plane into the domain of $p$ up to the $\Z$-punctures (K1)--(K2),
+gives the mapping properties of $g$; boundedness up to the punctures
+follows from Lemma~\ref{lem:data} and $g=V\circ T_d-V_{\mathrm{geo}}$
+under (K3), and unconditionally from the construction of
+Section~\ref{sec:interior}, which re-derives $g$ without reference to
+$V$.
+\end{proof}
+
+\section{Regularity of the boundary data}\label{sec:data}
+
+This section contains the new structural input that makes the existence
+program close: the boundary data of \eqref{eq:RH} is far better behaved
+than the $\ln\ln$ cascade of the coordinate $\chi$ suggests.  Everything
+rests on an exact cocycle for the \emph{geometric field}
+\[
+  G\ :=\ \frac{\partial_\beta\chi}{\chi'},
+  \qquad\text{so that}\qquad
+  V_{\mathrm{geo}}\ =\ (1+p'(\chi))\,\partial_\beta\chi
+  \ =\ A_d'\,G
+\]
+(using $A_d'=(1+p'(\chi))\chi'$).  Here $\chi=\ln\Sk/\ln\lambda$ and
+$\partial_\beta\chi$ are the Koenigs--Abel coordinate of the repelling
+fixed point $L_b$ and its base derivative; both are elementary objects:
+
+\begin{lemma}[Koenigs base regularity]\label{lem:koenigs-beta}
+For $b$ in a complex neighbourhood of $d$, the fixed point
+$L_b=-W(-\ln b)/\ln b$ (principal upper branch), the multiplier
+$\lambda_b=L_b\ln b$, and the Koenigs linearizer $\Sk_b$ (normalized
+$\Sk_b(L_b)=0$, $\Sk_b'(L_b)=1$) depend holomorphically on $b$, locally
+uniformly on the basin.  Consequently $\chi_b$, $\partial_\beta\chi$, and
+the recursions of Lemma~\ref{lem:reduction} are well defined without any
+family input beyond the single-base dynamics.
+\end{lemma}
+
+\begin{proof}[Proof sketch]
+$L_b$ is holomorphic by the implicit function theorem (or the Lambert-$W$
+formula) since $\lambda_b\ne1$.  The Koenigs limit
+$\Sk_b(y)=\lim_n\lambda_b^{\,n}\,(\ell_b^{\circ n}(y)-L_b)$ along the
+principal-log backward orbit $\ell_b=\log_b$ converges locally uniformly
+in $(y,b)$ by the uniform spiral contraction near $L_b$
+($|\lambda_b|>1$ locally uniformly), hence is jointly holomorphic
+(Weierstrass).  The recursions are the term-wise $\beta$-derivatives of
+this limit.
+\end{proof}
+
+\begin{lemma}[Exact cocycle for the geometric field]\label{lem:cocycle}
+On $T_d(\Hup)$ and on the real orbit domain,
+\begin{equation}\label{eq:Gcoc}
+  G(d^{\,y})\ =\ (\ln d)\,d^{\,y}\,\bigl(G(y)-y\bigr).
+\end{equation}
+Consequently, for \emph{every} $1$-periodic $h$ the field
+$\widetilde V:=A_d'\,G+h\circ A_d$ satisfies the cohomological equation
+\eqref{eq:coh}; and $u:=\operatorname{Im}V_{\mathrm{geo}}
+=\operatorname{Im}\bigl[(A_d'G)\circ T_d\bigr]$ is $1$-periodic on
+$\R\setminus\Z$.
+\end{lemma}
+
+\begin{proof}
+From $\chi_b(y)=\chi_b(\log_b y)+1$: differentiate in $\beta$ at fixed
+$y$, using $\partial_\beta \log_b y=-\log_b y$ (since
+$\partial_\beta\ln b=\ln b$), to get
+$\partial_\beta\chi(y)=\partial_\beta\chi(w)-w\,\chi'(w)$ with
+$w=\log_d y$; and $\chi'(y)=\chi'(w)/(y\ln d)$ by the chain rule.
+Divide.  This is \eqref{eq:Gcoc} written at $y\mapsto d^{\,y}$.
+For the second claim, the Abel equation gives
+$A_d'(d^{\,y})\,(\ln d)\,d^{\,y}=A_d'(y)$, hence
+\[
+  A_d'(d^y)G(d^y)-A_d'(y)G(y)
+  = A_d'(y)\bigl(G(y)-y\bigr)-A_d'(y)G(y)=-\,y\,A_d'(y)
+  = -A_d'(d^{\,y})\,y\,(\ln d)\,d^{\,y},
+\]
+which is \eqref{eq:coh}; the $h\circ A_d$ part is $1$-periodic in the
+Abel coordinate and cancels.  Finally, applying this identity on
+$\R\setminus\Z$ and noting that the right-hand side of \eqref{eq:coh} is
+\emph{real} there shows that
+$V_{\mathrm{geo}}(\theta+1)-V_{\mathrm{geo}}(\theta)\in\R$, i.e.\ $u$ is
+$1$-periodic.
+\end{proof}
+
+\begin{lemma}[Endpoint regularity of the data]\label{lem:data}
+Let $y_m:=T_d(m)$, $m\in\Z_{\ge0}$, be the orbit points of $1$.  Define
+$G_0:=0$ and $G_{m+1}:=(\ln d)\,y_{m+1}(G_m-y_m)$, and set
+$V_m:=A_d'(y_m)\,G_m$ (so $V_0=0$,
+$V_1=-A_d'(d)\,d\ln d=-\,d\ln d/T_d'(1)$).  Then, in every sector
+$\{|z-m|<\delta_0,\ \operatorname{Im}z\ge0\}$,
+\begin{equation}\label{eq:collapse}
+  V_{\mathrm{geo}}(z)\ =\ V_m\ +\
+  O\!\bigl(|z-m|\,\ln^2(1/|z-m|)\bigr),
+\end{equation}
+from both sides and locally uniformly in the closed sector.  In
+particular $u=\operatorname{Im}V_{\mathrm{geo}}$ extends to a
+$1$-periodic function in $C(\T)$ with $u(\Z)=0$ and Dini modulus
+\[
+  \omega_u(\delta)\ \le\ C\,\delta\,\bigl(1+\ln(1/\delta)\bigr)^{2}.
+\]
+\end{lemma}
+
+\begin{proof}
+Write $\delta:=|z-m|$ and iterate the cocycle \eqref{eq:Gcoc} backwards:
+$G(y)=y^{-1}(\ln d)^{-1}\,G(d^y)+y$ expresses $G$ at a point in terms of
+$G$ one backward step down; equivalently, going down the backward orbit
+$w_1=\log_d y,\ w_2=\log_d w_1,\dots$ of $y=T_d(z)$,
+\[
+  G(y)\ =\ (\ln d)\,y\,\bigl(G(w_1)-w_1\bigr),\qquad
+  G(w_1)\ =\ (\ln d)\,w_1\bigl(G(w_2)-w_2\bigr),\ \dots
+\]
+For $z$ near $m$ the first $m{+}1$ orbit points are within $O(\delta)$ of
+the finite orbit $y_m,y_{m-1},\dots,y_0=1$, after which the orbit passes
+the two singular-entry steps: $w_{m+1}=\log_d(1+O(\delta))=O(\delta)$ and
+$w_{m+2}=\log_d w_{m+1}=-t/\ln d+O(1)$ with $t:=\ln(1/\delta)$, and then
+$w_{m+3}=\log_d w_{m+2}$, of modulus $O(\ln t)$, lies in a fixed compact
+set $K$ of the basin on which finitely many further principal-log steps
+reach the spiral annulus of $L$.  On $K$ and on the annulus, $G$ is
+holomorphic and bounded (Lemma~\ref{lem:koenigs-beta}: $\chi'\ne0$ there
+because $\Sk'\ne0$ along the non-singular backward orbit, and
+$\partial_\beta\chi$ is holomorphic), say $|G|\le B$.  Unwinding the
+three explicit steps:
+\[
+  |G(w_{m+2})|\le C\,\ln t\,(B+\ln t)=O(\ln^2 t),\qquad
+  |G(w_{m+1})|\le C\,\delta\,\bigl(O(\ln^2 t)+t\bigr)=O(\delta\,t),
+\]
+\[
+  G(T_d(z))\ =\ (\ln d)^{m+1}\,y_m\cdots y_0\,\cdot
+  \bigl(G(w_{m+1})-w_{m+1}\bigr)\ \prod\text{-corrections}
+  \ =\ G_m+O(\delta\,t)\cdot C_m+O(\delta),
+\]
+where the finite products over the $m{+}1$ regular steps converge to the
+recursion defining $G_m$ with Lipschitz error $O(\delta)$ (all maps
+involved are holomorphic with bounded derivative near the finite orbit).
+Multiplying by $A_d'(T_d(z))=A_d'(y_m)+O(\delta)$ gives
+\eqref{eq:collapse} with the stated $\delta\ln$-type error (one extra
+factor $\ln t$ is kept as margin for the $m$-dependence of the entry
+step; for $m=0$ the term $G_0-y_0\cdot$-correction is absent and the same
+bound holds directly).  The two-sided statement follows because the
+argument only used $|w_{m+1}|=O(\delta)$, which holds on both sides
+(on the left side of $m$ the small orbit point is negative and the next
+step picks up the $+i\pi$ branch, changing only the constants).  Since
+$V_m\in\R$ (all $y_m,G_m$ real), the imaginary part of
+\eqref{eq:collapse} gives $|u|\le C\delta\ln^2(1/\delta)$ near the
+punctures, with $u(m^\pm)\to0$.  The modulus of continuity follows by
+combining this with the interior gradient bound
+$|u'(\theta)|\le C\ln^2(1/\mathrm{dist}(\theta,\Z))$, obtained from
+\eqref{eq:collapse} by the Cauchy estimate on the disc of radius
+$\mathrm{dist}(\theta,\Z)/2$ contained in the sector.
+\end{proof}
+
+\begin{remark}[Why the $\ln\ln$ cascade is harmless]\label{rem:collapse}
+The coordinate $\chi\circ T_d$ does diverge at the punctures through the
+iterated-logarithm cascade, and $|\partial_\beta\chi|$ even grows like
+$\delta^{-1}$ on the deeper side; but the data of \eqref{eq:RH} is the
+\emph{product} $A_d'\,G$, and the cocycle shows the singular factors
+cancel to leave the finite orbit values $V_m$.  The original solvability
+conjecture (v1 of this note) posited a weighted class accommodating
+$\ln\ln$ tails; the correct statement is stronger: the data is continuous
+with a Dini modulus, and \emph{no weighted class is needed}.  It is also
+worth noting how slowly the cascade actually moves: the depth of the
+iterated-log cascade increases by one only when $\ln(1/\delta)$ is
+exponentiated, so $\chi\circ T_d$ stays in a compact region for all
+$\delta>10^{-10^{17}}$; but the proof above does not use this, since the
+collapse \eqref{eq:collapse} holds uniformly in the depth.
+\end{remark}
+
+\begin{proposition}[Numerical confirmation]\label{prop:numcheck}
+For $d=e$ (all entries from the exact Koenigs recursions at $140$
+digits): the collapse \eqref{eq:collapse} at $m=0$ gives
+$|V_{\mathrm{geo}}(\delta)|/(\delta\ln(1/\delta))
+=6.2,\,7.7,\,8.8,\,9.7,\,10.4,\,11.1$ at
+$\delta=10^{-2},10^{-4},\dots,10^{-12}$ (slow $\ln$-growth, consistent
+with the $\delta\ln^2$ bound); at $m=1$,
+$V_{\mathrm{geo}}(1-\delta)\to V_1=-e/T_e'(1)=-0.91594605649953\ldots$
+with $|V_{\mathrm{geo}}(1-10^{-12})-V_1|\approx3\cdot10^{-10}$, and the
+same limit from the right side; the imaginary part decays like
+$\delta\ln(1/\delta)$ on both sides
+($\operatorname{Im}V_{\mathrm{geo}}(1-\delta)=2.7\cdot10^{-1},\dots,
+3.0\cdot10^{-10}$ for $\delta=10^{-2},\dots,10^{-12}$); and the
+periodicity of $u$ (Lemma~\ref{lem:cocycle}) holds to print precision,
+e.g.\ $u(-10^{-4})=u(1-10^{-4})=0.006667$.
+\end{proposition}
+
+\section{Solution of the boundary problem (step 2)}\label{sec:step2}
+
+\begin{theorem}[Solvability of \eqref{eq:RH}]\label{thm:step2}
+Let $u\in C(\T)$ be real with a Dini modulus of continuity (as furnished
+by Lemma~\ref{lem:data}) and $u(0)=0$.  Then the boundary problem
+\eqref{eq:RH} has exactly one solution $g$ in the class
+$H^{+}_{\mathrm{per}}\cap C(\overline\Hup\ \mathrm{mod}\ 1)$, namely
+\[
+  g\ =\ \widetilde u\ -\ i\,u\ -\ \widetilde u(0),
+\]
+where $\widetilde u$ is the conjugate function
+($\widehat{\widetilde u}(k)=-i\,\mathrm{sgn}(k)\,\widehat u(k)$).
+Moreover $g$ is continuous on the \emph{closed} circle --- including the
+former punctures --- and $g(i\infty)=\widehat u(0)\,(-i)+\ldots$ exists
+(the mean of $g$).
+\end{theorem}
+
+\begin{proof}
+\emph{Existence.}  Since $u$ is Dini-continuous, the conjugate function
+$\widetilde u$ exists at every point and is continuous on $\T$
+(Privalov's theorem in its Dini form; see \cite[Ch.~III]{garnett} or
+\cite[Ch.~III, Thm.~13.30]{zygmund}); moreover $u+i\widetilde u$ is the
+boundary value of the holomorphic function
+$2\sum_{k\ge1}\widehat u(k)e^{2\pi ik z}+\widehat u(0)$ on $\Hup$, which
+extends continuously to $\overline\Hup$ (Fej\'er means converge uniformly
+for continuous boundary data with continuous conjugate).  Then
+$g:=-i\,(u+i\widetilde u)-\widetilde u(0)=\widetilde u-iu-\widetilde u(0)$
+lies in $H^{+}_{\mathrm{per}}\cap C$, has
+$\operatorname{Im}g=-u$ on $\R$, and $g(0)=\widetilde u(0)-i\cdot0-
+\widetilde u(0)=0$.
+
+\emph{Uniqueness.}  If $g_1,g_2$ are two solutions, $h:=g_1-g_2\in
+H^{+}_{\mathrm{per}}$ is bounded with real boundary values.  Its Fourier
+expansion on a horizontal line has only modes $k\ge0$ (boundedness at
+$i\infty$ kills $k<0$); reality on $\R$ forces
+$\overline{h_k}=h_{-k}$, hence $h_k=0$ for $k\ne0$ and $h_0\in\R$; the
+normalization $h(0)=0$ gives $h\equiv0$.
+\end{proof}
+
+\begin{remark}[Fourier tails]\label{rem:tails}
+The Dini modulus $\omega_u(\delta)\le C\delta\ln^2(1/\delta)$ gives
+$|\widehat u(k)|\le C\,\omega_u(1/k)\le C\ln^2 k/k$ --- consistent with
+the measured $|k|^{-1.28}$-type decay of the mode contributions in the
+numerical solver over the fitted window, and fast enough for the
+$L^2$- and uniform convergence used above.
+\end{remark}
+
+\section{Interior recovery and the singular normalization (step 3)}
+\label{sec:interior}
+
+\begin{theorem}[Existence]\label{thm:exist}
+Assume (K1)--(K2).  Define, with $u:=\operatorname{Im}V_{\mathrm{geo}}$
+from Section~\ref{sec:data} and $g$ from Theorem~\ref{thm:step2},
+\[
+  \widetilde V\circ T_d\ :=\ V_{\mathrm{geo}}\ +\ g
+  \qquad\text{on }\ \overline\Hup .
+\]
+Then $\widetilde V$, extended to the domain of $A_d$ by the cohomological
+equation, satisfies (i)--(iv) of Definition~\ref{def:selection}.  In
+particular, together with Theorem~\ref{thm:unique}, the selection
+principle has \emph{exactly one} solution.  Under (K3) this solution is
+$\partial_\beta A_b|_{b=d}$.
+\end{theorem}
+
+\begin{proof}
+\emph{Interior holomorphy and reflection.}
+$V_{\mathrm{geo}}=A_d'\,G$ is holomorphic on $\Hup$ by (K1) and
+Lemma~\ref{lem:koenigs-beta} (the backward orbit of $T_d(z)$ avoids the
+singular set for $z\in\Hup$), and $g$ is holomorphic on $\Hup$ by
+Theorem~\ref{thm:step2}.  On $\R\setminus\Z$ the boundary values of the
+sum are continuous and \emph{real}:
+$\operatorname{Im}(V_{\mathrm{geo}}+g)=u+(-u)=0$.  By Schwarz reflection,
+$\widetilde V\circ T_d$ extends holomorphically across every interval of
+$\R\setminus\Z$.  At a puncture $m\in\Z$, Lemma~\ref{lem:data} (sector
+version) and the continuity of $g$ on the closed half-plane
+(Theorem~\ref{thm:step2}) show that the reflected function is bounded
+near $m$; by Riemann's removability theorem it extends holomorphically
+across $m$ as well, with value $V_m+g(m)$.  Hence
+$\widetilde V\circ T_d$ is holomorphic on a full neighbourhood of $\R$,
+and $\widetilde V=(\widetilde V\circ T_d)\circ A_d$ is holomorphic on a
+neighbourhood of the real orbit domain (recall $A_d'\neq0$ on $\R$); the
+cohomological equation transports holomorphy to the rest of the domain of
+$A_d$.
+
+\emph{(i).}  By Lemma~\ref{lem:cocycle}, $A_d'G$ satisfies \eqref{eq:coh}
+and $g=h\circ A_d$-type terms are periodic in the Abel coordinate:
+$g(\theta+1)=g(\theta)$, so $\widetilde V$ satisfies \eqref{eq:coh}.
+
+\emph{(ii).}  Boundary values on $\R\setminus\Z$ are real by
+construction; by continuity and the removability step, real on all of the
+real orbit domain.
+
+\emph{(iii).}  Radially at $L$, i.e.\ $\operatorname{Im}z\to+\infty$ in
+the strip picture (K1): expand the Koenigs data at the fixed point.
+With $\Sk_b(y)=(y-L_b)(1+O(y-L_b))$ and $\Sk_b'(L_b)=1$,
+\[
+  \partial_\beta\ln\Sk\ =\ \frac{\Sk_\beta}{\Sk}
+  \ =\ -\,\frac{dL/d\beta}{y-L}+O(1),
+  \qquad
+  \chi=\frac{\ln(y-L)}{\ln\lambda}+O(1),
+\]
+hence
+\[
+  \partial_\beta\chi
+  \ =\ \frac{\partial_\beta\ln\Sk-\chi\,d\ln\lambda}{\ln\lambda}
+  \ =\ -\,\frac{dL/d\beta}{\ln\lambda\,(y-L)}
+  \ -\ \frac{d\ln\lambda}{(\ln\lambda)^2}\,\ln(y-L)\ +\ O(1)
+  \ =\ S(y)+O(1),
+\]
+which is exactly \eqref{eq:S} (note $d\ln\lambda=(d\lambda/d\beta)/
+\lambda$).  The theta factor satisfies $p'(\chi)\to0$ as
+$\operatorname{Im}\chi\to+\infty$ by (K2), and
+$\operatorname{Im}\chi\sim-\operatorname{Im}(1/\ln\lambda)\cdot
+\ln\!\frac1{|y-L|}\to+\infty$ radially, with
+$|p'(\chi)|=O(|y-L|^{\,2\pi\nu})$, $\nu:=-\operatorname{Im}(1/\ln\lambda)
+>0$ (for $d=e$: $2\pi\nu=4.447$); hence
+$(1+p'(\chi))\partial_\beta\chi=S(y)+O(1)$ radially.  Finally $g$ is
+bounded on $\Hup$ with a limit at $i\infty$
+(Theorem~\ref{thm:step2}), so $\widetilde V-S$ is bounded radially at
+$L$.  The conjugate structure at $\bar L$ holds by reflection (reality on
+$\R$).
+
+\emph{(iv).}  $\widetilde V(1)=\lim_{\theta\downarrow0}
+\bigl[V_{\mathrm{geo}}(\theta)+g(\theta)\bigr]=0+g(0)=0$ by
+Lemma~\ref{lem:data} and the normalization of Theorem~\ref{thm:step2}.
+
+\emph{Identification.}  Under (K3), $V=\partial_\beta A_b$ exists and
+satisfies (i)--(iv) (Section~1); by Theorem~\ref{thm:unique},
+$V=\widetilde V$.
+\end{proof}
+
+\begin{corollary}[Status of the v1 conjecture]\label{cor:conj}
+The Solvability Conjecture of the first version of this note holds, in
+the stronger form of Theorems~\ref{thm:step2}--\ref{thm:exist}: the
+weighted class is not needed, the solution lies in
+$H^{+}_{\mathrm{per}}\cap C$, and the cascade subtraction step (1) of the
+proposed route is superseded by the collapse identity
+\eqref{eq:collapse}.  Consequently the selection principle characterizes
+the response kernel under the classical branch geometry (K1)--(K2) alone,
+and base differentiability of the Kneser family on the real domain, with
+the explicit kernel, follows for any family satisfying (K3).
+\end{corollary}
+
+\begin{remark}[Honest scope]\label{rem:scope}
+What remains outside this note is classical: (K1)--(K2) are the geometry
+of Kneser's Riemann-mapping construction \cite{kneser} (holomorphy of the
+branch in the upper half-plane, approach to $L$ at $i\infty$, theta decay)
+--- properties of the single base $d$, independent of the base family;
+their verification for the regular branch is the content of the classical
+construction and of the companion paper's Appendix on stopped
+coordinates, and all quantitative consequences used here were verified
+numerically far beyond doubt (Proposition~\ref{prop:numcheck};
+$\beta$-Koenigs gates to $10^{-121}$).  The proofs of
+Sections~\ref{sec:data}--\ref{sec:interior} are self-contained given that
+package.
+\end{remark}
+
+\paragraph{Numerical realization (constructive check).}
+The problem \eqref{eq:RH} was solved directly on a graded mesh: composite
+Gauss--Legendre panels on geometric cascades at both endpoints, data
+$u=\operatorname{Im}V_{\mathrm{geo}}$ evaluated pointwise by the exact
+Koenigs recursions, periodic Hilbert transform with exact cotangent-kernel
+integrals, and normalization through the periodic kernel at $\theta=0$
+(the non-periodic $V\circ T_d$ must not be trigonometrically
+interpolated).  This is precisely the constructive scheme of
+Theorems~\ref{thm:step2}--\ref{thm:exist}.  A convergence study (panel
+order $24\to48$, decade $\to$ half-decade grading, truncation
+$10^{-30}\to10^{-38}$) shows the expected spectral behaviour: for $d=e$
+the engine-free construction reproduces the independently measured kernel
+($\eps$-stencils of the base family, ``lnln-exact'' parametrization) to
+\[
+  \text{$34.1$ digits in }\ \bar G=\smash{\int_0^1}G,\qquad
+  \text{$34.4$ digits in }\ |\widehat G(1)|,\qquad
+  \text{$34.1$ digits in }\ |\widehat G(2)|,
+\]
+i.e.\ to the full stored length of the reference, with internal
+self-convergence $2.9\cdot10^{-38}$ (relative, in $\bar G$) between the
+two finest meshes.  Across the base family $d\in\{2,e,3,5,10\}$ the
+solver converges uniformly ($\approx29.7/27.7/25.5$ digits already at
+panel order $40$ with decade grading, $\gtrsim30$--$34$ at the sharpened
+settings); for the extreme bases $d=2$ and $d=10$ the RH construction
+and the $\eps$-stencil route agree to $30$--$34$ digits and jointly
+expose an error in the earlier complex-step reference values (correct to
+only $\approx20$ resp.\ $\approx15$ digits there --- the engine floor at
+extreme bases: $|\lambda(2)|=1.23$ near the parabolic edge, large
+$\ln d$ narrowing the theta strip at $d=10$).  The accuracy is set by
+the quadrature order and endpoint truncation alone; the formulation
+carries at least $34$ digits.
+
+\begin{remark}[What this buys downstream]
+With $V$ characterized, the linear-response description of the mixed-base
+phase family ($\widehat P_k(b,d)=\eps\widehat G_k(d)+\eps^2\widehat H_k(d)
++O(\eps^3)$, verified family-wide) rests on a selection principle rather
+than on measurements; the rank-one inner-base law of the main paper
+becomes its leading order; and the base-differentiability building block
+requested by Remark~7.4 of the companion diffeomorphism note is in place,
+now as a theorem under the classical branch geometry.
+\end{remark}
+
+
+\section*{Authorship and AI Contribution Statement}
+This paper is part of a five-paper series produced in a directed human--AI
+collaboration. The author conceived the mixed-base phase program, built and
+maintains the high-precision tetration engine used for every computation in
+the series (a fork of Levenstein's \texttt{fatou.gp}; engine, data and
+scripts at \url{https://github.com/Lightrunnerwastaken/gp-tetration}), and directed the research: posing the questions,
+setting priorities between rounds, auditing results, and deciding which
+claims met the acceptance gates. Substantial parts of the mathematical
+development and of the numerical work were produced by AI systems under
+that direction: Anthropic's Claude in a theory and review role, an
+autonomous research agent operating the numerical pipeline, and OpenAI's
+ChatGPT, which contributed to the original versions of Papers I and II and
+to manuscript review. In line with prevailing journal policies, AI systems
+are not listed as authors; the author assumes full and sole responsibility
+for all statements and proofs, and readers should weigh this provenance in
+their assessment. The five papers of the series are permanently archived on Zenodo under the concept DOIs \url{https://doi.org/10.5281/zenodo.21346803} (I), \url{https://doi.org/10.5281/zenodo.21361967} (II), \url{https://doi.org/10.5281/zenodo.21362206} (III), \url{https://doi.org/10.5281/zenodo.21363593} (IV), and \url{https://doi.org/10.5281/zenodo.21363809} (V).
+
+\begin{thebibliography}{9}
+\bibitem{paper} J.~Justus, \emph{A Phase Law for Mixed-Base Tetration}, Paper~I of the mixed-base tetration series, preprint, July 2026. \url{https://github.com/Lightrunnerwastaken/gp-tetration}. DOI: \url{https://doi.org/10.5281/zenodo.21346803}.
+\bibitem{unified} J.~Justus, \emph{The Mixed-Base Tetration Phase Map Is a Circle Diffeomorphism}, Paper~II of the mixed-base tetration series, preprint, July 2026. \url{https://github.com/Lightrunnerwastaken/gp-tetration}. DOI: \url{https://doi.org/10.5281/zenodo.21361967}.
+\bibitem{stopp} J.~Justus, \emph{Stopped Channels and Offset Alignment}, Paper~III of the mixed-base tetration series, preprint, July 2026. \url{https://github.com/Lightrunnerwastaken/gp-tetration}. DOI: \url{https://doi.org/10.5281/zenodo.21362206}.
+\bibitem{kneser} H.~Kneser, \emph{Reelle analytische L\"osungen der
+Gleichung $\varphi(\varphi(x))=e^x$ und verwandter Funktionalgleichungen},
+J.~reine angew.~Math.\ 187 (1950), 56--67.
+\bibitem{p19} W.~Paulsen, \emph{Tetration for complex bases}, Adv.\
+Comput.\ Math.\ 45 (2019).
+\bibitem{garnett} J.~Garnett, \emph{Bounded Analytic Functions}, Springer
+GTM 236, 2007.
+\bibitem{zygmund} A.~Zygmund, \emph{Trigonometric Series}, 3rd ed.,
+Cambridge, 2002.
+\end{thebibliography}
+
+\end{document}

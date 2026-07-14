@@ -1,0 +1,343 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[T1]{fontenc}
+% portability: use lmodern+microtype where available, fall back gracefully
+\IfFileExists{lmodern.sty}{\usepackage{lmodern}\usepackage{microtype}}{\usepackage[expansion=false]{microtype}}
+\usepackage{booktabs}
+\usepackage[hidelinks]{hyperref}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{example}[theorem]{Example}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\eps}{\varepsilon}
+
+\title{Stopped Channels and Offset Alignment:\\
+De-Conditionalizing the Real-Channel Hypotheses\\
+for Mixed-Base Tetration\\[2mm]
+\large Paper III of the mixed-base tetration series}
+\author{Janis Justus}
+\date{July 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The mixed-base phase law of [1] and its diffeomorphism companion [2] are
+conditional on two hypotheses about the regular branch: the real-channel
+positivity (R2)/(R$'$) and the peeling-growth hypothesis 2.4.  We remove most
+of this conditionality.  (i)~The growth hypothesis holds unconditionally for
+every admissible tower base $d>e^{1/e}$, with the explicit gap
+$T_d(j{+}1)-T_d(j)\ge(1+\ln\ln d)/\ln d>0$.  (ii)~Positivity of the finite
+logarithmic chain holds unconditionally down to an explicit \emph{stop level}
+$J_0=\min\{j:\ T_d(j)\ge 2C_0\}$ (the \emph{Stoppregel}), by a self-contained
+downward induction that produces, rather than assumes, the channel; the
+evaluation and limit machinery of [1,\,2] only ever needs the stopped chain.
+(iii)~For the limit objects the correct channel statement is
+\emph{offset-aligned}: $E_j=T_b(j+\widetilde H(\theta))>0$ is required only
+for $j\ge s$, where $s=\lceil -1-\inf\widetilde H\rceil^{+}$ is computable
+a priori from the mean-shift hub; the unshifted reading is false for pairs
+with $\mu_{b,d}\le-2+\|P\|_\infty$ --- e.g.\ $(b,d)=(10,2)$ and $(e,1.5)$ ---
+while the offset version holds with explicit margins.  A numerical
+certification across all $45$ measured pairs is reported.  Together with the
+base-differentiability of the Kneser family established by the response-kernel
+program, the conditional core of the series reduces to a single
+mode-certifiable inequality per pair.
+\end{abstract}
+
+\section{Introduction}
+
+The phase law of Paper~I \cite{paper} and its diffeomorphism companion,
+Paper~II \cite{unified}, are conditional on two hypotheses about the
+regular Kneser/Paulsen--Cowgill branch: positivity of the real logarithmic
+channel ((R2) of \cite{paper}, (R$'$) of \cite{unified}) and the
+peeling-growth hypothesis (Hyp.~2.4 of \cite{paper}). This paper removes
+most of that conditionality, in the form in which the estimates of the
+series actually consume it.
+
+The contributions are: (i) the growth hypothesis holds \emph{unconditionally}
+for every admissible tower base $d>e^{1/e}$, with the explicit gap
+$d^{\,x}-x\ge(1+\ln\ln d)/\ln d>0$ (Section~\ref{sec:growth}); (ii)
+positivity of the finite logarithmic chain holds unconditionally down to an
+explicit stop level $J_0$, by a self-contained downward induction whose
+invariant is at the same time the error control of the evaluation ladder
+used throughout the series (the \emph{Stoppregel}, Section~\ref{sec:stop});
+(iii) for the limit objects, the correct channel statement is
+\emph{offset-aligned}: positivity is required only from an explicit shift
+$s=\lceil-1-\inf\widetilde H\rceil^{+}$ onward, computable a priori from
+the mean-shift hub, and the unshifted reading is provably false for skew
+pairs (Section~\ref{sec:offset}); (iv) the alignment margins are certified
+numerically across $45$ measured pairs (Section~\ref{sec:cert}). Together
+with the base-differentiability theorem of Paper~V \cite{rh}, the
+conditional core of the series reduces to a single mode-certifiable
+inequality per pair.
+
+\section{Setting}
+
+We keep the conventions of [1,\,2].  For an admissible base $a>e^{1/e}$,
+$T_a$ denotes the regular (Kneser/Paulsen--Cowgill) tetration branch with
+$T_a(0)=1$, $T_a(x+1)=a^{T_a(x)}$, strictly increasing from $(-2,\infty)$
+onto $\R$, and $A_a=T_a^{-1}=\operatorname{slog}_a$.  For an ordered pair
+$(b,d)$ set
+\[
+\alpha=\log_b d,\qquad L_b=\log_b,\qquad
+s_j=\inf_{0\le\theta\le1}T_d(j+\theta)=T_d(j),
+\]
+\[
+C_0=\frac{|L_b(\alpha)|+\ln 2/\ln b}{\alpha},
+\qquad
+W_k^{(n)}(\theta)=L_b^{\circ k}\bigl(T_d(n+\theta)\bigr).
+\]
+$\Phi_{b,d}$, $\mu_{b,d}=\int_0^1\Phi_{b,d}$, $P_{b,d}=\Phi_{b,d}-\mu_{b,d}$
+and $\widetilde H_{b,d}=\mathrm{id}+\Phi_{b,d}$ are as in [1,\,2], and
+$A_k=A_k(b,d)$ denotes the Fourier amplitudes of $P_{b,d}$.
+
+Hypothesis (R$'$) of [2] (the quantitative reading of (R2) in [1]) demands
+$W_k^{(n)}>0$ for $0\le k\le n-1$.  Hypothesis 2.4 of [1] demands
+$s_j\to\infty$.  Both were left conditional in [1,\,2] (see [2, Rem.~7.4]).
+
+\section{The growth hypothesis is free}\label{sec:growth}
+
+\begin{lemma}[Tower divergence with explicit gap]\label{lem:growth}
+Let $d>e^{1/e}$.  Then for all $x\in\R$,
+\[
+d^{\,x}-x\;\ge\;\delta_0(d):=\frac{1+\ln\ln d}{\ln d}\;>\;0 .
+\]
+Consequently $s_{j+1}=d^{\,s_j}\ge s_j+\delta_0(d)$, hence $s_j\to\infty$;
+by [2, Lemma~2.5] the divergence self-improves to
+$s_{J_1+k}\ge 2^{k}s_{J_1}$ and $\sum_j 1/s_j<\infty$.
+In particular Hypothesis~2.4 of {\rm[1]} holds unconditionally.
+\end{lemma}
+
+\begin{proof}
+$x\mapsto d^{\,x}-x$ is convex with critical point
+$x_*=-\ln\ln d/\ln d$, where the minimum equals
+$d^{\,x_*}-x_*=(1+\ln\ln d)/\ln d$.  For $d>e^{1/e}$ one has
+$\ln\ln d>-1$, so the minimum is positive.  The remaining statements are
+immediate (the inf in $s_j$ is attained at $\theta=0$ since $T_d$ is
+increasing).
+\end{proof}
+
+\section{The Stoppregel: unconditional finite-chain positivity}\label{sec:stop}
+
+The following lemma re-reads the tail computation of [2, Lemma~6.3]
+\emph{unconditionally}: the downward induction produces the positivity of the
+chain instead of assuming it, at the price of stopping $J_0$ levels above the
+bottom.
+
+\begin{lemma}[Stopped channel]\label{lem:stoppregel}
+Let $b,d>e^{1/e}$ and let
+\[
+J_0=J_0(b,d):=\min\{\,j\ge0:\ s_j\ge 2C_0\,\}\qquad(\text{finite by
+Lemma~\ref{lem:growth}}).
+\]
+Then for every $n\ge J_0+1$ and $\theta\in[0,1]$ the chain values
+$W_k^{(n)}(\theta)$, $0\le k\le n-J_0$, are defined and satisfy, for
+$1\le k\le n-J_0$,
+\begin{equation}\label{eq:invariant}
+W_k^{(n)}(\theta)=\alpha\,T_d(n-k+\theta)\bigl(1+\sigma_k\bigr),
+\qquad
+\sigma_1=0,\qquad
+|\sigma_k|\le \frac{C_0}{s_{\,n-k}}\le\frac12\quad(k\ge2).
+\end{equation}
+In particular $W_k^{(n)}>0$ for $0\le k\le n-J_0$: hypothesis {\rm(R$'$)}
+holds unconditionally for the chain stopped at level $J_0$.
+\end{lemma}
+
+\begin{proof}
+$W_0=T_d(n+\theta)>0$.  The first peel is exact:
+$W_1=L_b\bigl(d^{\,T_d(n-1+\theta)}\bigr)=\alpha T_d(n-1+\theta)$, i.e.\
+\eqref{eq:invariant} with $\sigma_1=0$.  Assume \eqref{eq:invariant} for some
+$k$ with $j:=n-k\ge J_0+1$.  Then $|\sigma_k|\le\frac12$, so $W_k>0$ and
+$L_b(W_k)$ is defined; using
+$L_b(T_d(j+\theta))=\alpha T_d(j-1+\theta)$ and additivity of $L_b$ on
+positive factors,
+\[
+W_{k+1}
+=L_b(\alpha)+\alpha T_d(j-1+\theta)+L_b(1+\sigma_k)
+=\alpha T_d(j-1+\theta)\bigl(1+\sigma_{k+1}\bigr),
+\]
+\[
+\sigma_{k+1}=\frac{L_b(\alpha)+L_b(1+\sigma_k)}{\alpha T_d(j-1+\theta)},
+\qquad
+|\sigma_{k+1}|\le\frac{|L_b(\alpha)|+\ln2/\ln b}{\alpha\,s_{j-1}}
+=\frac{C_0}{s_{j-1}}\le\frac12,
+\]
+the last step because $j-1\ge J_0$.  The induction proceeds while
+$n-k\ge J_0+1$, i.e.\ up to $k=n-J_0$.
+\end{proof}
+
+\begin{corollary}[Stopped evaluation and stopped tails]\label{cor:stopped}
+Define the stopped tails and the stopped phase by
+\[
+D_n^{\mathrm{stop}}(\theta):=W_{\,n-J_0}^{(n)}(\theta)
+=\alpha T_d(J_0+\theta)(1+\sigma_{n-J_0}),
+\qquad
+\Phi^{\mathrm{stop}}_n(\theta):=(n-J_0)+A_b\bigl(D_n^{\mathrm{stop}}(\theta)\bigr)-(n+\theta).
+\]
+These are defined for all $n\ge J_0+1$ and $\theta\in[0,1]$ without any
+channel hypothesis.  Wherever the full chain of {\rm[1]} exists, the global
+Abel equation gives $A_b(D_n^{\mathrm{stop}})=A_b(D_n)+J_0$, so
+$\Phi^{\mathrm{stop}}_n=R_n$; the stopped object extends the definition to all
+admissible pairs.  All tail estimates of {\rm[2, \S6]} hold verbatim for the
+index range $j\ge J_0$.
+\end{corollary}
+
+\begin{remark}
+Numerically, Corollary~\ref{cor:stopped} is precisely the evaluation ladder
+used throughout the measurement campaign (peel down to a level with
+$T_d\asymp10^{4}$, hand the remainder to $\operatorname{slog}_b$): the
+Stoppregel is not a workaround but \emph{the} definition, and
+\eqref{eq:invariant} doubles as its certified error control, cf.\
+[2, Rem.~7.5(ii)].  For the standard pairs $J_0\in\{1,2\}$; even at the edge
+pair $(e,1.46)$ one has $J_0=23$ (Table~\ref{tab:cert}).
+\end{remark}
+
+\section{Offset alignment of the limit channel}\label{sec:offset}
+
+For the limit objects the channel condition concerns
+$E_j(\theta)=T_b\bigl(j+\widetilde H(\theta)\bigr)$, $j\ge1$
+(cf.\ [2, (11)--(12)]): $E_j>0$ is what makes the $j$-th logarithm real.
+Since $T_b>0$ exactly on $(-1,\infty)$ and $T_b$ is increasing, the correct
+statement is an \emph{offset} one.
+
+\begin{lemma}[Offset channel]\label{lem:offset}
+Assume the phase-law package {\rm(P)} of {\rm[2]} for $(b,d)$, and let
+\[
+m_\star:=\inf_{\theta}\widetilde H_{b,d}(\theta)\;\ge\;\mu_{b,d}-\|P_{b,d}\|_\infty
+\;\ge\;\mu_{b,d}-\sum_{k\ge1}A_k(b,d),
+\qquad
+s:=\max\bigl(0,\ \lceil -1-m_\star\rceil\bigr).
+\]
+Then $E_j(\theta)>0$ for all $j\ge s+1$ and all $\theta$, with margin
+\[
+E_j(\theta)\ \ge\ T_b\bigl(j-s\,+\,(s+m_\star)\bigr)\ >\ T_b(-1)=0,
+\qquad j\ge s+1 .
+\]
+Moreover $D^{(s)}:=T_b(s+\widetilde H)$ is defined (argument $>-2$ requires
+only $s+m_\star>-2$, weaker still), and the entire structure of
+{\rm[1,\,2]} --- endpoint identities, derivative product, groupoid and
+antisymmetry statements --- holds for the $s$-shifted objects by
+shift-equivariance of the tetration equation.
+\end{lemma}
+
+\begin{proof}
+$j+\widetilde H\ge j-s+(s+m_\star)$ and $s+m_\star>-1$ by the definition of
+$s$; monotonicity and positivity of $T_b$ on $(-1,\infty)$ give the claim.
+Shift-equivariance: replacing $\widetilde H$ by $s+\widetilde H$ replaces
+$D$ by $D^{(s)}=T_b^{\circ}\!$-transported one level per unit shift, and every
+identity used in {\rm[1,\,2]} is a consequence of $T(x+1)=a^{T(x)}$, which is
+invariant under integer shifts of the height coordinate.
+\end{proof}
+
+\begin{example}[The unshifted reading fails for skew pairs]\label{ex:fail}
+For $(b,d)=(10,2)$: $\mu=-2.26496\ldots$, $\|P\|_\infty\le4.7\cdot10^{-4}$,
+so $\inf\widetilde H\le-2.264<-2$: even $D=T_b(\widetilde H)$ is undefined on
+part of the period, and $E_1=T_b(1+\widetilde H)$ takes negative values; with
+$s=2$ everything is restored, with margin $s+m_\star+1=0.7346$.
+For $(e,1.5)$: $\mu=-9.7763\ldots$, $s=9$, margin $0.2234$.
+The measured phase law for these pairs (validated to
+$10^{-38}$ antisymmetry in the present campaign) is throughout the phase law
+\emph{of the offset objects}.
+\end{example}
+
+\begin{remark}[Hub anchoring]
+$\mu_{b,d}$ --- hence $s$ --- is computable a priori from the hub column
+$m(\cdot)$ via $\mu_{b,d}=m(d)-m(b)+\Delta^{(2)}+\Delta^{(3)}+\dots$
+(validated to $\sim10^{-15}$ absolute in this campaign), and
+$\|P\|_\infty$ from the first few $A_k$ plus the universal decay law.  A
+conversion engine can therefore fix the offset \emph{before} evaluating
+anything.
+\end{remark}
+
+\section{Numerical certification}\label{sec:cert}
+
+Table~\ref{tab:cert} shows an excerpt of the certification (all $45$ measured
+pairs pass; script \texttt{foundation\_cert.py}, data at 30--170 digits).
+Margins are $s+m_\star+1$ with the rigorous mode bound for $m_\star$.
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{lrrrrrr}
+\toprule
+pair & $\mu_{b,d}$ & $\sum A_k$ & $s$ & margin & $C_0$ & $J_0$ \\
+\midrule
+$(e,2)$      & $-1.128404$ & $1.5\cdot10^{-4}$ & $1$ & $0.8715$ & $1.529$ & $2$ \\
+$(2,e)$      & $+1.128404$ & $1.5\cdot10^{-4}$ & $0$ & $2.1283$ & $1.060$ & $1$ \\
+$(10,2)$     & $-2.264961$ & $4.7\cdot10^{-4}$ & $2$ & $0.7346$ & $2.732$ & $3$ \\
+$(2,10)$     & $+2.264961$ & $4.6\cdot10^{-4}$ & $0$ & $3.2645$ & $0.822$ & $1$ \\
+$(3,5)$      & $+0.578835$ & $1.5\cdot10^{-4}$ & $0$ & $1.5787$ & $0.668$ & $1$ \\
+$(e,10)$     & $+1.136557$ & $3.2\cdot10^{-4}$ & $0$ & $2.1362$ & $0.663$ & $1$ \\
+$(e,1.7)$    & $-2.879554$ & $2.5\cdot10^{-4}$ & $2$ & $0.1202$ & $2.500$ & $4$ \\
+$(e,1.5)$    & $-9.776277$ & $3.6\cdot10^{-4}$ & $9$ & $0.2234$ & $3.936$ & $11$ \\
+$(e,1.46)$   & $-21.94334$ & $3.9\cdot10^{-4}$ & $21$ & $0.0563$ & $4.399$ & $23$ \\
+$(e,100)$    & $+1.600615$ & $5.7\cdot10^{-4}$ & $0$ & $2.6000$ & $0.482$ & $0$ \\
+\bottomrule
+\end{tabular}
+\caption{Certification excerpt.  The margin is governed by the fractional
+part of $\mu$: near-integer $\mu$ produces thin margins (cf.\ $(e,1.46)$),
+a structure that also appears to organize the measured singularity abscissae
+$x^*(b,d)$ of the strip analysis.}
+\label{tab:cert}
+\end{table}
+
+\section{What remains, and the differentiability building block}
+
+With Lemmas~\ref{lem:growth}--\ref{lem:offset} the conditional content of
+[1,\,2] reduces to the convergence statements of the phase law itself
+(Theorem~5.6/5.7 of [1]) formulated for the stopped chain --- estimates that
+live entirely in the index range $j\ge J_0$ where \eqref{eq:invariant} is
+unconditional --- plus one inequality per pair (the mode-certified
+$m_\star$-bound of Lemma~\ref{lem:offset}), which the hub decomposition makes
+checkable a priori.
+
+Independently, the response-kernel program of the present campaign
+establishes numerically, to $24{+}$ digits and by two independent routes
+(complex-step differentiation of the Kneser engine through Paulsen
+holomorphy; $\eps$-stencils of the base family), that the Kneser family is
+differentiable in the base parameter $\beta=\ln\ln b$, with kernel
+$V=\partial_\beta A_b$ characterized by the selection principle
+(cohomological equation, normalization $V(1)=0$, prescribed fixed-point
+singularity with $dL/d\beta=\ln b\,L^2/(1-\lambda)$, and reality).  This is
+the second building block Remark~7.4 of [2] asks for; the constructive
+(engine-free) realization of the selection principle is the subject of the
+Riemann--Hilbert program documented in the research log.
+
+
+\section*{Authorship and AI Contribution Statement}
+This paper is part of a five-paper series produced in a directed human--AI
+collaboration. The author conceived the mixed-base phase program, built and
+maintains the high-precision tetration engine used for every computation in
+the series (a fork of Levenstein's \texttt{fatou.gp}; engine, data and
+scripts at \url{https://github.com/Lightrunnerwastaken/gp-tetration}), and directed the research: posing the questions,
+setting priorities between rounds, auditing results, and deciding which
+claims met the acceptance gates. Substantial parts of the mathematical
+development and of the numerical work were produced by AI systems under
+that direction: Anthropic's Claude in a theory and review role, an
+autonomous research agent operating the numerical pipeline, and OpenAI's
+ChatGPT, which contributed to the original versions of Papers I and II and
+to manuscript review. In line with prevailing journal policies, AI systems
+are not listed as authors; the author assumes full and sole responsibility
+for all statements and proofs, and readers should weigh this provenance in
+their assessment. The five papers of the series are permanently archived on Zenodo under the concept DOIs \url{https://doi.org/10.5281/zenodo.21346803} (I), \url{https://doi.org/10.5281/zenodo.21361967} (II), \url{https://doi.org/10.5281/zenodo.21362206} (III), \url{https://doi.org/10.5281/zenodo.21363593} (IV), and \url{https://doi.org/10.5281/zenodo.21363809} (V).
+
+\begin{thebibliography}{9}
+\bibitem{paper} J.~Justus, \emph{A Phase Law for Mixed-Base Tetration: Logarithmic Tails, Cocycle Structure, and Singular Asymptotics}, Paper~I of the mixed-base tetration series, preprint, July 2026. \url{https://github.com/Lightrunnerwastaken/gp-tetration}. DOI: \url{https://doi.org/10.5281/zenodo.21346803}.
+\bibitem{unified} J.~Justus, \emph{The Mixed-Base Tetration Phase Map Is a Circle Diffeomorphism}, Paper~II of the mixed-base tetration series, preprint, July 2026. \url{https://github.com/Lightrunnerwastaken/gp-tetration}. DOI: \url{https://doi.org/10.5281/zenodo.21361967}.
+\bibitem{rh} J.~Justus, \emph{The Base-Derivative of the Kneser Family: Selection Principle, Uniqueness, and Existence via a Riemann--Hilbert Problem}, Paper~V of the mixed-base tetration series, preprint, July 2026. \url{https://github.com/Lightrunnerwastaken/gp-tetration}. DOI: \url{https://doi.org/10.5281/zenodo.21363809}.
+\bibitem{kneser} H.~Kneser, \emph{Reelle analytische L\"osungen der Gleichung
+$\varphi(\varphi(x))=e^x$}, J.~reine angew.~Math.\ 187 (1950).
+\bibitem{pc} W.~Paulsen, S.~Cowgill, \emph{Solving $F(z+1)=b^{F(z)}$ in the
+complex plane}, Adv.\ Comput.\ Math.\ 43 (2017).
+\bibitem{p19} W.~Paulsen, \emph{Tetration for complex bases}, Adv.\ Comput.\
+Math.\ 45 (2019).
+\end{thebibliography}
+
+\end{document}
