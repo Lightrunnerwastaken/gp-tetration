@@ -16,12 +16,12 @@ def _parse_value(text: str) -> mp.mpc:
     return mp.mpc(parsed)
 
 
-def _print_values(values: list[mp.mpc]) -> None:
+def _print_values(values: list[mp.mpc], digits: int = 30) -> None:
     for value in values:
         if abs(mp.im(value)) <= mp.mpf("1e-30"):
-            print(mp.nstr(mp.re(value), 30))
+            print(mp.nstr(mp.re(value), digits))
         else:
-            print(f"{mp.nstr(mp.re(value), 30)} + {mp.nstr(mp.im(value), 30)}*I")
+            print(f"{mp.nstr(mp.re(value), digits)} + {mp.nstr(mp.im(value), digits)}*I")
 
 
 def parse_args() -> argparse.Namespace:
@@ -31,11 +31,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--values", nargs="+", help="Values to evaluate")
     parser.add_argument("--expressions", nargs="+", help="Raw GP expressions for eval mode")
     parser.add_argument("--dps", type=int, default=80)
-    parser.add_argument("--nlim", type=int, default=30)
+    parser.add_argument("--nlim", type=int, default=None,
+                        help="iteration cap (default: scales with dps)")
     parser.add_argument("--nskip", type=int, default=4)
-    parser.add_argument("--looplim", type=int, default=35)
+    parser.add_argument("--looplim", type=int, default=None,
+                        help="convergence target (default: full precision)")
     parser.add_argument("--gp-exe")
-    parser.add_argument("--fatou-gp")
+    parser.add_argument("--fatou-gp",
+                        help='engine file, or the shortcuts "fork" / "original"')
     return parser.parse_args()
 
 
@@ -65,7 +68,7 @@ def main() -> None:
             result = session.slog_batch(values)
         else:
             result = session.roundtrip_residuals(values)
-    _print_values(result)
+    _print_values(result, digits=max(30, args.dps - 24))
 
 
 if __name__ == "__main__":
