@@ -100,6 +100,13 @@ decomposing as iterations p^1.0 × grid² p^1.85 × arithmetic p^1.29);
 the fork wins a large constant factor plus the memory fixes that make
 dps 1020 possible at all.
 
+One regression escaped the gate's coverage and was found later: the
+"all bases" cache extensions (keeps 18–20) silently broke real bases
+*below* e^(1/e) (attracting-fixed-point regime), which the gate never
+tests. Fixed by routing those bases through the exact pre-extension
+code path (`subeta` flag); verified against the unmodified original
+engine (agreement ~1e-33 at b = 1.2) and guarded by a regression test.
+
 ## 3. Negative results (measured, not folklore)
 
 Attempts to break the p^4.1 exponent, all benchmarked on this code base:

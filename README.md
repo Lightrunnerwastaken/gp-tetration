@@ -58,6 +58,8 @@ atlas tables in plain JavaScript. No server, no PARI. Typical accuracy
 
 Requirements: PARI/GP ≥ 2.15 (`gp_exe=` parameter or `FATOU_GP_EXE`),
 Python ≥ 3.11, `mpmath` (optionally `python-flint` for certification tools).
+Install with `pip install -e .` in the repo root (or put `src/` on
+`PYTHONPATH`).
 
 ```python
 from fatou_backend.gp_backend import FatouGP
@@ -82,8 +84,22 @@ basechange.sexp_anchor(gp, 3, "0.5")     # any base via the e-anchor, ~ms
   `~/.cache/fatou_backend/` (override with `FATOU_CACHE_DIR`); later
   sessions restore it in ~0.1 s. The key includes a hash of the engine
   file, so switching engines or knobs never reuses a stale state.
-- Batch/CLI: `python -m fatou_backend.cli sexp --base e --values 0.5`;
+- **Supported bases**: real bases > e^(1/e) (Kneser construction,
+  gate-verified), real bases 1 < b < e^(1/e) (regular iteration at the
+  attracting fixed point, e.g. sexp_1.2(0.5) = 1.13626…, verified
+  against the unmodified original engine), and complex bases (2+I,
+  0.8+0.4*I, … are gate-verified; e.g. b = −1 works but has no
+  independent references). Bases 0 < b < 1 are not supported.
+- Batch/CLI:
+  `python -m fatou_backend.cli sexp --base e --values 0.5 --dps 100 --fatou-gp fork`;
   `FatouGP(n_workers=N)` parallelizes large batches.
+- **Plain PARI/GP** (no Python, no state cache):
+  ```
+  \p 120
+  \r src/fatou_backend/vendor/fatou_fork.gp
+  sexpinit(2, 120, 4, 0);   \\ base, nlim ~ dps, nskip, looplim=0 (= converge fully)
+  sexp(0.5)
+  ```
 
 Tests: `python -m pytest tests/` (53 tests, includes atlas validation
 against the proven references; set `FATOU_BACKEND_RUN_SLOW=1` for the
