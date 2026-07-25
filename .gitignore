@@ -29,3 +29,12 @@ research/tools/fatou_profile*.gp
 research/tools/_*.gp
 research/tools/fatou_branchprobe.gp
 research/tools/state_*.txt
+failed-approaches.md
+hypotheses.md
+STATE.md
+active-plan.md
+PLAYBOOK.md
+AGENTS.md
+brain/
+experiments/
+journal/
