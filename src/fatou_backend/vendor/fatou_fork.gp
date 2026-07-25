@@ -240,10 +240,11 @@ xfixed=
 }
 
 /* theta transform mapped to unit circle */
-thfunc(z,n) = {
+thfunc(z,n,yin,yon) = {
   local(y,p,h,A);
   if (n<>2,
-    y=log(z)/(2*Pi*I);
+    /* exp-059: the caller knows y exactly; this log only undoes its exp */
+    y = if (yon, yin, log(z)/(2*Pi*I));
     if (thon && thidx>0,
       /* exp-026: superf(zth+y) depends only on the base map at the fixed
          grid point — cache it; abelest's ct-Horner updates incrementally
@@ -269,7 +270,7 @@ thfunc(z,n) = {
     y = abelest(superf(zth+y),ct)-y-zth;
     return(y);
   ,
-    y=log(z)/(-2*Pi*I);
+    y = if (yon, -yin, log(z)/(-2*Pi*I));
     y = abelest(superf2(ztl+y),ct)-y-ztl;
     return(y);
   );
@@ -315,11 +316,13 @@ thtaylor(n,samples) = {
     thskey = samples;
     thon = 1;
   );
+  /* exp-059: geometric grid, and hand thfunc the exact y = x1/2 instead of
+     making it recover x1 from exp(Pi*I*x1) with a full-precision log. */
+  tcrc = geoseq(exp(Pi*I*(-1-1/samples)), exp(2*Pi*I/samples), samples);
   for(s=1, samples,
-    x1 = -1 + -1/(samples) + (2*s/samples); /* -Pi to Pi */
-    tcrc[s] = exp(Pi*I*x1);
+    x1 = -1 + -1/(samples) + (2*s/samples);
     thidx = s;
-    t_est[s]= thfunc(tcrc[s],n);
+    t_est[s]= thfunc(tcrc[s], n, x1/2, 1);
   );
   thon = 0; thidx = 0;
 
@@ -1425,6 +1428,22 @@ icbuild(pp, dig) = {
   return(1);
 }
 
+/* exp-059: tcrc[s] = c*mu^s built by doubling. `powers(mu,n)` would carry
+   ~n ulp; a doubling table carries ~log2(n) ulp for the same O(n) work. */
+geoseq(c, mu, n) = {
+  local(v, half, j, blk);
+  v = vector(n);
+  if (n <= 0, return(v));
+  v[1] = c*mu;
+  blk = 1;
+  while (blk < n,
+    half = min(blk, n-blk);
+    for (j=1, half, v[blk+j] = v[blk] * v[j] / c);
+    blk = blk + half;
+  );
+  return(v);
+}
+
 staylor( w,r,samples) = {
   local(rinv,s,t,x1,y,y0,y1,y2,st,z,tot,t_est,tcrc,halfsamples,wtaylor,terms,om,c0,mu,c1,G,coeffs);
   if (samples==0, samples=240);  /* no matter how many sample points, the default gie series size is 200 halfsamples */
@@ -1502,17 +1521,18 @@ staylor( w,r,samples) = {
     icbuild(if (icfull, ct, icdct), if (icfull, precis, icdig));
   );
   if (complextaylor,
+    /* exp-059: x1 is affine in s, so tcrc is geometric */
+    tcrc = geoseq(exp(Pi*I*(-1-1/samples)), exp(2*Pi*I/samples), samples);
+    y0 = exp(I*argc);
     for(s=1, samples,
-      x1=-1+-1/(samples)+(2*s/samples);
-      tcrc[s]=exp(Pi*I*x1); /* -Pi to Pi */
       swidx = s;
-      t_est[s]=sfunc(w+r*tcrc[s]*exp(I*argc))[1];
+      t_est[s]=sfunc(w+r*tcrc[s]*y0)[1];
     );
   ,
 
+    /* exp-059: x1 is affine in s, so tcrc is geometric */
+    tcrc = geoseq(exp(-Pi*I/(2*samples)), exp(Pi*I/samples), samples);
     for(s=1, samples,
-      x1=-1/(2*samples)+(s/samples);
-      tcrc[s]=exp(Pi*I*x1);
       swidx = s;
       t_est[s]=sfunc(w+r*tcrc[s])[1];
     );
