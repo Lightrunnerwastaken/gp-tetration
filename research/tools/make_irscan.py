@@ -3,9 +3,13 @@
 Geometry as actually implemented:
 
   initsch()  sets ir = 7/10, ctr = 4/5, and  ircircr = ir*ctr*circr = 0.56*circr
-  loop()     then does  if (efam, ctr = ctr*9/10)  ->  ctr = 0.72
+  loop()     then does  if (efam, ctr = ctr*81/100)  ->  ctr = 0.648
              ircircr is NOT recomputed, so the sampling radius r = ctr*circr
-             and the branch radius ircircr are already decoupled.
+             and the branch radius ircircr are already decoupled. That is not
+             an oversight: z0h/z0l are placed on the ircircr circle inside
+             initsch, so recomputing ircircr afterwards would decouple it from
+             the theta anchor instead. Scanning it down was measured and is
+             worse -- irmul 0.85 collapses the run to 92 digits.
 
   sfunc:     |z - circc| <  ircircr  ->  DIRECT branch  (evaluates ct: O(N))
              |z - circc| >= ircircr  ->  THETA branch   (since exp-041b: no ct
@@ -14,9 +18,14 @@ Geometry as actually implemented:
 
 Two consequences that the ctrmul scan exposed:
 
-  * the sampling radius cannot fall below ircircr/circr = 0.56 (ctrmul 0.778);
-    at ctrmul 0.7 the sampling circle lies INSIDE the branch radius, the theta
-    fit degenerates and thsamples goes negative. Measured: 0.8 runs, 0.7 dies.
+  * the sampling radius cannot fall below ircircr/circr = 0.56. **This floor
+    moved with exp-045 and the margin is now thin.** With the exp-023 factor
+    9/10 the radius sat at ctr = 0.72, i.e. 29% clear of the floor (ctrmul
+    could go to 0.778). exp-045 doubled the factor to 81/100, so ctr = 0.648 --
+    only 16% clear, and the ctrmul floor is now **0.864**, not 0.778. A scan
+    that reuses the old headroom will walk off the cliff: below it the sampling
+    circle lies INSIDE the branch radius, the theta fit degenerates and
+    thsamples goes negative. Measured at the old radius: 0.8 runs, 0.7 dies.
   * lowering ircircr helps twice: more samples move to the (cheap) theta
     branch, AND the floor under ctrmul drops, allowing a smaller grid.
 

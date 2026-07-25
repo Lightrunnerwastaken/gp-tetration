@@ -52,6 +52,10 @@ exkey=0; extest=0; excoef=0;
    ~11 mults/term. Two-slot cache for bluedft (staylor+theta Ns), map
    cache for the staylor coefficient mapping. */
 bd1n=0; bd1p=0; bd1t=0; bd1a=0; bd1b=0; bd1w=0; bd1m=0; bd2n=0; bd2p=0; bd2t=0; bd2a=0; bd2b=0; bd2w=0; bd2m=0; bdclock=1;
+/* exp-061: mixdft twiddle cache (two slots, LRU, shares bdclock). The
+   twiddles depend only on (nn, realprecision) -- never on the data -- but
+   were rebuilt on every call. */
+mx1n=0; mx1p=0; mx1t=0; mx1w=0; mx1o=0; mx2n=0; mx2p=0; mx2t=0; mx2w=0; mx2o=0;
 exmap=0; exmapkey=0;
 quietmode=0;
 /* I added || (real(Period)>47) to handle speed for sexpinit(1.4494); takes the place of theta0lim=0.224 */
@@ -334,11 +338,14 @@ thtaylor(n,samples) = {
      G = fft(powers(om^-1, n-1), t_est); bluedft for non-power-of-two n. */
   om = exp(2*Pi*I/samples);
   c0 = exp(-Pi*I*(1+1/samples));
+  /* exp-061: doubling build at both sites. `pw` is the sharper of the two --
+     it is not an FFT input, it multiplies the output coefficients one by
+     one, so its ~terms ulp landed directly in the theta Taylor series. */
   if (2^valuation(samples,2)==samples,
-    G = fft(powers(om^(-1), samples-1), t_est)
+    G = fft(geopow(om^(-1), samples-1), t_est)
   ,
     G = mixdft(t_est));
-  pw = powers(conj(c0)/om, terms);
+  pw = geopow(conj(c0)/om, terms);
   cf = vector(terms+1, j, pw[j] * G[((j-1)%samples)+1] / samples);
   wtaylor=Polrev(cf);
   wtaylor=precision(wtaylor,precis);
@@ -1364,19 +1371,35 @@ invabel_sexp(z) = {
    X[k] = sum_j t[j] * omega^((j-1)(k-1)),  omega = exp(-2*Pi*I/N).
    Falls back to bluedft for anything that does not factor that way. */
 mixdft(t) = {
-  local(nn, m, r, w, sub, s, a, j, omp, res, idx, acc);
+  local(nn, m, r, w, sub, s, a, j, omp, res, idx, acc, sl);
   nn = #t;
   m = 2^valuation(nn, 2);
   r = nn/m;
   if ((r > 9) || (m < 8), return(bluedft(t)));
-  w = powers(exp(-2*Pi*I/m), m-1);
+  /* exp-061: both twiddle vectors depend only on (nn, precision), so cache
+     them (two slots, LRU) instead of rebuilding ~nn full-precision products
+     on every call, and build them by doubling -- powers() carries ~n ulp
+     (measured 4.6e-402 at nn=4608, precis 404, i.e. ~2.7 digits; doubling
+     gives 1.9e-403). The exp-056 verification could not see that error:
+     bluedft built its twiddles the same way, so the two agreed on a
+     common-mode error. */
+  sl = 0;
+  if ((mx1n == nn) && (mx1p >= default(realprecision)), sl = 1);
+  if ((sl == 0) && (mx2n == nn) && (mx2p >= default(realprecision)), sl = 2);
+  if (sl == 0,
+    w = geopow(exp(-2*Pi*I/m), m-1);
+    omp = if (r == 1, 0, geopow(exp(-2*Pi*I/nn), nn-1));
+    if (mx1t <= mx2t,
+      mx1n=nn; mx1p=default(realprecision); mx1w=w; mx1o=omp; mx1t=bdclock++; sl=1
+    ,
+      mx2n=nn; mx2p=default(realprecision); mx2w=w; mx2o=omp; mx2t=bdclock++; sl=2);
+  );
+  if (sl == 1,
+    w = mx1w; omp = mx1o; mx1t=bdclock++
+  ,
+    w = mx2w; omp = mx2o; mx2t=bdclock++);
   sub = vector(r, s, fft(w, vector(m, a, t[(a-1)*r + s])));
   if (r == 1, return(sub[1]));
-  /* review fix: powers() accumulates ~n ulp -- measured 4.6e-402 at nn=4608,
-     precis 404, i.e. ~2.7 digits. The doubling build gives 1.9e-403 for the
-     same input. (The exp-056 verification could not see this: bluedft builds
-     its twiddles the same way, so the two agreed on a common-mode error.) */
-  omp = concat([1], geoseq(1, exp(-2*Pi*I/nn), nn-1));
   res = vector(nn);
   for (j=1, nn,
     idx = ((j-1) % m) + 1;
@@ -1403,7 +1426,11 @@ bluedft(t) = {
     ch = exp(-Pi*I/nn);
     chv = vector(nn, j, ch^((j-1)^2));
     M = 1; while (M < 3*nn-2, M = M*2);
-    w = powers(exp(2*Pi*I/M), M-1);
+    /* exp-061: doubling build -- M is the next power of two above 3*nn-2,
+       so powers() carried up to ~4*nn ulp here, the largest of the three
+       twiddle sites. Cached since exp-031, so the extra build cost is paid
+       once per grid. */
+    w = geopow(exp(2*Pi*I/M), M-1);
     fbv = fft(w, concat(vector(2*nn-1, m, ch^(-(m-nn)^2)), vector(M-(2*nn-1), i, 0)));
     if (bd1t <= bd2t,
       bd1n=nn; bd1p=default(realprecision); bd1a=chv; bd1b=fbv; bd1w=w; bd1m=M; bd1t=bdclock++; sl=1
@@ -1453,20 +1480,32 @@ icbuild(pp, dig) = {
   return(1);
 }
 
-/* exp-059: tcrc[s] = c*mu^s built by doubling. `powers(mu,n)` would carry
-   ~n ulp; a doubling table carries ~log2(n) ulp for the same O(n) work. */
-geoseq(c, mu, n) = {
+/* exp-061: [1, mu, mu^2, ..., mu^n] -- exactly what powers(mu,n) returns,
+   but built by doubling, so the error is ~log2(n) ulp instead of ~n, and
+   with no division (the first form of geoseq divided by c once per element,
+   and at these precisions a division costs 2-3x a multiplication). */
+geopow(mu, n) = {
   local(v, half, j, blk);
-  v = vector(n);
-  if (n <= 0, return(v));
-  v[1] = c*mu;
+  if (n < 0, return(vector(0)));   /* guard: vector(n+1) would raise */
+  v = vector(n+1);
+  v[1] = 1;
+  if (n == 0, return(v));
+  v[2] = mu;
   blk = 1;
   while (blk < n,
     half = min(blk, n-blk);
-    for (j=1, half, v[blk+j] = v[blk] * v[j] / c);
+    for (j=1, half, v[blk+j+1] = v[blk+1] * v[j+1]);
     blk = blk + half;
   );
   return(v);
+}
+
+/* exp-059: tcrc[s] = c*mu^s for s = 1..n, now via geopow (no division). */
+geoseq(c, mu, n) = {
+  local(v);
+  if (n <= 0, return(vector(0)));
+  v = geopow(mu, n);
+  return(vector(n, j, c*v[j+1]));
 }
 
 staylor( w,r,samples) = {
@@ -1602,7 +1641,7 @@ staylor( w,r,samples) = {
       om = exp(2*Pi*I/samples);
       c0 = exp(-Pi*I*(1+1/samples));
       if (2^valuation(samples,2)==samples,
-        G = fft(powers(om^(-1), samples-1), exin)
+        G = fft(geopow(om^(-1), samples-1), exin)   /* exp-061 */
       ,
         G = mixdft(exin));
       if ((exmapkey != [samples, w, r, 1]) || (type(exmap) != "t_VEC"),
@@ -1614,7 +1653,7 @@ staylor( w,r,samples) = {
       mu = exp(Pi*I/samples);
       c1 = exp(-Pi*I/(2*samples));
       if (2^valuation(samples,2)==samples,
-        G = fft(powers(mu^(-1), 2*samples-1), concat(exin, vector(samples, i, 0)))
+        G = fft(geopow(mu^(-1), 2*samples-1), concat(exin, vector(samples, i, 0)))   /* exp-061 */
       ,
         G = mixdft(concat(exin, vector(samples, i, 0))));
       if ((exmapkey != [samples, w, r, 2]) || (type(exmap) != "t_VEC"),

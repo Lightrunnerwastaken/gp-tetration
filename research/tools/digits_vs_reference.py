@@ -13,13 +13,57 @@ thresholds are a low legacy of the v2 correction) and not by mutual agreement.
 from __future__ import annotations
 
 import argparse
+import ctypes
 import json
 import re as _re
 import subprocess
+import sys
 import time
 from pathlib import Path
 
 import mpmath as mp
+
+
+def pin(mask: int) -> str:
+    """Pin this process (and every gp.exe it spawns) to a fixed core set.
+
+    On a hybrid-core CPU the Windows scheduler will migrate a long-running
+    background job onto the E-cores as soon as foreground apps appear. Measured
+    on an i7-12700H, dps 300, same engine, digit-identical output: 51 s pinned
+    to the P-cores vs 85 s unpinned -- a 1.68x swing against a calibrated noise
+    threshold of 6.8%. Any timing comparison across precisions is meaningless
+    without this. Children inherit the mask, so gp.exe is covered.
+
+    0xfff = logical processors 0-11 = the six P-cores of a 12700H. Adjust for
+    other topologies; `wmic cpu get NumberOfCores,NumberOfLogicalProcessors`.
+    """
+    if not sys.platform.startswith("win"):
+        raise SystemExit("--pin is Windows-only; drop it or add a POSIX path")
+    k32 = ctypes.windll.kernel32
+    # restype MUST be set. Without it ctypes hands back the pseudo-handle as a
+    # signed 32-bit int, which widens to 0x00000000FFFFFFFF instead of
+    # 0xFFFFFFFFFFFFFFFF -- an invalid handle, so the call fails and the
+    # process silently keeps running on every core. That exact bug produced a
+    # 20-minute "pinned" measurement that was not pinned at all.
+    k32.GetCurrentProcess.restype = ctypes.c_void_p
+    k32.SetProcessAffinityMask.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
+    k32.GetProcessAffinityMask.argtypes = [ctypes.c_void_p,
+                                           ctypes.POINTER(ctypes.c_size_t),
+                                           ctypes.POINTER(ctypes.c_size_t)]
+    h = k32.GetCurrentProcess()
+    if not k32.SetProcessAffinityMask(h, mask):
+        raise SystemExit(f"--pin: SetProcessAffinityMask({mask:#x}) failed, "
+                         f"err {ctypes.get_last_error()}")
+    # Read it back. A pin that quietly does nothing is worse than no pin: it
+    # makes an untrustworthy measurement look trustworthy.
+    got, sysmask = ctypes.c_size_t(), ctypes.c_size_t()
+    if not k32.GetProcessAffinityMask(h, ctypes.byref(got), ctypes.byref(sysmask)):
+        raise SystemExit("--pin: could not read the affinity back")
+    if got.value != mask:
+        raise SystemExit(f"--pin: asked for {mask:#x}, got {got.value:#x} "
+                         f"(system mask {sysmask.value:#x}) -- refusing to "
+                         f"report timings that are not actually pinned")
+    return f"pinned to mask {mask:#x} (verified)"
 
 REPO = Path(__file__).resolve().parents[2]
 GP = r"C:\Program Files (x86)\Pari64-2-17-3\gp.exe"
@@ -87,7 +131,16 @@ def main() -> None:
     ap.add_argument("--arg", default="0.5")
     ap.add_argument("--key", default="sexp|e|0.5|1000")
     ap.add_argument("--set", action="append", default=[])
+    ap.add_argument("--pin", nargs="?", const="0xfff", default=None,
+                    help="pin to a core mask (default 0xfff = P-cores of a "
+                         "12700H). Required for any cross-precision comparison.")
+    ap.add_argument("--repeat", type=int, default=1,
+                    help="run each engine N times and report the best (the "
+                         "best run is the one least disturbed by other load)")
     args = ap.parse_args()
+
+    if args.pin is not None:
+        print(pin(int(args.pin, 0)))
 
     mp.mp.dps = 1100
     ref, proven = reference(args.key)
@@ -98,7 +151,12 @@ def main() -> None:
         for e in args.engine:
             eng = Path(e) if Path(e).is_absolute() else REPO / e
             t0 = time.time()
-            val, ms = run(eng, dps, args.base, args.arg, args.set)
+            best: tuple[str, int] | None = None
+            for _ in range(max(1, args.repeat)):
+                cand = run(eng, dps, args.base, args.arg, args.set)
+                if best is None or cand[1] < best[1]:
+                    best = cand
+            val, ms = best  # type: ignore[misc]
             got = mp.mpf(val)
             err = abs(got - ref)
             digits = float(-mp.log10(err / max(abs(ref), mp.mpf(1)))) if err else float(dps)
