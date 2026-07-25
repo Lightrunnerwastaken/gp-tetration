@@ -54,7 +54,7 @@ only verification this project accepts.
 | sexp_e(0.5), 500 tier | 497 | error vector + engine diversity (496) |
 | sexp_2(0.5), 500 tier | 497 | error vector + engine diversity |
 
-## 2. The fork: 26 gate-verified optimizations
+## 2. The fork: 27 gate-verified optimizations
 
 Every change had to pass a frozen accuracy gate (all bases, full digits,
 immutable reference values) before being kept. Measured end-to-end
@@ -73,23 +73,24 @@ Absolute times in that table are only comparable *within* one measurement
 session: the same engine that shows ~24.8 min at dps 520 above measures
 9.2 min on a later machine. Only the ratios travel.
 
-Five further keeps (2026-07-25) add a factor that grows with depth, measured
+Six further keeps (2026-07-25) add a factor that grows with depth, measured
 against the proven references on one machine in one session:
 
 | dps | before | after | speedup | true digits before/after |
 |---|---|---|---|---|
-| 300 | 85.19 s | 48.67 s | 1.750x | 295.0 / 295.0 |
-| 400 | 220.67 s | 121.09 s | 1.822x | 383.8 / 383.8 |
-| 520 | 556.30 s | 303.34 s | 1.834x | 496.9 / 496.5 |
+| 300 | 83.95 s | 42.92 s | 1.956x | 295.0 / 295.0 |
+| 400 | 216.38 s | 102.77 s | 2.106x | 383.8 / 383.8 |
+| 520 | 557.62 s | 286.81 s | 1.944x | 496.9 / 496.5 |
 
 The 0.4-digit gap at dps 520 (verified against the 972-digit reference, not the
 497-digit one) is where the two trajectories stop, not a loss: both sit above
 the calibrated floor of dps - 24 = 496, inside the 0-20 digit overshoot band
 of section 1, and the digit counts are identical at the other three tiers.
 
-They are constants, not an exponent change: the locally measured exponent is
-3.31 -> 3.02 for the 300->400 pair (grid quantization noise) and 3.53 -> 3.57
-for 400->520.
+They are constants, not an exponent change, and the locally measured exponents
+say so: 3.29 -> 3.04 for the 300->400 pair and 3.61 -> 3.91 for 400->520. The
+movement in both directions is grid-quantization noise; nothing shifted the
+exponent, which is what section 3 argues must be the case.
 
 The keeps, grouped by mechanism:
 
@@ -143,6 +144,13 @@ The keeps, grouped by mechanism:
    and the run spends a contiguous block of iterations below that, where the
    grid moved every pass, the caches were reallocated and everything was
    recomputed at full precision. Measured: 60 of 232 iterations at dps 300.
+11. **The grids are never arbitrary, so Bluestein is overkill.** Exact-length
+   DFTs went through Bluestein, which needs FFTs four to eight times the data
+   length. But the grid quantum is a power of two, so every length factors as
+   r*2^k with an odd r <= 9 -- a radix-r decimation gives r power-of-two FFTs
+   of length N/r plus N*r twiddles instead (~82k complex multiplications
+   against ~688k at the largest size). It is an exact reorganization of the
+   same sum, verified to agree with Bluestein to 1e-70 before being timed.
 
 Total asymptotic cost is unchanged (~p^4.1 in the digit count p,
 decomposing as iterations p^1.0 × grid² p^1.85 × arithmetic p^1.29);
