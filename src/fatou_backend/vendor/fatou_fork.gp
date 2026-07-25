@@ -547,10 +547,23 @@ invz0rfunc(i) = {
 }
 
 initsch(kd,myctr,myir) = {
-  local(z1,z2,y1,y2,z,myps,arp);
+  local(z1,z2,y1,y2,z,myps,arp,psold);
   z = 1.0;
   precis=precision(z);
-  myps = default(seriesprecision);
+  /* exp-060: the Schroeder walk runs until |u| <= isuperfr, and
+     log10(1/isuperfr) = precis/myps exactly -- so the file's `\ps 21` pins the
+     walk at ~precis/21 decades and, with it, a residual precision loss of the
+     same order (exp-057 removed the larger, cancellation half of it). Scaling
+     the series with the working precision buys those digits back, and the
+     shorter walk pays for the longer series build. Measured at dps 300:
+     ps 21 -> 38.45 s / 295.2 true digits, ps 38 -> 36.34 s / 301.9.
+     Capped at 64 because formalschroder is ~O(d^4). The series-truncation
+     depth is the GLOBAL seriesprecision (Ser(x) inside formalschroder), so it
+     has to be raised as well and restored on the way out -- raising only myps
+     fails with "degree > 21". */
+  psold = default(seriesprecision);
+  myps = max(psold, min(64, round(precis/8)));
+  default(seriesprecision, myps);
   if (kd==0, kd=1);
   L=fixedk(kd);
   sfunczero=0; sfunczero=-abelest(circc,0);
@@ -586,6 +599,7 @@ initsch(kd,myctr,myir) = {
     );
   );
 /*ztl = isuperf2(z0l)+0.5; */
+  default(seriesprecision, psold);   /* exp-060: restore */
   return(z);
 }
 
