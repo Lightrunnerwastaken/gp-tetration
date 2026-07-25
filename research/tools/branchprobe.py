@@ -45,6 +45,12 @@ def run(dps: int, base: str, parisize: int = 4_000_000_000, quiet: bool = True) 
     if m:
         res |= {"imin": float(m.group(1)), "tmin": float(m.group(2)),
                 "theta": int(m.group(3))}
+    m = re.search(r"directbyn=\[([^\]]*)\]", out)
+    if m:
+        res["direct_by_n"] = [int(x) for x in m.group(1).split(",")]
+    m = re.search(r"thetabyn=\[([^\]]*)\]", out)
+    if m:
+        res["theta_by_n"] = [int(x) for x in m.group(1).split(",")]
     m = re.search(r"BRPROBE anchor=([-\d.eE]+)", out)
     if m:
         res["anchor"] = m.group(1)[:40]

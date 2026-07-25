@@ -27,11 +27,16 @@ GLOBALS = """
 /* ---- branch probe counters (research/tools/make_branchprobe.py) ---- */
 brdirect=0; brup=0; brdn=0; brhorner=0; brshift=0;
 brimin=-1; brtmin=-1; brtheta=0;
+/* joint distribution of walk-step count n and branch: index = n+4, clamped */
+brnv=vector(7); brtv=vector(7);
 brreset() = { brdirect=0; brup=0; brdn=0; brhorner=0; brshift=0;
-              brimin=-1; brtmin=-1; brtheta=0; }
+              brimin=-1; brtmin=-1; brtheta=0;
+              brnv=vector(7); brtv=vector(7); }
 brreport() = {
   print("BRPROBE direct=", brdirect, " up=", brup, " dn=", brdn,
         " horner=", brhorner, " shift=", brshift);
+  print("BRPROBE directbyn=", brnv);
+  print("BRPROBE thetabyn=", brtv);
   print("BRPROBE imin=", brimin, " tmin=", brtmin, " thetacalls=", brtheta);
 }
 brnote(im, tie) = {
@@ -46,12 +51,14 @@ REP_ICABEL = "icabel(zz) = {\n  local(h, A);\n  brhorner++;"
 
 # 2) direct branch
 PAT_DIRECT = "  if ((abs(z-circc)<ircircr)||(thetamode==0),\n    y1 = icabel(z) + n;"
-REP_DIRECT = "  if ((abs(z-circc)<ircircr)||(thetamode==0),\n    brdirect++;\n    y1 = icabel(z) + n;"
+REP_DIRECT = ("  if ((abs(z-circc)<ircircr)||(thetamode==0),\n"
+              "    brdirect++; brnv[min(max(n+4,1),7)]++;\n"
+              "    y1 = icabel(z) + n;")
 
 # 3) upper theta branch: count, and record both decision margins
 PAT_UP = """    if (imag(y2)>0,
       if (swon && swidx>0 && swisfv[swidx]==1,"""
-REP_UP = """    brtheta++;
+REP_UP = """    brtheta++; brtv[min(max(n+4,1),7)]++;
     if (imag(y2)>0,
       brup++;
       if (swon && swidx>0 && swisfv[swidx]==1,"""

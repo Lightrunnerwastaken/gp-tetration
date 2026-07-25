@@ -271,7 +271,7 @@ thfunc(z,n) = {
 }
 /* taylor series function ussing thfunc which is defined by sfuncmode */
 thtaylor(n,samples) = {
-  local(s,t,x1,y,z,tot,t_est,tcrc,halfsamples,wtaylor,terms,thsc);
+  local(s,t,x1,y,z,tot,t_est,tcrc,halfsamples,wtaylor,terms,thsc,om,c0,G,cf,pw);
   if (samples==0, samples=120);  /* no matter how many sample points, the default gie series size is 200 halfsamples */
   samples = floor(samples);
   /* exp-026: quantize the theta grid (efam, n==1) to 64-steps so it stays
@@ -309,16 +309,21 @@ thtaylor(n,samples) = {
   );
   thon = 0; thidx = 0;
 
-  for (s=0,terms,
-    tot=0;
-    for (t=1,samples,
-      tot=tot+t_est[t];
-      t_est[t]=t_est[t]*conj(tcrc[t]);
-    );
-    tot=tot/samples;
-/*  if (s>=1, tot=tot*(rinv)^s );   */
-    wtaylor=wtaylor+tot*x^s;
-  );
+  /* exp-042b: replace the quadratic rotation DFT with the transform
+     staylor has used since exp-011b/020, and build the polynomial once.
+       coeff_s = (1/n) sum_t t_est[t] conj(tcrc[t])^s
+               = (1/n) (conj(c0)/om)^s G[(s%n)+1]
+     om = exp(2*Pi*I/n), c0 = exp(-Pi*I*(1+1/n)),
+     G = fft(powers(om^-1, n-1), t_est); bluedft for non-power-of-two n. */
+  om = exp(2*Pi*I/samples);
+  c0 = exp(-Pi*I*(1+1/samples));
+  if (2^valuation(samples,2)==samples,
+    G = fft(powers(om^(-1), samples-1), t_est)
+  ,
+    G = bluedft(t_est));
+  pw = powers(conj(c0)/om, terms);
+  cf = vector(terms+1, j, pw[j] * G[((j-1)%samples)+1] / samples);
+  wtaylor=Polrev(cf);
   wtaylor=precision(wtaylor,precis);
   return(wtaylor);
 }
@@ -1508,7 +1513,17 @@ loop(kc,nlim,nskip,looplim) = {
      grid (terms/digit ~9 -> ~6): product optimum near ctr*0.9 at dps
      150-300, ~16% faster with unchanged true digits. Fast bases keep
      their original radius (delicate sample/terms co-evolution). */
-  if (efam, ctr = ctr*9/10);
+  /* exp-045: re-scan of the exp-023 radius after ~10 keeps changed the
+     cost balance (exp-024/026/027/030-034/037/041b/042b). The N^2 sampling
+     term now dominates enough that a smaller radius wins despite the slower
+     rate (grid shrinks quadratically, iteration count only grows linearly).
+     Scanned with the ctrmul knob on top of the exp-023 value: an extra 0.9
+     gives 1.053x at dps 200, 1.119x at dps 300, 1.194x at dps 400 with
+     unchanged true digits -- the gain grows with depth. 0.8 was faster at
+     dps 300 but LOSES at dps 400 (grid quantization lands it on the same
+     2304 grid as 0.9 while needing 382 instead of 299 iterations), so 0.9
+     is the monotone choice. 9/10 -> 9/10 * 9/10 = 81/100. */
+  if (efam, ctr = ctr*81/100);
   if (ctrmul != 1, ctr = ctr*ctrmul);  /* scan knob, default 1 */
   if (nlim==0,  nlim=70);
   if (nskip==0, nskip=6);

@@ -39,13 +39,16 @@ dms = gettime();
 DD = %(dumpdig)d;
 fn = "%(out)s";
 write(fn, "# fatou state dump");
-write(fn, "D ", DD);
+write(fn, "D 0");
 write(fn, "dps ", precis);
 write(fn, "init_ms ", dms);
 write(fn, "icdig ", icdig);
 write(fn, "thdig ", thdig);
 write(fn, "ctr ", truncate(ctr*10^30));
-ei(z) = Str(truncate(real(z)*10^DD), " ", truncate(imag(z)*10^DD));
+/* PARI prints full-precision decimals as "1.234... E-41"; the loader
+   turns " E" into "e" and parses with mpmath. Pipe-separated so the
+   space inside the exponent form cannot split a field. */
+ei(z) = Str(real(z), "|", imag(z));
 write(fn, "circc ", ei(circc));
 write(fn, "circr ", ei(circr));
 write(fn, "sampr ", ei(circr*ctr));

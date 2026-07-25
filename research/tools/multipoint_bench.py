@@ -33,58 +33,55 @@ from flint import acb, acb_poly, arb, ctx
 
 # ---------------------------------------------------------------- state dump
 
+def _num(tok: str) -> arb:
+    """PARI decimal, possibly in its '1.23... E-41' form, as an exact arb."""
+    return arb(tok.replace(" E", "e").replace(" ", ""))
+
+
 class State:
     def __init__(self, path: Path):
         self.meta: dict[str, str] = {}
-        ct_i: list[tuple[int, int]] = []
-        sw: list[tuple[int, int, int, int]] = []
-        th: list[tuple[int, int]] = []
+        self.ct: list[tuple[str, str]] = []
+        self.sw: list[tuple[int, int, str, str]] = []
+        self.th: list[tuple[str, str]] = []
         for line in path.read_text().splitlines():
             if not line or line.startswith("#"):
                 continue
             k, _, rest = line.partition(" ")
-            f = rest.split()
+            rest = rest.strip()
             if k == "ct":
-                ct_i.append((int(f[0]), int(f[1])))
+                a, _, b = rest.partition("|")
+                self.ct.append((a, b))
             elif k == "sw":
-                sw.append((int(f[0]), int(f[1]), int(f[2]), int(f[3])))
+                n, valid, pair = rest.split(" ", 2)
+                a, _, b = pair.partition("|")
+                self.sw.append((int(n), int(valid), a, b))
             elif k == "th":
-                th.append((int(f[0]), int(f[1])))
+                a, _, b = rest.partition("|")
+                self.th.append((a, b))
             else:
-                self.meta[k] = rest.strip()
-        self.D = int(self.meta["D"])
+                self.meta[k] = rest
         self.dps = int(self.meta["dps"])
-        self.ct_int = ct_i
-        self.sw = sw
-        self.th_int = th
-        self.circc = self._pair(self.meta["circc"])
-        self.sampr = self._pair(self.meta["sampr"])
-
-    def _pair(self, s: str) -> tuple[int, int]:
-        a, b = s.split()
-        return int(a), int(b)
-
-    def scale(self) -> int:
-        return 10 ** self.D
+        self.circc = tuple(self.meta["circc"].split("|"))
+        self.sampr = tuple(self.meta["sampr"].split("|"))
 
 
-def _acb(re_i: int, im_i: int, den: int) -> acb:
-    return acb(arb(re_i) / arb(den), arb(im_i) / arb(den))
+def _acb(re_s: str, im_s: str) -> acb:
+    return acb(_num(re_s), _num(im_s))
 
 
 def build(st: State) -> tuple[acb_poly, list[acb], list[int]]:
-    den = st.scale()
-    poly = acb_poly([_acb(r, i, den) for r, i in st.ct_int])
-    circc = _acb(*st.circc, den)
+    poly = acb_poly([_acb(r, i) for r, i in st.ct])
+    circc = _acb(*st.circc)
     pts, steps = [], []
     for n, valid, r, i in st.sw:
         if not valid:
             continue
-        pts.append(_acb(r, i, den) - circc)     # ct is evaluated at (z - circc)
+        pts.append(_acb(r, i) - circc)          # ct is evaluated at (z - circc)
         steps.append(n)
-    for r, i in st.th_int:
-        z = _acb(r, i, den)
-        if z.abs_lower() == 0:
+    for r, i in st.th:
+        z = _acb(r, i)
+        if z.abs_upper() == 0:
             continue
         pts.append(z - circc)
         steps.append(9999)                       # theta batch marker
@@ -101,7 +98,11 @@ def ev_fast(poly: acb_poly, pts: list[acb]) -> list[acb]:
     return poly.evaluate(pts, algorithm="fast")
 
 
-def ev_shells(poly: acb_poly, pts: list[acb], ratio: float = 1.5) -> list[acb]:
+SHELL_RATIO = 2.0
+
+
+def ev_shells(poly: acb_poly, pts: list[acb], ratio: float = 0.0) -> list[acb]:
+    ratio = ratio or SHELL_RATIO
     """Group by |w| into geometric shells, rescale each shell to |u| ~ 1."""
     mags = [float(p.abs_lower()) for p in pts]
     lo = min(m for m in mags if m > 0)
@@ -158,8 +159,10 @@ def main() -> None:
                     help="guard bits = guard_mult * N (van der Hoeven's O(N))")
     ap.add_argument("--methods", nargs="+", default=["horner", "fast", "shells"])
     ap.add_argument("--limit-points", type=int, default=0)
+    ap.add_argument("--shell-ratio", type=float, default=2.0)
     args = ap.parse_args()
 
+    globals()["SHELL_RATIO"] = args.shell_ratio
     st = State(Path(args.state))
     ctx.prec = int((st.dps + 60) * 3.3219) + 64
     poly, pts, steps = build(st)
