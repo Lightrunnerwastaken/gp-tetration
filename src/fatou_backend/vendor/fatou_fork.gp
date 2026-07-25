@@ -32,6 +32,11 @@ swon=0; swidx=0; swkey=0; swz=0; swn=0; swvalid=0; swb=0;
 swy2=0; swy2v=0;
 /* exp-021: incremental ct-Horner state */
 icct=0; icvals=0; icA=0; ickey=0; icdct=0; icdig=60; icfull=1;
+/* exp-048: per-point degree truncation. ct's coefficients decay like
+   circr^-k, so a sample at radius rho needs only ~dig/log10(circr/rho) terms.
+   Samples are bucketed by radius (cached per grid stretch, like swz) and each
+   level keeps a truncated copy of the polynomial, rebuilt once per pass. */
+icnlev=8; swlev=0; icdl=0; icrmax=1; icdlon=0;
 /* exp-024: isuperf/isuperf2 at the raw grid point depend only on the base
    map — cache per sample index within a grid stretch (flag 1/2 = branch) */
 swisf=0; swisfv=0;
@@ -278,7 +283,16 @@ thtaylor(n,samples) = {
      unchanged for ~20-30 iterations — prerequisite for the caches below. */
   /* exp-034: theta quantization+caches for all REAL bases (complex bases
      alternate n=1/n=2 and would thrash the single-slot cache). */
-  if ((subeta==0) && (efam || (complextaylor==0)) && (n==1) && (samples>64), samples = 64*ceil(samples/64));
+  /* exp-051: exp-026 quantized only above 64, so below it the theta grid
+     moved every iteration and thfull stayed 1 -- caches reallocated and the
+     incremental path never engaged. Measured at dps 300: that was 60 of 232
+     iterations, the contiguous block thsamples 27..62. Quantize there too,
+     with a smaller step (16) so the overshoot stays small. */
+  if ((subeta==0) && (efam || (complextaylor==0)) && (n==1),
+    if (samples > 64,
+      samples = 64*ceil(samples/64)
+    ,
+      if (samples > 16, samples = 16*ceil(samples/16))));
   terms=samples-1;
   t_est    = vector (samples,i,0);
   tcrc     = vector (samples,i,0);
@@ -878,15 +892,27 @@ renormslog(ct) = {
    precision (additive update, no cancellation) against a cached per-sample
    value. Full recompute whenever the grid changes (ickey mismatch). */
 icabel(zz) = {
-  local(h, A);
+  local(h, A, lv);
   if (swon && swidx>0,
+    /* exp-048: the sample's radius level is a property of the cached walk
+       endpoint, so derive it once per grid stretch. */
+    lv = 0;
+    if (icdlon,
+      lv = swlev[swidx];
+      if (lv == 0,
+        lv = 1 + floor(icnlev * abs(zz-circc) / icrmax);
+        if (lv < 1, lv = 1);
+        if (lv > icnlev, lv = icnlev);
+        swlev[swidx] = lv;
+      );
+    );
     if (icfull,
       A = rlnlm*(log(I*(zz-L))-Pi*I/2) + rlnlm2*(log(-I*(zz-L2))+Pi*I/2) + sfunczero;
-      h = subst(ct, x, (zz-circc));
+      h = subst(if (lv, icdl[lv], ct), x, (zz-circc));
       icA[swidx] = A;
       icvals[swidx] = h;
     ,
-      h = icvals[swidx] + subst(icdct, x, precision(zz-circc, icdig));
+      h = icvals[swidx] + subst(if (lv, icdl[lv], icdct), x, precision(zz-circc, icdig));
       icvals[swidx] = h;
       A = icA[swidx];
     );
@@ -1302,6 +1328,40 @@ bluedft(t) = {
   vector(nn, k, chv[k] * pp[(k-1)+(nn-1)+1] / M);
 }
 
+/* exp-048: build one truncated copy of pp per radius level.
+   Truncation index from the actual coefficient magnitudes via exponent()
+   (binary exponents, no logs): keep term k while
+       exponent(c_k) + k*log2(rho)  >=  exponent(max|c|) - dig*log2(10) - 16.
+   The level radius is the UPPER edge of the bucket, so every sample assigned
+   to that level is covered. */
+icbuild(pp, dig) = {
+  /* NOTE: the loop variable must NOT be called k -- k is the base parameter
+     of this engine (fs(z) = e^z - 1 + k), and using it here silently defeats
+     the truncation. */
+  local(v, n, lg2, tol2, j, lr2, kk, ii, mx);
+  icdlon = 0;
+  if (type(pp) != "t_POL", return(0));
+  v = Vecrev(pp);
+  n = #v;
+  if (n < 64, return(0));
+  lg2 = vector(n, kk, if (v[kk]==0, -1000000, exponent(v[kk])));
+  mx = vecmax(lg2);
+  if (mx <= -1000000, return(0));
+  tol2 = mx - dig*3.3219280948873623 - 16;
+  icdl = vector(icnlev);
+  for (j=1, icnlev,
+    lr2 = log(icrmax*j/icnlev)/log(2);
+    kk = n;
+    while ((kk > 1) && (lg2[kk] + (kk-1)*lr2 < tol2), kk--);
+    /* build the truncation explicitly from the coefficient vector: the
+       polynomial Euclidean quotient does not truncate a t_REAL polynomial
+       the way one expects. */
+    icdl[j] = if (kk >= n, pp, Polrev(vector(kk, ii, v[ii])));
+  );
+  icdlon = 1;
+  return(1);
+}
+
 staylor( w,r,samples) = {
   local(rinv,s,t,x1,y,y0,y1,y2,st,z,tot,t_est,tcrc,halfsamples,wtaylor,terms,om,c0,mu,c1,G,coeffs);
   if (samples==0, samples=240);  /* no matter how many sample points, the default gie series size is 200 halfsamples */
@@ -1350,6 +1410,7 @@ staylor( w,r,samples) = {
       swvalid = vector(samples);
       swisf = vector(samples);
       swisfv = vector(samples);
+      swlev = vector(samples);   /* exp-048: per-sample radius level */
       swy2 = vector(samples);
       swy2v = vector(samples);
     );
@@ -1373,6 +1434,9 @@ staylor( w,r,samples) = {
     );
     ickey = [samples, w, r];
     icct = ct;
+    /* exp-048: (re)build the per-level truncations for this pass */
+    icrmax = r;
+    icbuild(if (icfull, ct, icdct), if (icfull, precis, icdig));
   );
   if (complextaylor,
     for(s=1, samples,

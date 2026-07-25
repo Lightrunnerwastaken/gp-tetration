@@ -31,7 +31,31 @@ PATCHES: list[tuple[str, str]] = [
     # globals
     ("quietmode=0;\n/* I added || (real(Period)>47)",
      "quietmode=0;\npfsmp=0; pfext=0; pfa=0; pfb=0; pftth=0; pfsta=0; pft0=0; pfs0=0;\n"
+     "pfth1=0; pfth2=0; pfc=0;\n"
      "/* I added || (real(Period)>47)"),
+    # thtaylor: split the thfunc sampling loop from the extraction
+    ("""  for(s=1, samples,
+    x1 = -1 + -1/(samples) + (2*s/samples); /* -Pi to Pi */""",
+     """  pfc=getabstime();
+  for(s=1, samples,
+    x1 = -1 + -1/(samples) + (2*s/samples); /* -Pi to Pi */"""),
+    ("""    t_est[s]= thfunc(tcrc[s],n);
+  );
+  thon = 0; thidx = 0;""",
+     """    t_est[s]= thfunc(tcrc[s],n);
+  );
+  pfth1=pfth1+(getabstime()-pfc);
+  thon = 0; thidx = 0;
+  pfc=getabstime();"""),
+    ("""  wtaylor=Polrev(cf);
+  wtaylor=precision(wtaylor,precis);
+  return(wtaylor);
+}""",
+     """  wtaylor=Polrev(cf);
+  wtaylor=precision(wtaylor,precis);
+  pfth2=pfth2+(getabstime()-pfc);
+  return(wtaylor);
+}"""),
     # staylor: sampling loop
     ("""  if (complextaylor,
     for(s=1, samples,
@@ -80,7 +104,8 @@ PATCHES: list[tuple[str, str]] = [
           " ths=", thsamples, " dps=", default(realprecision),
           " icdig=", icdig, " tth=", pftth, " tsmp=", pfsmp,
           " text=", pfext, " tsta=", pfsta,
-          " icfull=", icfull, " exinc=", exinc, " thfull=", thfull);
+          " icfull=", icfull, " exinc=", exinc, " thfull=", thfull,
+          " thsmp=", pfth1, " thext=", pfth2);
     rr=renormr(ct);
     relast=re;"""),
 ]
