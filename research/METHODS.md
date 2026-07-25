@@ -253,6 +253,33 @@ The keeps, grouped by mechanism:
    of length N/r plus N*r twiddles instead (~82k complex multiplications
    against ~688k at the largest size). It is an exact reorganization of the
    same sum, verified to agree with Bluestein to 1e-70 before being timed.
+   **That verification was insufficient** -- see below.
+
+**A correctness fix, not a speedup (exp-061).** Every twiddle/root table in
+the fork was built with PARI's `powers()`, i.e. by repeated multiplication,
+which accumulates ~n ulp. Seven call sites did this, four of them on the main
+power-of-two path, including one (`pw` in `thtaylor`) that is not an FFT input
+at all but multiplies the output coefficients one by one. A doubling build
+(`geopow`) produces the same vector with ~log2(n) ulp; measured against
+high-precision truth at precis 404 it is 3.3× more accurate at n=192 and 34×
+at n=4608, the advantage growing in n as n vs log2(n) predicts.
+
+Why item 14's check could not see it: it compared the new radix-r DFT against
+Bluestein, and *both* built their twiddles with `powers()`. The two agreed to
+1e-70 on a common-mode error, and that agreement was read as proof. A
+verification whose reference shares the suspect component verifies nothing.
+
+The fix is free rather than costly because `mixdft` now caches its tables
+(they depend only on grid size and precision, but were rebuilt every call):
+151 cache hits against 10 misses per run at dps 300. Measured paired and
+pinned, best of two: dps 300 46.97 s → 46.47 s, dps 400 120.45 s → 120.25 s,
+true digits unchanged at 302.2 and 398.0.
+
+The transform layer now has direct tests (`tests/test_transform_layer.py`):
+against a naive O(n²) DFT, against high-precision truth, and — the guard that
+actually catches this defect class — a source check that no live `powers()`
+call remains. The numeric tests cannot catch it: at their dps-60 working
+precision a 288-ulp error is ~3e-65 against a 1e-45 tolerance.
 
 Total asymptotic cost is unchanged (~p^4.1 in the digit count p,
 decomposing as iterations p^1.0 × grid² p^1.85 × arithmetic p^1.29);

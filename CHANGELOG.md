@@ -14,6 +14,12 @@ base atlas.
   DFT, per-level degree truncation, precision laddering, contour-radius tuning.
 - Every keep had to pass a **frozen accuracy gate** (`research/gate.py`, immutable
   together with `research/reference/`) across all supported bases at full digits.
+- All DFT twiddle tables are built by doubling (~log₂(n) ulp) rather than by
+  repeated multiplication (~n ulp). Measured against high-precision truth at
+  precis 404, the doubling build is 3.3× better at n=192 and 34× at n=4608,
+  with the advantage growing in n. `mixdft` caches its tables (151 hits / 10
+  misses per run at dps 300), which is what makes the accuracy free — the
+  change is clock-neutral to within 0.9% at dps 300 and 400.
 - Two of the keeps remove *precision loss* rather than work, so the same `dps`
   now yields more true digits than before:
 
@@ -34,8 +40,14 @@ base atlas.
   via the error-vector method: `sexp_e(0.5)` to **972 digits**, plus 698/497
   tiers and `sexp_2(0.5)` to 497 (error vector **and** engine diversity).
 - `research/tools/digits_vs_reference.py` measures true digits against those
-  references and refuses to report agreement past the proven ceiling.
-- Tests: 53 passing, 4 skipped (`python -m pytest tests/`).
+  references and refuses to report agreement past the proven ceiling. Its
+  `--pin` option pins the run to a fixed core set and verifies the mask took
+  effect, refusing to report timings it could not actually pin.
+- The DFT/twiddle layer is tested directly (`tests/test_transform_layer.py`):
+  against a naive O(n²) DFT, against high-precision truth for the power
+  tables, and by a source check that no `powers()` call survives at a twiddle
+  site — the construction that carried ~n ulp instead of ~log₂(n).
+- Tests: 61 passing, 4 skipped (`python -m pytest tests/`).
 
 ### Base atlas
 
