@@ -334,7 +334,7 @@ thtaylor(n,samples) = {
   if (2^valuation(samples,2)==samples,
     G = fft(powers(om^(-1), samples-1), t_est)
   ,
-    G = bluedft(t_est));
+    G = mixdft(t_est));
   pw = powers(conj(c0)/om, terms);
   cf = vector(terms+1, j, pw[j] * G[((j-1)%samples)+1] / samples);
   wtaylor=Polrev(cf);
@@ -1298,6 +1298,32 @@ invabel_sexp(z) = {
    are not powers of 2. Verified vs naive rotation DFT to precision floor
    (research/tools/bluestein_proto.gp; N=12/100/1000/2100, ~53x faster
    than rotation at N=2100). */
+/* exp-056: exact-N DFT for N = r*2^k with small odd r, by radix-r decimation
+   into r power-of-two FFTs plus twiddles. Same convention as bluedft:
+   X[k] = sum_j t[j] * omega^((j-1)(k-1)),  omega = exp(-2*Pi*I/N).
+   Falls back to bluedft for anything that does not factor that way. */
+mixdft(t) = {
+  local(nn, m, r, w, sub, s, a, j, omp, res, idx, acc);
+  nn = #t;
+  m = 2^valuation(nn, 2);
+  r = nn/m;
+  if ((r > 9) || (m < 8), return(bluedft(t)));
+  w = powers(exp(-2*Pi*I/m), m-1);
+  sub = vector(r, s, fft(w, vector(m, a, t[(a-1)*r + s])));
+  if (r == 1, return(sub[1]));
+  omp = powers(exp(-2*Pi*I/nn), nn-1);
+  res = vector(nn);
+  for (j=1, nn,
+    idx = ((j-1) % m) + 1;
+    acc = sub[1][idx];
+    for (s=2, r,
+      acc = acc + omp[(((j-1)*(s-1)) % nn) + 1] * sub[s][idx];
+    );
+    res[j] = acc;
+  );
+  return(res);
+}
+
 bluedft(t) = {
   local(nn, ch, M, w, fa, pp, sl, chv, fbv);
   nn = length(t);
@@ -1496,7 +1522,7 @@ staylor( w,r,samples) = {
       if (2^valuation(samples,2)==samples,
         G = fft(powers(om^(-1), samples-1), exin)
       ,
-        G = bluedft(exin));
+        G = mixdft(exin));
       if ((exmapkey != [samples, w, r, 1]) || (type(exmap) != "t_VEC"),
         exmap = vector(terms, s, (rinv^s/samples) * conj(c0)^s * om^(-s));
         exmapkey = [samples, w, r, 1];
@@ -1508,7 +1534,7 @@ staylor( w,r,samples) = {
       if (2^valuation(samples,2)==samples,
         G = fft(powers(mu^(-1), 2*samples-1), concat(exin, vector(samples, i, 0)))
       ,
-        G = bluedft(concat(exin, vector(samples, i, 0))));
+        G = mixdft(concat(exin, vector(samples, i, 0))));
       if ((exmapkey != [samples, w, r, 2]) || (type(exmap) != "t_VEC"),
         exmap = vector(terms, s, conj(c1)^s * mu^(-s));
         exmapkey = [samples, w, r, 2];
