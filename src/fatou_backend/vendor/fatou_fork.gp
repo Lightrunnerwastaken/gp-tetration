@@ -396,7 +396,32 @@ formalschroder(fx,n) = {
   return(Pol(f1t));
 }
 isuperf(z) = {
-  local(n,y,y1);
+  local(n,y,y1,u,u1);
+  /* exp-057: iterate the OFFSET u = y - L instead of y. The old form walked y
+     to within isuperfr = 10^(-precis/21) of L and only then formed y-L, which
+     cancels log10(1/isuperfr) digits (measured: 21.4 at dps 400) -- that
+     cancellation is the engine's whole calibration loss. In u-coordinates it
+     never happens, using exp(L) = lambda1 = L-k+1:
+         fs(L+u)   - L = lambda1*expm1(u)
+         finv(L+u) - L = log1p(u/lambda1)
+     x2mode has a different finv (sqrt branch) and keeps the original path. */
+  if (x2mode==0,
+    u = z - L;
+    n = 0;
+    if (repelling,
+      while (abs(u)>isuperfr,
+        u1 = log1p(u/lambda1);
+        if (abs(u1+2*Pi*I)<abs(u1), u = u1+2*Pi*I, u = u1);
+        n++;
+      );
+    ,
+      while (abs(u)>isuperfr,
+        u = lambda1*expm1(u);
+        n--;
+      );
+    );
+    y = subst(fsl,x,u);
+  ,
   y=z;
   n=0;
   if (repelling,
@@ -412,13 +437,24 @@ isuperf(z) = {
     );
   );
   y = subst(fsl,x,y-L);
+  );
   y = log(y)*rlnlm + n;
   while (abs(imag(y))>abs(imag(y+Period)),y=y+Period);
   while (abs(imag(y))>abs(imag(y-Period)),y=y-Period);
   return(y);
 }
 isuperf2(z) = {
-  local(n,y);
+  local(n,y,u);
+  /* exp-057: same offset iteration at the lower fixed point, lambda2 = L2-k+1 */
+  if (x2mode==0,
+    u = z - L2;
+    n = 0;
+    while (abs(u)>isuperfr2,
+      u = log1p(u/lambda2);
+      n++;
+    );
+    y = subst(fsl2,x,u);
+  ,
   y=z;
   n=0;
   while (abs(y-L2)>isuperfr2,
@@ -426,6 +462,7 @@ isuperf2(z) = {
     n++;
   );
   y = subst(fsl2,x,y-L2);
+  );
   y = log(y)*rlnlm2 + n;
   while (abs(imag(y))>abs(imag(y+Period2)),y=y+Period2);
   while (abs(imag(y))>abs(imag(y-Period2)),y=y-Period2);
