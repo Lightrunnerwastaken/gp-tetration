@@ -16,7 +16,7 @@ follow them; on request we will relicense our derivative or remove the
 files.
 
 `fatou_fork.gp` is a **derivative work** of `fatou.gp`: the same engine
-with this project's 21 gate-verified performance optimizations (see
+with this project's 30 gate-verified performance optimizations (see
 `research/METHODS.md` §2). The underlying code remains © Sheldon
 Levenstein; the modifications are © 2026 Janis Justus and are offered
 under the repository's MIT license to the extent they are separable —

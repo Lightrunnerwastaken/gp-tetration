@@ -13,7 +13,10 @@ base atlas.
   reduced precision, FFT/Bluestein extraction on exact-size grids, radix-r mixed
   DFT, per-level degree truncation, precision laddering, contour-radius tuning.
 - Every keep had to pass a **frozen accuracy gate** (`research/gate.py`, immutable
-  together with `research/reference/`) across all supported bases at full digits.
+  together with `research/reference/`) — eleven checks over six real and complex
+  bases plus three roundtrips. Thresholds are per-base and calibrated against
+  the unmodified original, not uniformly "full digits"; the base-e groups sit at
+  ~59 digits because that is what the engine truly delivers there.
 - All DFT twiddle tables are built by doubling (~log₂(n) ulp) rather than by
   repeated multiplication (~n ulp). Measured against high-precision truth at
   precis 404, the doubling build is 3.3× better at n=192 and 34× at n=4608,
@@ -47,7 +50,7 @@ base atlas.
   against a naive O(n²) DFT, against high-precision truth for the power
   tables, and by a source check that no `powers()` call survives at a twiddle
   site — the construction that carried ~n ulp instead of ~log₂(n).
-- Tests: 61 passing, 4 skipped (`python -m pytest tests/`).
+- Tests: 69 passing, 4 skipped (`python -m pytest tests/`).
 
 ### Base atlas
 

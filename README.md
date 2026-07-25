@@ -14,15 +14,25 @@ persistent walk/Schröder caches, incremental Taylor/theta/extraction updates
 at reduced precision, FFT/Bluestein extraction on exact-size grids, precision
 laddering, contour-radius tuning, and two changes that remove precision loss
 rather than work (so the same `dps` now yields more true digits than it used
-to). Every change had to pass a frozen accuracy gate (all bases, full digits)
-before being kept; methods, measurements and the negative results (what did
-*not* work, and why) are documented in `research/METHODS.md`.
+to). Every change had to pass a frozen accuracy gate before being kept —
+eleven checks across six real and complex bases, with per-base thresholds
+calibrated once against the unmodified original engine. Those thresholds are
+deliberately *not* uniformly "full digits": the base-e groups require ~59
+digits against 80- and 200-digit references, because ~64 is what the engine
+truly delivers there (see `research/METHODS.md` §1). Methods, measurements and
+the negative results (what did *not* work, and why) are documented in
+`research/METHODS.md`.
 
 | target (base e) | true digits | original | fork |
 |---|---|---|---|
 | dps 300 | 302 | ~27 min | **~36 s** |
 | dps 520 | 509 | ~5.4 h | **~4 min** |
-| dps 1020 | ≥972 | (memory crash) | **~1.7 h** |
+| dps 1020 | ≥972 | (memory crash) | not re-measured¹ |
+
+¹ The dps-1020 tier completes (it crashed the original engine), but the one
+timing taken for it was contaminated and is discarded — see the
+measurement-hygiene note in `research/METHODS.md` §2. A clean number needs a
+quiet, core-pinned machine and has not been produced.
 
 Each speedup factor is from paired runs, but the two factors were measured in
 different sessions, so read the `original` column as an order of magnitude
@@ -43,11 +53,15 @@ for the deep tiers, additionally by engine diversity (fork vs. original):
 **3. A base atlas: tetration for any base from one anchor.**
 `fatou_backend.basechange` implements the base-change ladder: after a single
 base-e setup, `sexp_anchor` / `slog_anchor` evaluate tetration for *any* base
-via a small Fourier-mode table (`research/reference/phi_modes.json`,
-on-demand, ~3 KB per base, first request ≈ 0.2 s):
+via a small Fourier-mode table (shipped with the package as
+`fatou_backend/data/phi_modes.json`; bases computed on demand are cached in
+`~/.cache/fatou_backend/`, ~3 KB each):
 
 - validated against the proven references: ~1e-24 absolute (k=20 head,
   dps-60 table); ~1e-37 with the k=40/dps-113 table; scales further
+- bases 2 and 3 ship in the table and answer in ~ms; any other base needs a
+  one-off mode-table build first (a full base-b engine init, so seconds to
+  minutes depending on `dps`), after which it is cached
 - round-trips `slog(sexp(y))` consistent to ~1e-52
 - certified-enclosure prototype (ball arithmetic) in
   `research/tools/m54_cert_proto.py`
@@ -80,7 +94,7 @@ mp.mp.dps = 320          # mpmath's global precision controls how values PRINT
 gp = FatouGP(dps=300, fatou_gp="fork")   # the optimized engine, ~30x faster
 v = gp.sexp(2, mp.mpf("0.5"))            # direct engine call (base 2)
 print(mp.nstr(v.real, 285))              # ~0.95*dps true digits
-basechange.sexp_anchor(gp, 3, "0.5")     # base 3 via the e-anchor, ~ms
+basechange.sexp_anchor(gp, 3, "0.5")     # base 3: shipped in the table, ~ms
 ```
 
 - **Engine selection**: `fatou_gp="fork"` (optimized) or `"original"`
@@ -116,7 +130,7 @@ basechange.sexp_anchor(gp, 3, "0.5")     # base 3 via the e-anchor, ~ms
   sexp(0.5)
   ```
 
-Tests: `python -m pytest tests/` (61 tests, includes atlas validation
+Tests: `python -m pytest tests/` (69 tests, includes atlas validation
 against the proven references; set `FATOU_BACKEND_RUN_SLOW=1` for the
 slow gate block).
 

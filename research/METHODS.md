@@ -19,7 +19,11 @@ hundreds of digits). All "proven digits" figures use such pairs.
 **Engine diversity.** For the 500-digit tiers the fork was additionally
 checked against the *unmodified original* `fatou.gp` at full depth —
 two different code paths agreeing to 495+ digits is the strongest
-practical proof that the fork's 21 optimizations did not bend accuracy.
+practical proof that the fork's optimizations did not bend accuracy. Note the
+scope: that comparison was run against the 10-keep engine of the time, so it
+does not by itself cover the later keeps. What covers those is the frozen gate
+after each one, plus `tests/test_fork_engine.py`, which re-runs the diversity
+comparison (bases e, 2, 1.2, 1+I) against the current fork on every test run.
 
 **Calibration law.** True correct digits ≈ `precis − (precis − 4.7)/21`,
 where `precis` is PARI's actual working precision (word-quantized: dps 300
@@ -96,9 +100,15 @@ only verification this project accepts.
 
 ## 2. The fork: 30 gate-verified optimizations
 
-Every change had to pass a frozen accuracy gate (all bases, full digits,
-immutable reference values) before being kept. Measured end-to-end
-(same machine, base e):
+Every change had to pass a frozen accuracy gate (eleven checks over six real
+and complex bases plus three roundtrips, against immutable reference values)
+before being kept. The per-base thresholds were calibrated once against the
+unmodified original, so they are *not* uniformly "full digits": the base-e
+groups require 58.9 and 59.2 digits against 80- and 200-digit references,
+because ~64 digits is what the engine actually delivers for base e at those
+settings after the v2 reference correction. Base 2 at dps 200 requires 189.
+
+Measured end-to-end (same machine, base e):
 
 | target | true digits | original | fork | speedup |
 |---|---|---|---|---|
@@ -155,9 +165,10 @@ fixed *digit* target is larger again than the fixed-dps ratio: the dps-520 run
 that used to deliver 497 digits now delivers 509.
 
 The 0.4-digit gap at dps 520 (verified against the 972-digit reference, not the
-497-digit one) is where the two trajectories stop, not a loss: both sit above
-the calibrated floor of dps - 24 = 496, inside the 0-20 digit overshoot band
-of section 1, and the digit counts are identical at the other three tiers.
+497-digit one) is where the two trajectories stop, not a loss: the digit counts
+are identical at the other three tiers, and both sit above the measured floor
+for that tier. (This paragraph previously justified the gap against
+`dps - 24 = 496`; that rule is retired -- see section 1.)
 
 They are constants, not an exponent change, and the locally measured exponents
 say so. From the pinned pair above, 300->400: **3.31 before, 3.24 after** —

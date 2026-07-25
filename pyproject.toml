@@ -9,6 +9,24 @@ description = "Python wrapper around Sheldonison's fatou.gp tetration engine"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = ["mpmath>=1.3"]
+authors = [{ name = "Janis Justus" }]
+# MIT with carve-outs: the two vendored .gp engines are third-party/derivative
+# work by Sheldon Levenstein, and papers/ is all-rights-reserved. LICENSE states
+# both; it ships in the wheel so the carve-out travels with the package.
+license = { file = "LICENSE" }
+keywords = ["tetration", "kneser", "pari-gp", "arbitrary-precision", "sexp", "slog"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+
+# python-flint is only needed by the certification tools in research/tools/.
+[project.optional-dependencies]
+cert = ["python-flint>=0.6"]
 
 [project.urls]
 Repository = "https://github.com/Lightrunnerwastaken/gp-tetration"
@@ -31,4 +49,5 @@ fatou_backend = [
     # runtime data for the base atlas -- without it a non-editable install
     # ships a library whose advertised feature cannot find its table
     "data/phi_modes.json",
+    "py.typed",
 ]
