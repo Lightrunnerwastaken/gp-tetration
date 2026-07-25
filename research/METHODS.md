@@ -44,6 +44,27 @@ atlas certification, which uses it at dps 60, stays safe (36 claimed against
 ~74 real) — but it **over-claims by 23 digits at dps 1020** and must not be
 used to size a deep run.
 
+**The law above describes the engine up to exp-056.** Two later keeps changed
+it: exp-057 removed the cancellation itself (offset iteration in `isuperf`),
+and exp-060 replaced the file's fixed `\ps 21` by
+`myps = max(seriesprecision, min(64, round(precis/8)))`, so the denominator is
+no longer a constant. The closed form has **not** been re-derived for the
+shipped engine; use the measured table:
+
+| dps | true digits, exp-056 engine | true digits, shipped engine |
+|---|---|---|
+| 300 | 295.0 | **302.2** |
+| 400 | 383.8 | **398.0** |
+| 520 | 496.9 | **508.9** |
+| 1020 | 973.0 | ≥972 (reference exhausted) |
+
+Conservative rule for sizing a run: **true digits ≥ 0.95 · dps**, verified at
+dps 300/400/520. At dps 1020 the run saturates the 972-digit proven reference,
+so the calibration there is not measurable with the current ladder — the entry
+is a floor, not a measurement. `research/tools/digits_vs_reference.py` enforces
+that ceiling and reports `>=972 (reference exhausted)` rather than the raw
+agreement, which is the number an unbounded comparison would print.
+
 Measured convergence rates: base e ≈ 2.05 digits/iteration, base 2 ≈ 1.27.
 
 Every entry in `values.json` records its full provenance in the meta
@@ -92,24 +113,46 @@ Absolute times in that table are only comparable *within* one measurement
 session: the same engine that shows ~24.8 min at dps 520 above measures
 9.2 min on a later machine. Only the ratios travel.
 
-Nine further keeps (2026-07-25) add a factor that grows with depth, measured
-against the proven references on one machine in one session:
+**Measurement hygiene (measured, not assumed).** On a hybrid-core CPU the
+comparison can break even *within* a session. On an i7-12700H (6 P-cores +
+8 E-cores) the same engine and input measured
 
-| dps | before | after | speedup | true digits before/after |
+| run | dps 300 |
+|---|---|
+| pinned to P-cores (`ProcessorAffinity = 0xFFF`) | 51 s |
+| left to the Windows scheduler | 85 s |
+
+— a **1.68× swing from core placement alone**, digit-identical, and it appears
+when foreground applications start and push a long-running background job onto
+the E-cores. A further ~1.4× drift accumulated over a day of sustained load
+(thermal), so a morning number and an evening number of the same engine differ
+by ~2.3×. Both effects cancel in a *paired* ratio only if both runs are pinned
+and back-to-back; a single unpinned run at one precision compared against an
+earlier run at another precision measures the scheduler, not the algorithm.
+Every speedup ratio quoted here is from paired runs; the depth-scaling exponent
+is quoted only from pinned pairs.
+
+Nine further keeps (2026-07-25) add a roughly constant ~2.3×, measured against
+the proven references, each row a paired back-to-back run of both engines:
+
+| dps | before (b0ecd1f) | after | speedup | true digits before/after |
 |---|---|---|---|---|
-| 300 | 84.64 s | 36.25 s | 2.335x | 295.0 / **302.2** |
-| 400 | 219.31 s | 92.62 s | 2.368x | 383.8 / **398.0** |
-| 520 | 554.00 s | 242.84 s | 2.281x | 496.9 / **508.9** |
+| 300 | 84.64 s | 36.25 s | 2.34× | 295.0 / **302.2** |
+| 400 | 219.31 s | 92.62 s | 2.37× | 383.8 / **398.0** |
+| 520 | 554.00 s | 242.84 s | 2.28× | 496.9 / **508.9** |
+
+Re-verified later the same day on a slower machine state, both engines pinned
+to P-cores — the absolute times move by ~1.4×, the ratio does not:
+
+| dps | before | after | speedup | true digits |
+|---|---|---|---|---|
+| 300 | 116.28 s | 51.47 s | 2.26× | 295.0 / 302.2 |
+| 400 | 301.67 s | 130.64 s | 2.31× | 383.8 / 398.0 |
 
 The digit column moves because two of these keeps removed precision losses
-rather than operations, so the gain at a fixed *digit* target is larger again
-than the fixed-dps ratio: the dps-520 run that used to deliver 497 digits now
-delivers 509.
-
-The digit column moves because the last of these keeps removed a cancellation
-rather than an operation (see section 1): at dps 400 the same run now carries
-4 more true digits than before, so the speedup at a fixed *digit* target is
-larger than the table's fixed-dps ratio.
+rather than operations (exp-057, exp-060; see section 1), so the gain at a
+fixed *digit* target is larger again than the fixed-dps ratio: the dps-520 run
+that used to deliver 497 digits now delivers 509.
 
 The 0.4-digit gap at dps 520 (verified against the 972-digit reference, not the
 497-digit one) is where the two trajectories stop, not a loss: both sit above
@@ -117,9 +160,22 @@ the calibrated floor of dps - 24 = 496, inside the 0-20 digit overshoot band
 of section 1, and the digit counts are identical at the other three tiers.
 
 They are constants, not an exponent change, and the locally measured exponents
-say so: 3.29 -> 3.04 for the 300->400 pair and 3.61 -> 3.91 for 400->520. The
-movement in both directions is grid-quantization noise; nothing shifted the
-exponent, which is what section 3 argues must be the case.
+say so. From the pinned pair above, 300->400: **3.31 before, 3.24 after** —
+and the unpinned morning pair independently gives 3.31 -> 3.26. The 400->520
+pair moves the other way (3.53 -> 3.67). The movement in both directions is
+grid-quantization noise; nothing shifted the exponent, which is what section 3
+argues must be the case.
+
+**The 520->1020 pair, where the 4.13 figure comes from, has not been
+re-measured.** One attempt was made (2026-07-25) and is discarded: the dps-1020
+run was unpinned and executed late in a day of sustained load, while the
+dps-520 number it would have been divided by was recorded hours earlier under a
+faster machine state. It yields 4.81, but the same contamination inflates the
+*300->400* exponent from 3.24 to 3.54 when measured unpinned under load, so the
+excess is the scheduler, not the algorithm. A usable number needs both tiers
+pinned and back-to-back on a quiet machine (~2.5 h); until then the honest
+statement is that the exponent is unchanged at the tiers that were measured
+properly, and unmeasured at 1020.
 
 The keeps, grouped by mechanism:
 

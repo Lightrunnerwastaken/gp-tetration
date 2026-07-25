@@ -27,6 +27,7 @@ research/tools/fatou_profile*.gp
 
 # generated engine variants / profiling copies (rebuilt by research/tools/make_*.py)
 research/tools/_*.gp
+research/tools/_*.txt
 research/tools/fatou_branchprobe.gp
 research/tools/state_*.txt
 failed-approaches.md
@@ -38,3 +39,14 @@ AGENTS.md
 brain/
 experiments/
 journal/
+
+# agent/assistant scaffolding — local tooling, not part of the project
+.claude/
+.kern/
+.mcp.json
+CLAUDE.md
+KERN-INSTALL.md
+kern
+kern.cmd
+kern.sh
+skills/

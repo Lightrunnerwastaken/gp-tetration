@@ -7,20 +7,28 @@ underlying construction and original code goes to him.
 
 ## What this adds on top of fatou.gp
 
-**1. An optimized engine fork (~13× faster at high precision).**
+**1. An optimized engine fork (~13× faster at high precision, and a further
+~2.3× from the 2026-07-25 round).**
 30 gate-verified optimizations (`src/fatou_backend/vendor/fatou_fork.gp`):
 persistent walk/Schröder caches, incremental Taylor/theta/extraction updates
 at reduced precision, FFT/Bluestein extraction on exact-size grids, precision
-laddering, contour-radius tuning. Every change had to pass a frozen accuracy
-gate (all bases, full digits) before being kept; methods, measurements and
-the negative results (what did *not* work, and why) are documented in
-`research/METHODS.md`.
+laddering, contour-radius tuning, and two changes that remove precision loss
+rather than work (so the same `dps` now yields more true digits than it used
+to). Every change had to pass a frozen accuracy gate (all bases, full digits)
+before being kept; methods, measurements and the negative results (what did
+*not* work, and why) are documented in `research/METHODS.md`.
 
 | target (base e) | true digits | original | fork |
 |---|---|---|---|
-| dps 300 | 294 | ~27 min | **~3 min** |
-| dps 520 | 495 | ~5.4 h | **~25 min** |
-| dps 1020 | 973 | (memory crash) | **~6.7 h** |
+| dps 300 | 302 | ~27 min | **~36 s** |
+| dps 520 | 509 | ~5.4 h | **~4 min** |
+| dps 1020 | ≥972 | (memory crash) | **~1.7 h** |
+
+Each speedup factor is from paired runs, but the two factors were measured in
+different sessions, so read the `original` column as an order of magnitude
+rather than a ratio you can divide. Absolute timings on this workload are
+sensitive to CPU core placement — see the measurement-hygiene note in
+`research/METHODS.md` before reproducing them.
 
 **2. Reference values with *proven* error bounds.**
 `research/reference/values.json` contains sexp values whose accuracy is
@@ -66,7 +74,7 @@ from fatou_backend.gp_backend import FatouGP
 from fatou_backend import basechange
 import mpmath as mp
 
-gp = FatouGP(dps=300, fatou_gp="fork")   # the optimized engine, ~13x faster
+gp = FatouGP(dps=300, fatou_gp="fork")   # the optimized engine, ~30x faster
 gp.sexp(2, mp.mpf("0.5"))                 # direct engine call (base 2)
 basechange.sexp_anchor(gp, 3, "0.5")     # any base via the e-anchor, ~ms
 ```
@@ -74,8 +82,11 @@ basechange.sexp_anchor(gp, 3, "0.5")     # any base via the e-anchor, ~ms
 - **Engine selection**: `fatou_gp="fork"` (optimized) or `"original"`
   (unmodified fatou.gp); a path or `FATOU_GP_FILE` also works; default is
   the vendored original.
-- **Precision**: set `dps` and expect ~`dps − 24` true digits (measured
-  calibration law, see `research/METHODS.md`). The defaults fully converge
+- **Precision**: set `dps` and expect at least `0.95 · dps` true digits —
+  measured at dps 300/400/520, where the engine actually delivers 302 / 398 /
+  509. (The older `dps − 24` rule is no longer correct for this engine: it
+  under-promises below dps 500 and over-promises above it. See the calibration
+  section of `research/METHODS.md`.) The defaults fully converge
   at any `dps` on both engines — a plain `FatouGP(dps=...)` call reproduces
   the published reference values; check yourself with
   `python research/tools/verify_reference.py --key "sexp|e|0.5|500"`.

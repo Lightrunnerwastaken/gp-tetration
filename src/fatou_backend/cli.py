@@ -68,6 +68,10 @@ def main() -> None:
             result = session.slog_batch(values)
         else:
             result = session.roundtrip_residuals(values)
+    # Deliberately conservative: the fork delivers >=0.95*dps true digits, so
+    # dps-24 under-prints above ~dps 500. Kept as-is because the 0.95 rule is
+    # measured only at dps 300/400/520 and this display floor must never
+    # over-print at tiers nobody has checked.
     _print_values(result, digits=max(30, args.dps - 24))
 
 

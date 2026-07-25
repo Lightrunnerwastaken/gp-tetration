@@ -106,16 +106,19 @@ class FatouGPSession:
 class FatouGP:
     """Persistent PARI/GP tetration engine.
 
-    fatou_gp: engine file; the shortcuts "fork" (optimized fork, ~13x
-        faster at high precision) and "original" (unmodified fatou.gp)
-        resolve to the vendored files.
+    fatou_gp: engine file; the shortcuts "fork" (optimized fork, ~30x
+        faster at high precision — see research/METHODS.md) and
+        "original" (unmodified fatou.gp) resolve to the vendored files.
     looplim/nlim: convergence target / iteration cap. Left at None they
         default to looplim=0 (let the engine converge to working
         precision) and nlim=max(30, dps), which is fully converged at
         any precision on BOTH engines — naive calls reproduce the
-        published reference values. Expect ~(dps - 24) true digits
-        (see research/METHODS.md, calibration law). Only set these
-        explicitly for experiments that deliberately under-iterate.
+        published reference values. Expect at least 0.95*dps true
+        digits on the fork (measured 302/398/509 at dps 300/400/520); the
+        older ~(dps - 24) rule under-promises below dps 500 and
+        over-promises above it — see research/METHODS.md, calibration
+        section. Only set these explicitly for experiments that
+        deliberately under-iterate.
     """
     gp_exe: Path | str | None = None
     fatou_gp: Path | str | None = None
