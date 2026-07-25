@@ -28,6 +28,8 @@ subeta=0; /* set by loop(): real base <= eta = e^(1/e), i.e. kc <= 0 — the
    the evolving ct/theta state — cache walk endpoints per sample index
    across loop iterations while the sampling grid is unchanged. */
 swon=0; swidx=0; swkey=0; swz=0; swn=0; swvalid=0; swb=0;
+/* exp-041b: per-stretch cache of the theta branch's decision-only y2 */
+swy2=0; swy2v=0;
 /* exp-021: incremental ct-Horner state */
 icct=0; icvals=0; icA=0; ickey=0; icdct=0; icdig=60; icfull=1;
 /* exp-024: isuperf/isuperf2 at the raw grid point depend only on the base
@@ -919,7 +921,14 @@ sfunc(z) = {
     y1 = icabel(z) + n;
   ,
     z=zc;
-    y2 = icabel(zc); /* exp-015: lazy — only the theta path needs it */
+    /* exp-015 lazy; exp-041b: y2 only feeds discrete decisions whose
+       margins are O(1), so one evaluation per grid stretch suffices. */
+    if (swon && swidx>0 && swy2v[swidx],
+      y2 = swy2[swidx];
+    ,
+      y2 = icabel(zc);
+      if (swon && swidx>0, swy2[swidx]=y2; swy2v[swidx]=1);
+    );
     /* use theta mapping if abs(y-circc)>(ir*circr) */
     if (imag(y2)>0,
       if (swon && swidx>0 && swisfv[swidx]==1,
@@ -1336,6 +1345,8 @@ staylor( w,r,samples) = {
       swvalid = vector(samples);
       swisf = vector(samples);
       swisfv = vector(samples);
+      swy2 = vector(samples);
+      swy2v = vector(samples);
     );
     swon = 1;
     /* exp-021: prepare incremental pass — diff of ct vs the previously

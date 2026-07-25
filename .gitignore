@@ -20,6 +20,12 @@ research/program.md
 research/DECISION_reference_v2.md
 research/M5_basechange_plan.md
 research/FORUM_POST_DRAFT.md
+research/EXPONENT_POSTMORTEM.md
 docs/superpowers/
 output/
 research/tools/fatou_profile*.gp
+
+# generated engine variants / profiling copies (rebuilt by research/tools/make_*.py)
+research/tools/_*.gp
+research/tools/fatou_branchprobe.gp
+research/tools/state_*.txt

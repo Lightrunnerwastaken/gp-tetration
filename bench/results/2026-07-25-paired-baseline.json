@@ -1,0 +1,281 @@
+{
+ "meta": {
+  "label": "paired-baseline",
+  "date": "2026-07-25T03:52:39",
+  "gp_exe": "C:\\Program Files (x86)\\Pari64-2-17-3\\gp.exe",
+  "fatou": "research\\tools\\_base_fork.gp",
+  "repeat": 3
+ },
+ "runs": [
+  {
+   "seconds": 4.700753599987365,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 476.51933936848354,
+   "group": "throughput|10|80",
+   "mode": "cold",
+   "rep": 0
+  },
+  {
+   "seconds": 0.030905199993867427,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 72479.71216638258,
+   "group": "throughput|10|80",
+   "mode": "warm",
+   "rep": 0
+  },
+  {
+   "seconds": 0.081086200021673,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 27624.922605835334,
+   "group": "throughput|10|80",
+   "mode": "cold",
+   "rep": 1
+  },
+  {
+   "seconds": 0.03226659999927506,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 69421.63103798748,
+   "group": "throughput|10|80",
+   "mode": "warm",
+   "rep": 1
+  },
+  {
+   "seconds": 0.07525380002334714,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 29765.938720769587,
+   "group": "throughput|10|80",
+   "mode": "cold",
+   "rep": 2
+  },
+  {
+   "seconds": 0.030078700045123696,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 74471.3035017996,
+   "group": "throughput|10|80",
+   "mode": "warm",
+   "rep": 2
+  },
+  {
+   "seconds": 5.169629199954215,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 433.29993571295955,
+   "group": "throughput|2|80",
+   "mode": "cold",
+   "rep": 0
+  },
+  {
+   "seconds": 0.027733499999158084,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 80768.74538258786,
+   "group": "throughput|2|80",
+   "mode": "warm",
+   "rep": 0
+  },
+  {
+   "seconds": 0.07281340000918135,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 30763.568240427572,
+   "group": "throughput|2|80",
+   "mode": "cold",
+   "rep": 1
+  },
+  {
+   "seconds": 0.026505400019232184,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 84511.08069958074,
+   "group": "throughput|2|80",
+   "mode": "warm",
+   "rep": 1
+  },
+  {
+   "seconds": 0.07091399998171255,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 31587.556767036916,
+   "group": "throughput|2|80",
+   "mode": "cold",
+   "rep": 2
+  },
+  {
+   "seconds": 0.026100500021129847,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 85822.11061805682,
+   "group": "throughput|2|80",
+   "mode": "warm",
+   "rep": 2
+  },
+  {
+   "seconds": 1.9198233999777585,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 1166.7739855790646,
+   "group": "throughput|e|80",
+   "mode": "cold",
+   "rep": 0
+  },
+  {
+   "seconds": 0.026075500005390495,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 85904.39299483932,
+   "group": "throughput|e|80",
+   "mode": "warm",
+   "rep": 0
+  },
+  {
+   "seconds": 0.0661619000020437,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 33856.343302275294,
+   "group": "throughput|e|80",
+   "mode": "cold",
+   "rep": 1
+  },
+  {
+   "seconds": 0.026547100045718253,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 84378.33119784723,
+   "group": "throughput|e|80",
+   "mode": "warm",
+   "rep": 1
+  },
+  {
+   "seconds": 0.06752939999569207,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 33170.73748830727,
+   "group": "throughput|e|80",
+   "mode": "cold",
+   "rep": 2
+  },
+  {
+   "seconds": 0.026470699987839907,
+   "values": 32,
+   "min_correct_digits": 70.0,
+   "digits_per_second": 84621.86496877717,
+   "group": "throughput|e|80",
+   "mode": "warm",
+   "rep": 2
+  },
+  {
+   "seconds": 106.44857230002526,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 1.7848994673642504,
+   "group": "precision|2|200",
+   "mode": "cold",
+   "rep": 0
+  },
+  {
+   "seconds": 0.007418799970764667,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 25610.610981389815,
+   "group": "precision|2|200",
+   "mode": "warm",
+   "rep": 0
+  },
+  {
+   "seconds": 0.08126830001128837,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 2337.9349632465364,
+   "group": "precision|2|200",
+   "mode": "cold",
+   "rep": 1
+  },
+  {
+   "seconds": 0.008078399987425655,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 23519.508850235496,
+   "group": "precision|2|200",
+   "mode": "warm",
+   "rep": 1
+  },
+  {
+   "seconds": 0.08303599996725097,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 2288.164170660137,
+   "group": "precision|2|200",
+   "mode": "cold",
+   "rep": 2
+  },
+  {
+   "seconds": 0.00822590000461787,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 23097.776522123717,
+   "group": "precision|2|200",
+   "mode": "warm",
+   "rep": 2
+  },
+  {
+   "seconds": 24.144642300030682,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 7.869240622370229,
+   "group": "precision|e|200",
+   "mode": "cold",
+   "rep": 0
+  },
+  {
+   "seconds": 0.005805900029372424,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 32725.33096311988,
+   "group": "precision|e|200",
+   "mode": "warm",
+   "rep": 0
+  },
+  {
+   "seconds": 0.0661796000204049,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 2870.9753449917803,
+   "group": "precision|e|200",
+   "mode": "cold",
+   "rep": 1
+  },
+  {
+   "seconds": 0.005661399976816028,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 33560.603521755766,
+   "group": "precision|e|200",
+   "mode": "warm",
+   "rep": 1
+  },
+  {
+   "seconds": 0.0662595999892801,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 2867.509010479076,
+   "group": "precision|e|200",
+   "mode": "cold",
+   "rep": 2
+  },
+  {
+   "seconds": 0.005578699987381697,
+   "values": 1,
+   "min_correct_digits": 190.0,
+   "digits_per_second": 34058.113974538086,
+   "group": "precision|e|200",
+   "mode": "warm",
+   "rep": 2
+  }
+ ]
+}
