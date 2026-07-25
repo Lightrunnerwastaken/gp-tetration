@@ -73,7 +73,7 @@ only verification this project accepts.
 | sexp_e(0.5), 500 tier | 497 | error vector + engine diversity (496) |
 | sexp_2(0.5), 500 tier | 497 | error vector + engine diversity |
 
-## 2. The fork: 27 gate-verified optimizations
+## 2. The fork: 29 gate-verified optimizations
 
 Every change had to pass a frozen accuracy gate (all bases, full digits,
 immutable reference values) before being kept. Measured end-to-end
@@ -92,14 +92,14 @@ Absolute times in that table are only comparable *within* one measurement
 session: the same engine that shows ~24.8 min at dps 520 above measures
 9.2 min on a later machine. Only the ratios travel.
 
-Six further keeps (2026-07-25) add a factor that grows with depth, measured
+Eight further keeps (2026-07-25) add a factor that grows with depth, measured
 against the proven references on one machine in one session:
 
 | dps | before | after | speedup | true digits before/after |
 |---|---|---|---|---|
-| 300 | 83.95 s | 40.28 s | 2.084x | 295.0 / 295.2 |
-| 400 | 216.38 s | 97.73 s | 2.214x | 383.8 / 387.9 |
-| 520 | 555.05 s | 291.00 s | 1.907x | 496.9 / 496.7 |
+| 300 | 84.39 s | 38.73 s | 2.179x | 295.0 / 295.2 |
+| 400 | 218.64 s | 93.69 s | 2.334x | 383.8 / 387.9 |
+| 520 | 555.05 s | 279.42 s | 1.986x | 496.9 / 496.7 |
 
 The digit column moves because the last of these keeps removed a cancellation
 rather than an operation (see section 1): at dps 400 the same run now carries
@@ -168,7 +168,17 @@ The keeps, grouped by mechanism:
    and the run spends a contiguous block of iterations below that, where the
    grid moved every pass, the caches were reallocated and everything was
    recomputed at full precision. Measured: 60 of 232 iterations at dps 300.
-11. **The grids are never arbitrary, so Bluestein is overkill.** Exact-length
+11. **A cancellation, not an operation.** The Schroeder walk ran to within
+   10^(-precis/21) of the fixed point and only then formed `y - L`, turning an
+   absolute error into a relative one and costing precis/21 digits -- which was
+   the whole of the published calibration law. Iterating the offset `u = y - L`
+   with expm1/log1p removes it: same algorithm, different coordinate, and the
+   run comes out both faster and four digits more accurate at dps 400.
+12. **A geometric sequence built with N exponentials.** Both sampling grids are
+   `c * mu^s` (x1 is affine in s) but were built point by point with a
+   full-precision complex exp, and thtaylor then undid each one with a log.
+   A doubling build keeps the ulp growth at O(log N) instead of O(N).
+13. **The grids are never arbitrary, so Bluestein is overkill.** Exact-length
    DFTs went through Bluestein, which needs FFTs four to eight times the data
    length. But the grid quantum is a power of two, so every length factors as
    r*2^k with an odd r <= 9 -- a radix-r decimation gives r power-of-two FFTs
