@@ -197,6 +197,24 @@ Later round (2026-07-25), aimed squarely at the exponent:
   dps 300, because the theta series converges more slowly closer to the
   centre. Pushing further breaks accuracy outright (92 instead of 193 digits).
 
+- **Series composition for the exp arc** -- the evaluation points turn out to be
+  the images of ONE circle under three analytic maps (identity, exp, log), so
+  the exp arc's values are in principle one series composition plus one FFT,
+  in `O(M(N) log N)` and with no C dependency (PARI's own `fft` suffices).
+  Measured before building it: on the sampling circle the composed function
+  already reaches **10^1141** while the values actually used on the arc are
+  O(1), and it needs 4.22*N terms rather than the estimated 2.9*N.
+
+**The mechanism behind all of these.** The evaluation points lie on *arcs*, not
+on the full circle. Every global representation -- a product tree over all
+points, a series composition over the whole circle, a low-rank/FMM compression
+-- has to represent the function where it is astronomically large and then
+cancel back down to O(1) on the arc. The price is always a guard or rank
+requirement proportional to N, and that consumes the algebraic gain exactly.
+A viable candidate would have to work *only on the arc* and still be
+quasi-linear; the only one we know of is Moroz (FOCS 2021), and whether it
+tolerates points on arcs is open.
+
 These closures are load-bearing: they mean the remaining routes to a lower
 exponent are algorithmic restructuring or the theory-level approaches of the
 paper series, not tuning.
