@@ -97,9 +97,14 @@ against the proven references on one machine in one session:
 
 | dps | before | after | speedup | true digits before/after |
 |---|---|---|---|---|
-| 300 | 83.95 s | 42.92 s | 1.956x | 295.0 / 295.0 |
-| 400 | 216.38 s | 102.77 s | 2.106x | 383.8 / 383.8 |
-| 520 | 557.62 s | 286.81 s | 1.944x | 496.9 / 496.5 |
+| 300 | 83.95 s | 40.28 s | 2.084x | 295.0 / 295.2 |
+| 400 | 216.38 s | 97.73 s | 2.214x | 383.8 / 387.9 |
+| 520 | 555.05 s | 291.00 s | 1.907x | 496.9 / 496.7 |
+
+The digit column moves because the last of these keeps removed a cancellation
+rather than an operation (see section 1): at dps 400 the same run now carries
+4 more true digits than before, so the speedup at a fixed *digit* target is
+larger than the table's fixed-dps ratio.
 
 The 0.4-digit gap at dps 520 (verified against the 972-digit reference, not the
 497-digit one) is where the two trajectories stop, not a loss: both sit above
