@@ -413,7 +413,13 @@ isuperf(z) = {
     n = 0;
     if (repelling,
       while (abs(u)>isuperfr,
-        u1 = log1p(u/lambda1);
+        /* review fix: finv() guards its log with abs(z-k+1)>1e-6 and returns
+           1E10 otherwise. In u-coordinates z-k+1 is lambda1+u, so the same
+           guard belongs here -- log1p(u/lambda1) returns -oo exactly where the
+           original returned the sentinel. Reachable in principle: for base e
+           lambda1 = L, so u = -lambda1 is the sample point z = 0, which lies
+           inside the sampling circle. */
+        u1 = if (abs(lambda1+u) > 0.000001, log1p(u/lambda1), 1E10-L);
         if (abs(u1+2*Pi*I)<abs(u1), u = u1+2*Pi*I, u = u1);
         n++;
       );
@@ -453,7 +459,8 @@ isuperf2(z) = {
     u = z - L2;
     n = 0;
     while (abs(u)>isuperfr2,
-      u = log1p(u/lambda2);
+      /* review fix: same sentinel as in isuperf, at the lower fixed point */
+      u = if (abs(lambda2+u) > 0.000001, log1p(u/lambda2), 1E10-L2);
       n++;
     );
     y = subst(fsl2,x,u);
@@ -1365,7 +1372,11 @@ mixdft(t) = {
   w = powers(exp(-2*Pi*I/m), m-1);
   sub = vector(r, s, fft(w, vector(m, a, t[(a-1)*r + s])));
   if (r == 1, return(sub[1]));
-  omp = powers(exp(-2*Pi*I/nn), nn-1);
+  /* review fix: powers() accumulates ~n ulp -- measured 4.6e-402 at nn=4608,
+     precis 404, i.e. ~2.7 digits. The doubling build gives 1.9e-403 for the
+     same input. (The exp-056 verification could not see this: bluedft builds
+     its twiddles the same way, so the two agreed on a common-mode error.) */
+  omp = concat([1], geoseq(1, exp(-2*Pi*I/nn), nn-1));
   res = vector(nn);
   for (j=1, nn,
     idx = ((j-1) % m) + 1;

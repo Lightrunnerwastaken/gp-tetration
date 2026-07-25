@@ -26,10 +26,33 @@ GP = r"C:\Program Files (x86)\Pari64-2-17-3\gp.exe"
 REF = REPO / "research" / "reference" / "values.json"
 
 
-def reference(key: str) -> mp.mpf:
+def reference(key: str) -> tuple[mp.mpf, float | None]:
+    """Return the reference value AND the number of digits actually PROVEN.
+
+    values.json stores 1000 decimals under sexp|e|0.5|1000, but only 972 of
+    them are error-vector proven -- the rest are the producing engine's own
+    unverified tail. Agreement past the proven ceiling is partly self-
+    agreement and must not be reported as true digits. (This tool printed
+    "992.0 true digits" for a dps-1020 run before the ceiling was enforced.)
+    """
     payload = json.loads(REF.read_text(encoding="utf-8"))
     e = payload["values"][key]
-    return mp.mpf(e["real"])
+    proven: float | None = None
+
+    def scan(o) -> None:
+        nonlocal proven
+        if isinstance(o, dict):
+            for k, v in o.items():
+                if k == "proven_digits" and isinstance(v, dict) and key in v:
+                    proven = float(v[key])
+                else:
+                    scan(v)
+        elif isinstance(o, list):
+            for v in o:
+                scan(v)
+
+    scan(payload.get("meta", {}))
+    return mp.mpf(e["real"]), proven
 
 
 def run(engine: Path, dps: int, base: str, arg: str, extra: list[str]) -> tuple[str, int]:
@@ -67,8 +90,9 @@ def main() -> None:
     args = ap.parse_args()
 
     mp.mp.dps = 1100
-    ref = reference(args.key)
-    print(f"reference {args.key} loaded ({mp.mp.dps} dps working)")
+    ref, proven = reference(args.key)
+    print(f"reference {args.key} loaded ({mp.mp.dps} dps working"
+          + (f", proven to {proven:.0f} digits)" if proven else ", proven depth unknown)"))
     for dps in args.dps:
         print(f"\n-- dps {dps} --")
         for e in args.engine:
@@ -78,7 +102,14 @@ def main() -> None:
             got = mp.mpf(val)
             err = abs(got - ref)
             digits = float(-mp.log10(err / max(abs(ref), mp.mpf(1)))) if err else float(dps)
-            print(f"  {eng.name:26s} {ms/1000:8.2f}s   TRUE digits {digits:8.1f}"
+            if proven is not None and digits > proven:
+                # Saturated the reference: everything past `proven` is the
+                # producing engine's unverified tail, so report the ceiling.
+                shown = (f">={proven:8.1f}   (reference exhausted; "
+                         f"raw agreement {digits:.1f})")
+            else:
+                shown = f"{digits:8.1f}"
+            print(f"  {eng.name:26s} {ms/1000:8.2f}s   TRUE digits {shown}"
                   f"   (wall {time.time()-t0:.0f}s)")
 
 

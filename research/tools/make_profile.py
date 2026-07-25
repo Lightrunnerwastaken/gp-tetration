@@ -34,15 +34,15 @@ PATCHES: list[tuple[str, str]] = [
      "pfth1=0; pfth2=0; pfc=0;\n"
      "/* I added || (real(Period)>47)"),
     # thtaylor: split the thfunc sampling loop from the extraction
-    ("""  for(s=1, samples,
-    x1 = -1 + -1/(samples) + (2*s/samples); /* -Pi to Pi */""",
+    ("""  tcrc = geoseq(exp(Pi*I*(-1-1/samples)), exp(2*Pi*I/samples), samples);
+  for(s=1, samples,""",
      """  pfc=getabstime();
-  for(s=1, samples,
-    x1 = -1 + -1/(samples) + (2*s/samples); /* -Pi to Pi */"""),
-    ("""    t_est[s]= thfunc(tcrc[s],n);
+  tcrc = geoseq(exp(Pi*I*(-1-1/samples)), exp(2*Pi*I/samples), samples);
+  for(s=1, samples,"""),
+    ("""    t_est[s]= thfunc(tcrc[s], n, x1/2, 1);
   );
   thon = 0; thidx = 0;""",
-     """    t_est[s]= thfunc(tcrc[s],n);
+     """    t_est[s]= thfunc(tcrc[s], n, x1/2, 1);
   );
   pfth1=pfth1+(getabstime()-pfc);
   thon = 0; thidx = 0;
@@ -58,12 +58,10 @@ PATCHES: list[tuple[str, str]] = [
 }"""),
     # staylor: sampling loop
     ("""  if (complextaylor,
-    for(s=1, samples,
-      x1=-1+-1/(samples)+(2*s/samples);""",
+    /* exp-059: x1 is affine in s, so tcrc is geometric */""",
      """  pfa=getabstime();
   if (complextaylor,
-    for(s=1, samples,
-      x1=-1+-1/(samples)+(2*s/samples);"""),
+    /* exp-059: x1 is affine in s, so tcrc is geometric */"""),
     ("""  swon = 0;
   swidx = 0;
   wtaylor=0;""",
