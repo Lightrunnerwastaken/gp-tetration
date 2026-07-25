@@ -54,7 +54,7 @@ only verification this project accepts.
 | sexp_e(0.5), 500 tier | 497 | error vector + engine diversity (496) |
 | sexp_2(0.5), 500 tier | 497 | error vector + engine diversity |
 
-## 2. The fork: 24 gate-verified optimizations
+## 2. The fork: 26 gate-verified optimizations
 
 Every change had to pass a frozen accuracy gate (all bases, full digits,
 immutable reference values) before being kept. Measured end-to-end
@@ -73,14 +73,14 @@ Absolute times in that table are only comparable *within* one measurement
 session: the same engine that shows ~24.8 min at dps 520 above measures
 9.2 min on a later machine. Only the ratios travel.
 
-Three further keeps (2026-07-25) add a factor that grows with depth, measured
+Five further keeps (2026-07-25) add a factor that grows with depth, measured
 against the proven references on one machine in one session:
 
 | dps | before | after | speedup | true digits before/after |
 |---|---|---|---|---|
-| 300 | 84.55 s | 65.25 s | 1.296x | 295.0 / 295.0 |
-| 400 | 219.22 s | 155.49 s | 1.410x | 383.8 / 383.8 |
-| 520 | 560.72 s | 395.31 s | 1.398x | 496.9 / 496.5 |
+| 300 | 85.19 s | 48.67 s | 1.750x | 295.0 / 295.0 |
+| 400 | 220.67 s | 121.09 s | 1.822x | 383.8 / 383.8 |
+| 520 | 556.30 s | 303.34 s | 1.834x | 496.9 / 496.5 |
 
 The 0.4-digit gap at dps 520 (verified against the 972-digit reference, not the
 497-digit one) is where the two trajectories stop, not a loss: both sit above
@@ -130,6 +130,19 @@ The keeps, grouped by mechanism:
    had been scanned once and confirmed once; ten keeps later the N^2 sampling
    term carries a larger share and the optimum had moved. Re-scanning is
    cheap (the knob already exists) and gave a factor that grows with depth.
+9. **Evaluate only the degree each point needs.** The coefficients decay like
+   circr^-k, so a sample at radius rho needs ~dig/log10(circr/rho) terms --
+   but every sample was getting the full degree, and the samples span
+   |w| = 0.07 .. 0.96. Bucketing them by radius (the bucket is a property of
+   the cached walk endpoint, so it is derived once per grid stretch) and
+   keeping one truncated copy of the polynomial per bucket cuts the Horner
+   work 2.4x on a measured state. The truncation index comes from the actual
+   coefficient magnitudes, not from a decay model.
+10. **A quantization guard that never fired where it mattered.** The theta
+   grid is quantized so its caches can engage -- but only above 64 samples,
+   and the run spends a contiguous block of iterations below that, where the
+   grid moved every pass, the caches were reallocated and everything was
+   recomputed at full precision. Measured: 60 of 232 iterations at dps 300.
 
 Total asymptotic cost is unchanged (~p^4.1 in the digit count p,
 decomposing as iterations p^1.0 × grid² p^1.85 × arithmetic p^1.29);
