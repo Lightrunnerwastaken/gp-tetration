@@ -130,7 +130,7 @@ basechange.sexp_anchor(gp, 3, "0.5")     # base 3: shipped in the table, ~ms
   sexp(0.5)
   ```
 
-Tests: `python -m pytest tests/` (69 tests, includes atlas validation
+Tests: `python -m pytest tests/` (72 tests, includes atlas validation
 against the proven references; set `FATOU_BACKEND_RUN_SLOW=1` for the
 slow gate block).
 

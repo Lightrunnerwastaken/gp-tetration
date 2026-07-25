@@ -50,7 +50,7 @@ base atlas.
   against a naive O(n²) DFT, against high-precision truth for the power
   tables, and by a source check that no `powers()` call survives at a twiddle
   site — the construction that carried ~n ulp instead of ~log₂(n).
-- Tests: 69 passing, 4 skipped (`python -m pytest tests/`).
+- Tests: 72 passing, 4 skipped (`python -m pytest tests/`).
 
 ### Base atlas
 
