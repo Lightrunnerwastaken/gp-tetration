@@ -54,7 +54,7 @@ only verification this project accepts.
 | sexp_e(0.5), 500 tier | 497 | error vector + engine diversity (496) |
 | sexp_2(0.5), 500 tier | 497 | error vector + engine diversity |
 
-## 2. The fork: 21 gate-verified optimizations
+## 2. The fork: 24 gate-verified optimizations
 
 Every change had to pass a frozen accuracy gate (all bases, full digits,
 immutable reference values) before being kept. Measured end-to-end
@@ -67,7 +67,29 @@ immutable reference values) before being kept. Measured end-to-end
 | dps 520 | ~495 | ~5.4 h | ~24.8 min | 13× |
 | dps 1020 | ~973 | memory crash | ~6.7 h | — |
 
-Base 2: dps 300 went 54 min → 17.6 min.
+Base 2: dps 300 went 54 min -> 17.6 min.
+
+Absolute times in that table are only comparable *within* one measurement
+session: the same engine that shows ~24.8 min at dps 520 above measures
+9.2 min on a later machine. Only the ratios travel.
+
+Three further keeps (2026-07-25) add a factor that grows with depth, measured
+against the proven references on one machine in one session:
+
+| dps | before | after | speedup | true digits before/after |
+|---|---|---|---|---|
+| 300 | 84.55 s | 65.25 s | 1.296x | 295.0 / 295.0 |
+| 400 | 219.22 s | 155.49 s | 1.410x | 383.8 / 383.8 |
+| 520 | 560.72 s | 395.31 s | 1.398x | 496.9 / 496.5 |
+
+The 0.4-digit gap at dps 520 (verified against the 972-digit reference, not the
+497-digit one) is where the two trajectories stop, not a loss: both sit above
+the calibrated floor of dps - 24 = 496, inside the 0-20 digit overshoot band
+of section 1, and the digit counts are identical at the other three tiers.
+
+They are constants, not an exponent change: the locally measured exponent is
+3.31 -> 3.02 for the 300->400 pair (grid quantization noise) and 3.53 -> 3.57
+for 400->520.
 
 The keeps, grouped by mechanism:
 
@@ -94,6 +116,20 @@ The keeps, grouped by mechanism:
    criterion tightened accordingly (~6.2 stop-terms per digit instead of 9).
 5. **Precision laddering.** Early iterations run at reduced precision with
    a guard that doubles back if the ladder would touch accuracy.
+6. **Decision-only evaluations are not evaluations.** In the sampling loop the
+   theta branch used a full O(N) Horner solely to settle three *discrete*
+   decisions (which theta map, and two period-representative comparisons).
+   The measured margins are O(1) -- |Im| >= 0.795, relative period-tie margin
+   >= 0.9998, and the period loops shift zero times at any precision -- so one
+   evaluation per grid stretch reproduces every decision bitwise.
+7. **The theta extraction had been left behind.** thtaylor still ran the
+   quadratic rotation DFT that the main extraction lost early on; a section
+   profile (rebuilt against the current engine, not an old one) put it at
+   29.5% of the run at dps 200. Same transform, FFT/Bluestein.
+8. **Radius re-tuning after the balance moved.** The sampling radius optimum
+   had been scanned once and confirmed once; ten keeps later the N^2 sampling
+   term carries a larger share and the optimum had moved. Re-scanning is
+   cheap (the knob already exists) and gave a factor that grows with depth.
 
 Total asymptotic cost is unchanged (~p^4.1 in the digit count p,
 decomposing as iterations p^1.0 × grid² p^1.85 × arithmetic p^1.29);
@@ -118,17 +154,62 @@ Attempts to break the p^4.1 exponent, all benchmarked on this code base:
   so Krylov needs k ~ p dimensions: 1.9× fewer steps at best, no
   exponent change.
 - **Fast multipoint evaluation (FLINT)** of the orbit walks — numerically
-  unstable on the disk-spread walk endpoints (product-tree factors ~0.55
-  per level collapse to underflow at depth 2048); parked pending
-  shell-batching.
+  unstable on the walk endpoints. First read as an underflow of the
+  product-tree factors (~0.55 per level) and parked pending shell-batching;
+  re-measured in 2026-07-25 with shells and honest guard budgets, which
+  closed it for a different and stronger reason — see the round below.
 - **Nested/tripled grids** — offsets nest exactly, but the 3× grid
   overshoot costs more than the reuse saves.
 - **Tail truncation of the difference polynomials** — the differences are
   full-band; only 2.2% savings available.
 
+Later round (2026-07-25), aimed squarely at the exponent:
+
+- **Product-tree multipoint, honestly budgeted** -- the classical fast
+  evaluation, tested on a real frozen engine state rather than synthetic
+  points. It loses ~0.85 decimal digits *per point in a block*, and a guard
+  sweep from 0 to 20480 extra bits changes nothing at all; random points of
+  the same size and count are exact. The cause is geometry, not budget: the
+  evaluation points are the images of ONE circle under three analytic maps
+  (identity, exp, log), so they sit on smooth arcs -- the worst case for
+  subproduct polynomials. Radius shells normalize the modulus, not the angular
+  clustering, and do not help. Since the guard requirement then grows linearly
+  in N, the tree costs c*N*log^2(N)*M(q + 2.8N) against 0.5*N^2*M(q): about
+  7.7x *slower* at 1000 digits, with a crossover only near 12000.
+- **Constant-precision increment ladder** -- the incremental path evaluates the
+  diff at `working precision - residual + 40` digits, which is linear in the
+  residual because the working-precision ladder is `2*re + 60`. A factor of 1
+  would make it constant and, in the cost model, move the exponent from ~3.9
+  to ~3.05. It measures 2.19x faster at dps 300 and costs 82 true digits.
+  Achievable digits saturate at ~115*m + g + 38 with a *fixed* offset, so the
+  margin needed grows with the target precision and the gain vanishes. The
+  doubling is load-bearing: the working precision has to reach full precision
+  early enough (halfway, at re = (p-60)/2) for the state to resolve at all.
+- **Universal asymptotic form for the theta harmonics** -- the one route that
+  attacks the iteration count rather than the cost per iteration. The best
+  three-parameter form reproduces log10|theta_m| to ~1e-3 decimals
+  out-of-sample, i.e. ~3 relative digits, and the residual *grows* with m;
+  more parameters are measurably worse out-of-sample. That is worth about one
+  saved iteration out of ~180.
+- **Lowering the direct-vs-theta branch radius** -- moves samples onto the
+  branch that (after keep 6 above) needs no polynomial evaluation at all. It
+  gives 1.14x and 22% fewer iterations at dps 200 and *reverses* to 0.94x at
+  dps 300, because the theta series converges more slowly closer to the
+  centre. Pushing further breaks accuracy outright (92 instead of 193 digits).
+
 These closures are load-bearing: they mean the remaining routes to a lower
-exponent are algorithmic restructuring (batched multipoint) or the
-theory-level approaches of the paper series, not tuning.
+exponent are algorithmic restructuring or the theory-level approaches of the
+paper series, not tuning.
+
+**Where the exponent actually stands.** The iterate carries N(p)*p ~ 6.2 p^2
+digits, and the iteration count is Theta(p) -- measured, and closed from four
+independent directions (extrapolation, Krylov, spectral, asymptotic form). Any
+scheme that touches its state once per iteration therefore costs Theta(p^3).
+In the cost model an N^2 evaluation gives exponent 3.8-3.9 (measured 4.13 on
+the 520->1020 pair) and a hypothetical stable quasi-linear evaluator would give
+2.8-2.9. So ~2.9-3.3 is the reachable band for this discretization, and getting
+there needs an evaluation primitive that survives points on analytic arcs --
+the classical product tree demonstrably does not.
 
 ## 4. The base atlas
 
