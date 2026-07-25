@@ -228,8 +228,26 @@ Later round (2026-07-25), aimed squarely at the exponent:
   harness, which built the ball inputs once at a fixed precision and then
   raised only the working precision -- the frozen input radii pinned the result
   no matter how much guard was added. Rebuilding the inputs at each precision
-  gives the law above. The route stays closed, on timing rather than on
-  stability.
+  gives the law above.
+
+  That correction opened one last question, since a guard that could be bounded
+  would change the exponent: is the loss per BLOCK? If chunking the points into
+  N/K blocks capped the guard at g*K, the per-iteration cost would fall from
+  Theta(p^2) to Theta(p log p) -- the Moroz mechanism without implementing
+  Moroz. Measured (min digits of agreement between the tree and Horner at equal
+  precision, over all 1280 points, guard 6*K in every cell):
+
+  | deg P | K=64 | K=128 | K=256 | K=512 | K=1280 |
+  |---|---|---|---|---|---|
+  | 256 | 298.5 | exact | exact | exact | exact |
+  | 512 | 272.8 | 286.9 | exact | exact | exact |
+  | 1024 | 257.2 | 233.6 | 262.9 | exact | exact |
+  | 2560 | 257.4 | 201.1 | 114.8 | 103.0 | exact |
+
+  The threshold is `K >= deg(P)/2`, exactly. The guard requirement is set by the
+  POLYNOMIAL DEGREE, not by the block size, so K cannot be capped below N/2 and
+  the guard stays Theta(N). The only exact configuration measures 3x slower than
+  Horner. The route is closed.
 - **Constant-precision increment ladder** -- the incremental path evaluates the
   diff at `working precision - residual + 40` digits, which is linear in the
   residual because the working-precision ladder is `2*re + 60`. A factor of 1
