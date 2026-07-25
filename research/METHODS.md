@@ -99,9 +99,12 @@ against the proven references on one machine in one session:
 |---|---|---|---|---|
 | 300 | 84.64 s | 36.25 s | 2.335x | 295.0 / **302.2** |
 | 400 | 219.31 s | 92.62 s | 2.368x | 383.8 / **398.0** |
+| 520 | 554.00 s | 242.84 s | 2.281x | 496.9 / **508.9** |
 
-At dps 400 the run is both 2.37x faster and carries 14 more true digits, so the
-gain at a fixed *digit* target is larger again than the fixed-dps ratio.
+The digit column moves because two of these keeps removed precision losses
+rather than operations, so the gain at a fixed *digit* target is larger again
+than the fixed-dps ratio: the dps-520 run that used to deliver 497 digits now
+delivers 509.
 
 The digit column moves because the last of these keeps removed a cancellation
 rather than an operation (see section 1): at dps 400 the same run now carries
