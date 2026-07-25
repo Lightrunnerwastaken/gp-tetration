@@ -115,5 +115,40 @@ class FatouBackendTests(unittest.TestCase):
                 self.assertLess(abs(residual), mp.mpf("1e-48"))
 
 
+class UnsupportedBaseTests(unittest.TestCase):
+    """Unsupported bases must fail fast, not hang until init_timeout.
+
+    sexpinit never converges for a base in (0, 1), so before this the call sat
+    silently until the timeout expired -- 3600 s by default -- and then reported
+    a timeout that named no cause. No engine is spawned by these tests: the
+    rejection happens while the base expression is built.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.gp = FatouGP(dps=40)
+
+    def test_bases_between_zero_and_one_are_rejected(self) -> None:
+        for base in ("0.5", 0.5, mp.mpf("0.9")):
+            with self.subTest(base=base):
+                with self.assertRaises(ValueError) as ctx:
+                    self.gp._base_expr(base)
+                self.assertIn("0 < b < 1", str(ctx.exception))
+
+    def test_nonpositive_and_degenerate_bases_are_rejected(self) -> None:
+        for base, needle in (("0", "only bases > 0"), ("-2", "only bases > 0"),
+                             ("1", "degenerate")):
+            with self.subTest(base=base):
+                with self.assertRaises(ValueError) as ctx:
+                    self.gp._base_expr(base)
+                self.assertIn(needle, str(ctx.exception))
+
+    def test_supported_bases_are_untouched(self) -> None:
+        # includes the sub-eta regime, a complex base, and a GP expression
+        for base in ("e", "2", "1.2", "10", "1+I", "0.8+0.4*I", "exp(1)", 2, 1.2):
+            with self.subTest(base=base):
+                self.assertTrue(self.gp._base_expr(base))
+
+
 if __name__ == "__main__":
     unittest.main()

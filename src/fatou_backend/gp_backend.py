@@ -125,6 +125,50 @@ def _parse_gp_complex(real_text: str, imag_text: str) -> mp.mpc:
         return mp.mpc(mp.mpf(real), mp.mpf(imag))
 
 
+def _reject_unsupported_base(base: GPValue) -> None:
+    """Fail fast on bases the Kneser construction here cannot handle.
+
+    Without this, `sexpinit` for a base in (0, 1) never converges: the call sits
+    there until `init_timeout` expires, which at the 3600 s default is a silent
+    one-hour wait ending in a timeout that names no cause. The README documents
+    these bases as unsupported; refusing them up front costs nothing and turns
+    an hour into a sentence.
+
+    Only *real* bases are screened. A complex base cannot be classified this
+    cheaply, and complex bases in this range are not a documented failure.
+    """
+    if isinstance(base, str):
+        if base.strip() == "e":
+            return
+        try:
+            value = mp.mpf(base.strip())
+        except (ValueError, TypeError):
+            return          # a GP expression such as "1+I" or "exp(1)"
+    elif isinstance(base, (int, float, mp.mpf)):
+        value = mp.mpf(base)
+    else:
+        try:
+            z = mp.mpc(base)
+        except (ValueError, TypeError):
+            return
+        if mp.im(z) != 0:
+            return
+        value = mp.re(z)
+
+    if value <= 0:
+        raise ValueError(
+            f"base {base!r}: only bases > 0 are supported "
+            f"(the construction is undefined for b <= 0).")
+    if value < 1:
+        raise ValueError(
+            f"base {base!r}: bases 0 < b < 1 are not supported -- the "
+            f"iteration does not converge and sexpinit would hang until the "
+            f"init timeout. Supported: 1 < b < e^(1/e) (regular iteration at "
+            f"the attracting fixed point) and b > e^(1/e) (Kneser).")
+    if value == 1:
+        raise ValueError("base 1 is degenerate (1^x = 1); no tetration exists.")
+
+
 def _to_gp_number(value: GPValue, digits: int) -> str:
     if isinstance(value, str):
         return value
@@ -216,6 +260,7 @@ class FatouGP:
         return FatouGPSession(self, base)
 
     def _base_expr(self, base: GPValue) -> str:
+        _reject_unsupported_base(base)
         if isinstance(base, str):
             if base == "e":
                 return "exp(1)"
