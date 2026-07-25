@@ -40,7 +40,10 @@ class FatouBackendTests(unittest.TestCase):
         x = mp.mpf("0.35")
         y = self.gp.sexp("2", x)
         recovered = self.gp.slog("2", y)
-        self.assertLess(abs(recovered - x), mp.mpf("1e-18"))
+        # Measured residual at these settings (dps 50, nlim 20, looplim 30):
+        # 2.69e-43. The old 1e-18 left 25 digits of slack -- an engine that
+        # lost 25 digits passed. Threshold is measured-worst x 100.
+        self.assertLess(abs(recovered - x), mp.mpf("1e-40"))
 
     def test_complex_values_parse(self) -> None:
         value = self.gp.sexp("e", mp.mpc("0.5", "0.2"))
@@ -105,7 +108,11 @@ class FatouBackendTests(unittest.TestCase):
         for base, ys in cases.items():
             residuals = self.gp.roundtrip_residuals(base, ys)
             for residual in residuals:
-                self.assertLess(abs(residual), mp.mpf("1e-12"))
+                # Measured worst residual across these four cases: 8.26e-52
+                # (1+I); the others reach 1e-56/1e-57. The old 1e-12 left 40-45
+                # digits of slack, on the only numeric assertion the default
+                # suite makes about complex bases. Measured-worst x 100.
+                self.assertLess(abs(residual), mp.mpf("1e-48"))
 
 
 if __name__ == "__main__":
