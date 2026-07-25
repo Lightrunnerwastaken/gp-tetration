@@ -8,7 +8,7 @@ underlying construction and original code goes to him.
 ## What this adds on top of fatou.gp
 
 **1. An optimized engine fork (~13× faster at high precision).**
-29 gate-verified optimizations (`src/fatou_backend/vendor/fatou_fork.gp`):
+30 gate-verified optimizations (`src/fatou_backend/vendor/fatou_fork.gp`):
 persistent walk/Schröder caches, incremental Taylor/theta/extraction updates
 at reduced precision, FFT/Bluestein extraction on exact-size grids, precision
 laddering, contour-radius tuning. Every change had to pass a frozen accuracy

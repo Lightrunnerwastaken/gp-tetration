@@ -73,7 +73,7 @@ only verification this project accepts.
 | sexp_e(0.5), 500 tier | 497 | error vector + engine diversity (496) |
 | sexp_2(0.5), 500 tier | 497 | error vector + engine diversity |
 
-## 2. The fork: 29 gate-verified optimizations
+## 2. The fork: 30 gate-verified optimizations
 
 Every change had to pass a frozen accuracy gate (all bases, full digits,
 immutable reference values) before being kept. Measured end-to-end
@@ -92,14 +92,16 @@ Absolute times in that table are only comparable *within* one measurement
 session: the same engine that shows ~24.8 min at dps 520 above measures
 9.2 min on a later machine. Only the ratios travel.
 
-Eight further keeps (2026-07-25) add a factor that grows with depth, measured
+Nine further keeps (2026-07-25) add a factor that grows with depth, measured
 against the proven references on one machine in one session:
 
 | dps | before | after | speedup | true digits before/after |
 |---|---|---|---|---|
-| 300 | 84.39 s | 38.73 s | 2.179x | 295.0 / 295.2 |
-| 400 | 218.64 s | 93.69 s | 2.334x | 383.8 / 387.9 |
-| 520 | 555.05 s | 279.42 s | 1.986x | 496.9 / 496.7 |
+| 300 | 84.64 s | 36.25 s | 2.335x | 295.0 / **302.2** |
+| 400 | 219.31 s | 92.62 s | 2.368x | 383.8 / **398.0** |
+
+At dps 400 the run is both 2.37x faster and carries 14 more true digits, so the
+gain at a fixed *digit* target is larger again than the fixed-dps ratio.
 
 The digit column moves because the last of these keeps removed a cancellation
 rather than an operation (see section 1): at dps 400 the same run now carries
@@ -174,11 +176,18 @@ The keeps, grouped by mechanism:
    the whole of the published calibration law. Iterating the offset `u = y - L`
    with expm1/log1p removes it: same algorithm, different coordinate, and the
    run comes out both faster and four digits more accurate at dps 400.
-12. **A geometric sequence built with N exponentials.** Both sampling grids are
+12. **A series length frozen at a constant while the precision grew.** The
+   Schroeder walk runs until |u| <= isuperfr, and log10(1/isuperfr) is exactly
+   precis/seriesprecision -- so a file-level `\ps 21` pins the walk at
+   precis/21 decades and, with it, a precision loss of the same order. Scaling
+   the series with the working precision buys those digits back and the
+   shorter walk pays for the longer series build: across ps = 21..64 the clock
+   is flat while the true digits climb from 387.9 to 400.2.
+13. **A geometric sequence built with N exponentials.** Both sampling grids are
    `c * mu^s` (x1 is affine in s) but were built point by point with a
    full-precision complex exp, and thtaylor then undid each one with a log.
    A doubling build keeps the ulp growth at O(log N) instead of O(N).
-13. **The grids are never arbitrary, so Bluestein is overkill.** Exact-length
+14. **The grids are never arbitrary, so Bluestein is overkill.** Exact-length
    DFTs went through Bluestein, which needs FFTs four to eight times the data
    length. But the grid quantum is a power of two, so every length factors as
    r*2^k with an odd r <= 9 -- a radix-r decimation gives r power-of-two FFTs
