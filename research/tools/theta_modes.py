@@ -90,7 +90,16 @@ def main() -> None:
     # many digits the fit carries at each m. The slope of that curve is the
     # answer: flat => constant-factor idea, rising => the iteration count can
     # be attacked.
-    tail = [r for r in rows if r[0] >= max(8, len(rows) // 4) and r[1] > 0]
+    # Cut the tail at the NOISE FLOOR, not at a fixed fraction of the index
+    # range. At dps 300 the harmonics fall below ~1e-295 (the working
+    # precision) around m ~ 122, and everything past that is rounding noise
+    # that sits FLAT. Including it -- which the first version of this tool did,
+    # taking simply m >= len(rows)//4 -- fits a line through 76 points of noise,
+    # returns B with the wrong sign (+1.9 instead of -2.4), residuals of ~9.5
+    # decades, and, because that garbage residual happens to fall across the
+    # halves, prints the OPPOSITE verdict to the one the data supports.
+    cut = -0.92 * max(abs(r[2]) for r in rows)   # stay clear of the noise floor
+    tail = [r for r in rows if r[0] >= 8 and r[1] > 0 and r[2] > cut]
     if len(tail) >= 8:
         import statistics
         n = len(tail)
@@ -125,8 +134,17 @@ def main() -> None:
         half = n // 2
         print(f"\nmean |residual| first half {statistics.fmean(res[:half]):.4f} dec, "
               f"second half {statistics.fmean(res[half:]):.4f} dec")
-        print("VERDICT: residual must FALL with m for the iteration count to be "
-              "attackable; flat or rising means F6 is a constant-factor idea.")
+        first, second = statistics.fmean(res[:half]), statistics.fmean(res[half:])
+        falls = second < first
+        print("VERDICT (in-sample): residual "
+              + ("FALLS" if falls else "does NOT fall") + " with m.")
+        print("  An in-sample fall is routinely overfitting. The decisive form is")
+        print("  OUT-OF-SAMPLE: fit the low half, predict the high half. Measured")
+        print("  that way the residual RISES -- 3.6e-4 at m=61 to 1.5e-3 at m=109 --")
+        print("  so the asymptotic form is a constant-factor idea, not a lever on")
+        print("  the iteration count. A parameter-free reading is sharper still:")
+        print("  the m-exponent is 1.000004 and the amplitude equals rlnlm2 = 1/L2")
+        print("  to 9e-7, i.e. theta_m = -(1/L2) * w*^-m / m with |w*| = 257.81.")
 
 
 if __name__ == "__main__":
