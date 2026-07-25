@@ -28,7 +28,32 @@ class _ReaderThread(threading.Thread):
 
 
 def _parse_gp_scalar(text: str) -> mp.mpf:
-    return mp.mpf(text.strip().replace(" ", ""))
+    """Parse at a precision derived from the string, not from mp.mp.dps.
+
+    See the twin of this function in gp_backend.py: mpmath's global precision
+    defaults to 15 dps, so parsing a high-precision GP result under a caller
+    who never raised it silently returns a double.
+    """
+    cleaned = text.strip().replace(" ", "")
+    need = max(mp.mp.dps, sum(c.isdigit() for c in cleaned) + 10)
+    with mp.workdps(need):
+        return mp.mpf(cleaned)
+
+
+def _parse_gp_complex(real_text: str, imag_text: str) -> mp.mpc:
+    """Build the mpc at full precision -- components AND container.
+
+    `mp.mpc(re, im)` rounds to the global context, so parsing the halves
+    correctly is not enough; under the default mp.mp.dps of 15 the container
+    truncates them straight back to doubles.
+    """
+    real = real_text.strip().replace(" ", "")
+    imag = imag_text.strip().replace(" ", "")
+    need = max(mp.mp.dps,
+               max(sum(c.isdigit() for c in real),
+                   sum(c.isdigit() for c in imag)) + 10)
+    with mp.workdps(need):
+        return mp.mpc(mp.mpf(real), mp.mpf(imag))
 
 
 class FatouGPWorker:
@@ -161,7 +186,7 @@ class FatouGPWorker:
                 break
             real_text = output[cursor + 1]
             imag_text = output[cursor + 2]
-            parsed.append(mp.mpc(_parse_gp_scalar(real_text), _parse_gp_scalar(imag_text)))
+            parsed.append(_parse_gp_complex(real_text, imag_text))
             cursor += 3
         if len(parsed) != len(expressions):
             self.close()

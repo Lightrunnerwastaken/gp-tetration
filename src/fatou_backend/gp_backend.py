@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -32,23 +33,48 @@ GP_EXE_CANDIDATES = (
 
 
 def find_default_gp_exe() -> Path:
+    # A set-but-wrong env var is a typo, not a request to fall back: silently
+    # ignoring it means you run a different binary than you asked for.
     env = os.getenv("FATOU_GP_EXE")
     if env:
         path = Path(env)
-        if path.exists():
-            return path
+        if not path.exists():
+            raise FileNotFoundError(
+                f"FATOU_GP_EXE is set to {env!r}, which does not exist. "
+                f"Fix it or unset it; refusing to silently use another binary."
+            )
+        return path
     path = _first_existing(GP_EXE_CANDIDATES)
-    if path is None:
-        raise FileNotFoundError("Could not locate gp.exe. Set FATOU_GP_EXE.")
-    return path
+    if path is not None:
+        return path
+    # PARI/GP installs to PATH as plain `gp` on Linux/macOS (and via MSYS on
+    # Windows); the hardcoded candidates above only cover the Windows installer.
+    found = shutil.which("gp") or shutil.which("gp.exe")
+    if found:
+        return Path(found)
+    raise FileNotFoundError(
+        "Could not locate a PARI/GP executable. Tried $FATOU_GP_EXE, the "
+        "standard Windows install paths, and `gp` on PATH. Install PARI/GP "
+        "(apt install pari-gp / brew install pari / windows installer) or set "
+        "FATOU_GP_EXE to the executable."
+    )
 
 
 def find_default_fatou_gp() -> Path:
+    # Critical: the fallback below is the PRISTINE fatou.gp. Silently ignoring a
+    # bad FATOU_GP_FILE means a typo makes you benchmark the unmodified original
+    # while believing you are measuring the fork -- the one mistake this repo
+    # can least afford.
     env = os.getenv("FATOU_GP_FILE")
     if env:
         path = Path(env)
-        if path.exists():
-            return path
+        if not path.exists():
+            raise FileNotFoundError(
+                f"FATOU_GP_FILE is set to {env!r}, which does not exist. "
+                f"Fix it or unset it; refusing to silently fall back to the "
+                f"unmodified vendored engine."
+            )
+        return path
     here = Path(__file__).resolve()
     candidates = (
         here.parent / "vendor" / "fatou.gp",
@@ -63,19 +89,55 @@ def find_default_fatou_gp() -> Path:
 
 
 def _parse_gp_scalar(text: str) -> mp.mpf:
+    """Parse a GP-printed real at a precision that cannot truncate it.
+
+    mpmath parses at the GLOBAL `mp.mp.dps`, which defaults to 15. Parsing a
+    300-digit GP result under that default silently yields a double: the caller
+    pays for the full high-precision engine run and gets ~16 true digits back,
+    with everything past digit 17 being the binary expansion of that double --
+    plausible-looking, and wrong. The string itself states how much precision it
+    needs, so derive it from the string instead of trusting the caller's
+    context.
+
+    Note this fixes the *value*; displaying it still obeys mp.mp.dps, so use
+    `mp.nstr(v, n)` or raise mp.mp.dps to see the digits.
+    """
     cleaned = text.strip().replace(" ", "")
-    return mp.mpf(cleaned)
+    with mp.workdps(_needed_dps(cleaned)):
+        return mp.mpf(cleaned)
+
+
+def _needed_dps(*texts: str) -> int:
+    """Decimal precision required to hold these GP-printed numbers exactly."""
+    return max(mp.mp.dps, max(sum(c.isdigit() for c in t) for t in texts) + 10)
+
+
+def _parse_gp_complex(real_text: str, imag_text: str) -> mp.mpc:
+    """Build the mpc at full precision, components AND container.
+
+    Parsing the two halves correctly is not enough: `mp.mpc(re, im)` rounds to
+    the *global* context, so under the default mp.mp.dps of 15 it truncates
+    two perfectly good high-precision mpf values back to doubles.
+    """
+    real = real_text.strip().replace(" ", "")
+    imag = imag_text.strip().replace(" ", "")
+    with mp.workdps(_needed_dps(real, imag)):
+        return mp.mpc(mp.mpf(real), mp.mpf(imag))
 
 
 def _to_gp_number(value: GPValue, digits: int) -> str:
     if isinstance(value, str):
         return value
-    z = mp.mpc(value)
-    if abs(mp.im(z)) <= mp.mpf(f"1e-{max(20, digits // 2)}"):
-        return mp.nstr(mp.re(z), n=digits, min_fixed=0, max_fixed=0)
-    real = mp.nstr(mp.re(z), n=digits, min_fixed=0, max_fixed=0)
-    imag = mp.nstr(mp.im(z), n=digits, min_fixed=0, max_fixed=0)
-    return f"(({real})+({imag})*I)"
+    # Same trap on the way in: mp.mpc() rounds to the global context, so a
+    # high-precision argument passed by a caller who never raised mp.mp.dps
+    # would be truncated before it ever reaches GP.
+    with mp.workdps(max(mp.mp.dps, digits + 10)):
+        z = mp.mpc(value)
+        if abs(mp.im(z)) <= mp.mpf(f"1e-{max(20, digits // 2)}"):
+            return mp.nstr(mp.re(z), n=digits, min_fixed=0, max_fixed=0)
+        real = mp.nstr(mp.re(z), n=digits, min_fixed=0, max_fixed=0)
+        imag = mp.nstr(mp.im(z), n=digits, min_fixed=0, max_fixed=0)
+        return f"(({real})+({imag})*I)"
 
 
 @dataclass(frozen=True)
@@ -305,7 +367,7 @@ class FatouGP:
                 break
             real_text = output[cursor + 1]
             imag_text = output[cursor + 2]
-            parsed.append(mp.mpc(_parse_gp_scalar(real_text), _parse_gp_scalar(imag_text)))
+            parsed.append(_parse_gp_complex(real_text, imag_text))
             cursor += 3
         if len(parsed) != len(expressions):
             raise RuntimeError(

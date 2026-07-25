@@ -9,11 +9,33 @@ from .gp_backend import FatouGP
 
 
 def _parse_value(text: str) -> mp.mpc:
+    """Parse a --values argument WITHOUT going through a Python float.
+
+    The old form ran ast.literal_eval() first, so any decimal that is not
+    exactly representable in binary -- 0.1, 0.3, 1.7, i.e. most things a user
+    types -- became a float. The engine was then asked about a different
+    argument than the user wrote, off by ~5e-18, and the answer was printed to
+    dps-24 digits with no hint that only ~17 of them meant anything. It went
+    unnoticed because the documented example uses 0.5, which is binary-exact.
+
+    mpmath parses decimal strings exactly at the current precision, so try that
+    first and keep literal_eval only for Python-syntax complex forms.
+    """
     try:
-        parsed = ast.literal_eval(text)
-    except Exception:
-        parsed = text
-    return mp.mpc(parsed)
+        return mp.mpc(mp.mpf(text))
+    except (ValueError, TypeError):
+        pass
+    try:
+        return mp.mpc(text)
+    except (ValueError, TypeError):
+        pass
+    try:
+        return mp.mpc(ast.literal_eval(text))
+    except Exception as exc:
+        raise SystemExit(
+            f"--values: cannot parse {text!r} as a number. Use a decimal "
+            f"(0.5, 1e-3), or Python complex syntax (0.5+0.25j)."
+        ) from exc
 
 
 def _print_values(values: list[mp.mpc], digits: int = 30) -> None:

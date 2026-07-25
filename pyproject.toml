@@ -24,4 +24,11 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-fatou_backend = ["vendor/fatou.gp", "vendor/fatou_fork.gp", "vendor/NOTICE.md"]
+fatou_backend = [
+    "vendor/fatou.gp",
+    "vendor/fatou_fork.gp",
+    "vendor/NOTICE.md",
+    # runtime data for the base atlas -- without it a non-editable install
+    # ships a library whose advertised feature cannot find its table
+    "data/phi_modes.json",
+]

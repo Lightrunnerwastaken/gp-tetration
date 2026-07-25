@@ -90,8 +90,32 @@ def _base_value(base) -> mp.mpf:
 import json
 import os
 
-PHI_TABLE_PATH = os.path.join(os.path.dirname(__file__), "..", "..",
-                              "research", "reference", "phi_modes.json")
+from . import state_cache
+
+# Where the shipped mode table lives, and -- separately -- where newly computed
+# bases go.
+#
+# The old code did both through one path under research/reference/. That was
+# wrong twice over:
+#   1. research/reference/ is declared immutable (anti-gaming) in the README and
+#      in METHODS, yet a plain library call wrote into it.
+#   2. The path is repo-relative, so it does not exist in a non-editable
+#      install: `pip install .` silently shipped a library whose advertised base
+#      atlas could not find its data.
+# So: the table is package data (read-only), and anything computed at runtime is
+# written to the user cache next to the engine state cache.
+_PKG_TABLE = os.path.join(os.path.dirname(__file__), "data", "phi_modes.json")
+_REPO_TABLE = os.path.join(os.path.dirname(__file__), "..", "..",
+                           "research", "reference", "phi_modes.json")
+
+# Kept as a module attribute because callers and tests refer to it; it now names
+# the READ seed, never a write target.
+PHI_TABLE_PATH = _PKG_TABLE if os.path.exists(_PKG_TABLE) else _REPO_TABLE
+
+
+def phi_table_write_path() -> str:
+    """Writable location for on-demand mode tables (never the reference dir)."""
+    return str(state_cache.cache_dir() / "phi_modes.json")
 
 UNIVERSAL_TAIL = {
     "model": "ln A_k = lnC + gamma*ln k - 2*pi*sigma*k - sqrt(pi*c*k)",
@@ -100,11 +124,30 @@ UNIVERSAL_TAIL = {
 }
 
 
-def _load_table(path=None):
-    path = path or PHI_TABLE_PATH
-    if os.path.exists(path):
+def _read_json(path):
+    if path and os.path.exists(path):
         with open(path, encoding="utf-8") as f:
             return json.load(f)
+    return None
+
+
+def _load_table(path=None):
+    """Shipped seed table, overlaid with anything computed locally.
+
+    An explicit `path` still wins outright -- tests and tools pass one.
+    """
+    if path is not None:
+        loaded = _read_json(path)
+        if loaded is not None:
+            return loaded
+    else:
+        seed = _read_json(PHI_TABLE_PATH)
+        local = _read_json(phi_table_write_path())
+        if seed is not None or local is not None:
+            table = seed or {"meta": {}, "bases": {}}
+            if local:
+                table.setdefault("bases", {}).update(local.get("bases", {}))
+            return table
     return {"meta": {"version": 1, "dps": 60, "n_grid": 64, "k_head": 20,
                      "anchor": "e",
                      "definition": ("Phi_{e,b}(theta) = slog_e(T_b(n+theta)) - (n+theta); "
@@ -135,8 +178,12 @@ def phi_modes_cached(gp, base, n_grid=64, k_head=20, path=None):
         "modes": [{"re": mp.nstr(m.real, 45), "im": mp.nstr(m.imag, 45)} for m in modes],
         "measured": "2026-07-13",
     }
-    p = path or PHI_TABLE_PATH
-    os.makedirs(os.path.dirname(p), exist_ok=True)
+    # Only newly computed bases are persisted, and never into the shipped seed:
+    # writing there would mutate research/reference/, which the project declares
+    # immutable, and would fail outright on a read-only install.
+    p = path or phi_table_write_path()
+    if os.path.dirname(p):
+        os.makedirs(os.path.dirname(p), exist_ok=True)
     with open(p, "w", encoding="utf-8") as f:
         json.dump(table, f, indent=1)
     return mu_v, modes

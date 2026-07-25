@@ -74,9 +74,13 @@ from fatou_backend.gp_backend import FatouGP
 from fatou_backend import basechange
 import mpmath as mp
 
+mp.mp.dps = 320          # mpmath's global precision controls how values PRINT
+                         # (returned values carry full precision either way)
+
 gp = FatouGP(dps=300, fatou_gp="fork")   # the optimized engine, ~30x faster
-gp.sexp(2, mp.mpf("0.5"))                 # direct engine call (base 2)
-basechange.sexp_anchor(gp, 3, "0.5")     # any base via the e-anchor, ~ms
+v = gp.sexp(2, mp.mpf("0.5"))            # direct engine call (base 2)
+print(mp.nstr(v.real, 285))              # ~0.95*dps true digits
+basechange.sexp_anchor(gp, 3, "0.5")     # base 3 via the e-anchor, ~ms
 ```
 
 - **Engine selection**: `fatou_gp="fork"` (optimized) or `"original"`
