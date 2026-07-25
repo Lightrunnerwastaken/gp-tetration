@@ -235,11 +235,17 @@ Later round (2026-07-25), aimed squarely at the exponent:
   doubling is load-bearing: the working precision has to reach full precision
   early enough (halfway, at re = (p-60)/2) for the state to resolve at all.
 - **Universal asymptotic form for the theta harmonics** -- the one route that
-  attacks the iteration count rather than the cost per iteration. The best
+  attacks the iteration count rather than the cost per iteration. A best-fit
   three-parameter form reproduces log10|theta_m| to ~1e-3 decimals
-  out-of-sample, i.e. ~3 relative digits, and the residual *grows* with m;
-  more parameters are measurably worse out-of-sample. That is worth about one
-  saved iteration out of ~180.
+  out-of-sample and the residual *grows* with m; more parameters are measurably
+  worse out-of-sample. A later parameter-free reading of the same data is
+  sharper and reaches the same verdict: the m-exponent measures 1.000004
+  (0.999999..1.000054 over m = 40..115) and the amplitude equals the engine's
+  own constant rlnlm2 = 1/L2 to 9e-7 -- so the law is simply the Darboux term
+  of the logarithm the construction already writes down,
+  `theta_m = -(1/L2) * w*^-m / m` with `|w*| = 257.81`. That is 6.76 predicted
+  digits per harmonic, i.e. seeding it saves ~2.8 harmonics out of ~0.78p:
+  a constant fraction of a percent of the iterations, constant in p.
 - **Lowering the direct-vs-theta branch radius** -- moves samples onto the
   branch that (after keep 6 above) needs no polynomial evaluation at all. It
   gives 1.14x and 22% fewer iterations at dps 200 and *reverses* to 0.94x at
