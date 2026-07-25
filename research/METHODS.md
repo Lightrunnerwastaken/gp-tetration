@@ -21,11 +21,30 @@ checked against the *unmodified original* `fatou.gp` at full depth —
 two different code paths agreeing to 495+ digits is the strongest
 practical proof that the fork's 21 optimizations did not bend accuracy.
 
-**Calibration law.** Across all measured tiers, true correct digits ≈
-`dps − 24` (with 0–20 digits of quantization overshoot on top). Measured
-convergence rates: base e ≈ 2.05 digits/iteration, base 2 ≈ 1.27.
-This law is what the atlas certification prototype uses for its engine-error
-term (e.g. dps 60 → engine ε ≈ 1e−33, *not* the naive 1e−55).
+**Calibration law.** True correct digits ≈ `precis − (precis − 4.7)/21`,
+where `precis` is PARI's actual working precision (word-quantized: dps 300
+gives 308, dps 1020 gives 1021). Measured against the proven references:
+
+| dps | precis | measured | this law | the older `dps − 24` |
+|---|---|---|---|---|
+| 300 | 308 | 295.0 | 293.6 | 276.0 |
+| 400 | 404 | 383.8 | 385.0 | 376.0 |
+| 520 | 520 | 496.9 | 495.5 | 496.0 |
+| 1020 | 1021 | 973.0 | 972.6 | **996.0** |
+
+The loss is **proportional**, not constant: `precis/21`, from a cancellation in
+the Schröder walk. `isuperf` iterates to within `isuperfr = 10^(−precis/21)` of
+the fixed point and then evaluates `subst(fsl, x, y − L)` — `y` and `L` are both
+O(1) while their difference is at scale 1e−19 at dps 400, so an absolute
+1e−precis error re-enters as a *relative* 1e−(precis−19) one. The 21 is the
+file's `\ps 21` series precision.
+
+The earlier `dps − 24` form is conservative below ~dps 500 — which is why the
+atlas certification, which uses it at dps 60, stays safe (36 claimed against
+~74 real) — but it **over-claims by 23 digits at dps 1020** and must not be
+used to size a deep run.
+
+Measured convergence rates: base e ≈ 2.05 digits/iteration, base 2 ≈ 1.27.
 
 Every entry in `values.json` records its full provenance in the meta
 block (engine, dps pair, measured error-vector delta, runtimes) —
@@ -188,15 +207,24 @@ Later round (2026-07-25), aimed squarely at the exponent:
 
 - **Product-tree multipoint, honestly budgeted** -- the classical fast
   evaluation, tested on a real frozen engine state rather than synthetic
-  points. It loses ~0.85 decimal digits *per point in a block*, and a guard
-  sweep from 0 to 20480 extra bits changes nothing at all; random points of
-  the same size and count are exact. The cause is geometry, not budget: the
-  evaluation points are the images of ONE circle under three analytic maps
-  (identity, exp, log), so they sit on smooth arcs -- the worst case for
-  subproduct polynomials. Radius shells normalize the modulus, not the angular
-  clustering, and do not help. Since the guard requirement then grows linearly
-  in N, the tree costs c*N*log^2(N)*M(q + 2.8N) against 0.5*N^2*M(q): about
-  7.7x *slower* at 1000 digits, with a crossover only near 12000.
+  points. It needs about **6 guard bits per point**. The geometry sets the
+  amplification -- the evaluation points are the images of ONE circle under
+  three analytic maps (identity, exp, log), so they sit on smooth arcs, the
+  worst case for subproduct polynomials -- and the guard budget then buys it
+  back exactly: on a frozen dps-300 state with 1280 points, 4.0*N guard bits
+  still returns garbage while 6.0*N gives bitwise agreement with Horner.
+  Because that demand is linear in N, the precision growth cancels the
+  algebraic gain, and with an honest guard the tree measures several times
+  *slower* than Horner across the working range.
+
+  Worth recording, because it misdirected the follow-up work: this was first
+  reported here as "a guard sweep from 0 to 20480 bits changes nothing, so the
+  cause is geometry rather than budget". That was an artifact of the measuring
+  harness, which built the ball inputs once at a fixed precision and then
+  raised only the working precision -- the frozen input radii pinned the result
+  no matter how much guard was added. Rebuilding the inputs at each precision
+  gives the law above. The route stays closed, on timing rather than on
+  stability.
 - **Constant-precision increment ladder** -- the incremental path evaluates the
   diff at `working precision - residual + 40` digits, which is linear in the
   residual because the working-precision ladder is `2*re + 60`. A factor of 1
