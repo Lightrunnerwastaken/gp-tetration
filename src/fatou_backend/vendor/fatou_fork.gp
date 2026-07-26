@@ -56,7 +56,7 @@ bd1n=0; bd1p=0; bd1t=0; bd1a=0; bd1b=0; bd1w=0; bd1m=0; bd2n=0; bd2p=0; bd2t=0; 
    twiddles depend only on (nn, realprecision) -- never on the data -- but
    were rebuilt on every call. */
 mx1n=0; mx1p=0; mx1t=0; mx1w=0; mx1o=0; mx2n=0; mx2p=0; mx2t=0; mx2w=0; mx2o=0;
-exmap=0; exmapkey=0;
+exmap=0; exmapkey=0; exmapprec=0;   /* exp-062: precision the map carries */
 quietmode=0;
 /* I added || (real(Period)>47) to handle speed for sexpinit(1.4494); takes the place of theta0lim=0.224 */
 theta0lim=0.0002; /* theta0lim=0.0224; */
@@ -1509,7 +1509,11 @@ geoseq(c, mu, n) = {
 }
 
 staylor( w,r,samples) = {
-  local(rinv,s,t,x1,y,y0,y1,y2,st,z,tot,t_est,tcrc,halfsamples,wtaylor,terms,om,c0,mu,c1,G,coeffs);
+  /* exp-063: exdig/exin/exp0/exsc/icsc were assigned but not declared, so
+     they leaked into the global namespace and rode along in every dumped
+     engine state. They are temporaries of the extraction block. */
+  local(rinv,s,t,x1,y,y0,y1,y2,st,z,tot,t_est,tcrc,halfsamples,wtaylor,terms,om,c0,mu,c1,G,coeffs,
+        exdig,exin,exp0,exsc,icsc);
   if (samples==0, samples=240);  /* no matter how many sample points, the default gie series size is 200 halfsamples */
   /* exp-011b: the fft extraction needs a power-of-2 grid; the grid change
      costs the factor-2 bases their delicate sample/terms co-evolution
@@ -1644,9 +1648,17 @@ staylor( w,r,samples) = {
         G = fft(geopow(om^(-1), samples-1), exin)   /* exp-061 */
       ,
         G = mixdft(exin));
-      if ((exmapkey != [samples, w, r, 1]) || (type(exmap) != "t_VEC"),
+      /* exp-062: the key must carry the working precision. The extraction
+         runs at the reduced exdig, which CLIMBS while the precision ladder
+         does, so a map built early in a grid stretch was reused later at a
+         precision it does not carry (measured at dps 300: 68 of 223 hits,
+         worst shortfall 58 digits). Reuse only downwards, as bluedft and
+         mixdft already do. */
+      if ((exmapkey != [samples, w, r, 1]) || (type(exmap) != "t_VEC")
+          || (exmapprec < default(realprecision)),
         exmap = vector(terms, s, (rinv^s/samples) * conj(c0)^s * om^(-s));
         exmapkey = [samples, w, r, 1];
+        exmapprec = default(realprecision);
       );
       coeffs = vector(terms, s, exmap[s] * G[(s%samples)+1]);
     ,
@@ -1656,9 +1668,12 @@ staylor( w,r,samples) = {
         G = fft(geopow(mu^(-1), 2*samples-1), concat(exin, vector(samples, i, 0)))   /* exp-061 */
       ,
         G = mixdft(concat(exin, vector(samples, i, 0))));
-      if ((exmapkey != [samples, w, r, 2]) || (type(exmap) != "t_VEC"),
+      /* exp-062: same for the real branch (this is the one base e takes). */
+      if ((exmapkey != [samples, w, r, 2]) || (type(exmap) != "t_VEC")
+          || (exmapprec < default(realprecision)),
         exmap = vector(terms, s, conj(c1)^s * mu^(-s));
         exmapkey = [samples, w, r, 2];
+        exmapprec = default(realprecision);
       );
       coeffs = vector(terms, s, (rinv^s/samples) * real(exmap[s] * G[(s%(2*samples))+1]));
     );
@@ -1778,7 +1793,12 @@ loop(kc,nlim,nskip,looplim) = {
     ct=ct+rr;
     if (thetamode,
       thetamode++;  /* used by renormr */
-      thsamples=floor(re*tht_re_mult+6);
+      /* exp-063: tht_re_mult starts NEGATIVE (log(10)/log(7/2000)) and only
+         turns positive once a nonzero theta coefficient is seen. If that
+         coefficient were ever exactly zero the seed would survive, and past
+         re ~ 14.7 this expression goes negative straight into vector(). 6 is
+         a length the code already uses on purpose (thtaylor(1,6)). */
+      thsamples=max(6, floor(re*tht_re_mult+6));
       tht=thtaylor(1,thsamples);
       if (complextaylor, tht2=thtaylor(2,thsamples));  /* might need thsamples2 ... */
       if (n<=2, m=1, m=floor(thsamples/2));
