@@ -83,3 +83,51 @@ def load_sidecar(bin_path: Path) -> dict | None:
 def drop_cache(bin_path: Path) -> None:
     bin_path.unlink(missing_ok=True)
     bin_path.with_suffix(".json").unlink(missing_ok=True)
+
+
+def cache_entries() -> list[tuple[Path, int]]:
+    """Every cached state, as (.gpbin path, size in bytes), newest last."""
+    entries = [(p, p.stat().st_size) for p in cache_dir().glob("*.gpbin")]
+    return sorted(entries, key=lambda pair: pair[0].stat().st_mtime)
+
+
+def cache_size() -> int:
+    """Total bytes held by the state cache, including sidecars."""
+    return sum(p.stat().st_size for p in cache_dir().iterdir() if p.is_file())
+
+
+def prune_cache(keep: int | None = None, max_bytes: int | None = None) -> list[Path]:
+    """Delete the least-recently-modified entries; return what was removed.
+
+    The cache never evicted anything. That is defensible -- an entry is only
+    ever a recomputable speedup, and the key includes a hash of the engine file,
+    so a stale entry is unreachable rather than wrong -- but the entries are not
+    small: a dps-50 base-e state is ~30 KB on the original engine and ~350 KB on
+    the fork, which carries 65 extra optimizer variables, and both grow with
+    grid size and precision. At high dps a directory left alone for a while
+    reaches gigabytes.
+
+    Nothing calls this automatically: silently deleting a cache entry that cost
+    the user six hours to produce is not a decision this library should make on
+    its own. It is here so that "clear the cache" is a documented one-liner
+    rather than a manual hunt through ~/.cache.
+
+    keep:      keep at most this many entries (drop the oldest beyond it)
+    max_bytes: keep dropping oldest entries until the total fits
+    """
+    removed: list[Path] = []
+    entries = cache_entries()
+
+    def _drop(bin_path: Path) -> None:
+        for path in (bin_path, bin_path.with_suffix(".json")):
+            if path.exists():
+                path.unlink()
+        removed.append(bin_path)
+
+    if keep is not None:
+        while len(entries) > max(keep, 0):
+            _drop(entries.pop(0)[0])
+    if max_bytes is not None:
+        while entries and cache_size() > max_bytes:
+            _drop(entries.pop(0)[0])
+    return removed

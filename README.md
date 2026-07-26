@@ -117,6 +117,17 @@ basechange.sexp_anchor(gp, 3, "0.5")     # base 3: shipped in the table, ~ms
   `~/.cache/fatou_backend/` (override with `FATOU_CACHE_DIR`); later
   sessions restore it in ~0.1 s. The key includes a hash of the engine
   file, so switching engines or knobs never reuses a stale state.
+  It has **no eviction** — a stale entry is unreachable rather than wrong, and
+  deleting one that cost hours to produce is not a decision the library makes
+  by itself. But the entries are not small (a dps-50 base-e state is ~30 KB on
+  the original engine and ~350 KB on the fork, growing with grid size and
+  precision), so the directory does accumulate: 159 states measured here came
+  to 72 MB, largest single entry 12 MB. To reclaim space:
+  ```python
+  from fatou_backend import state_cache
+  state_cache.cache_size()                    # bytes currently held
+  state_cache.prune_cache(max_bytes=500_000_000)   # or keep=20
+  ```
 - **Supported bases**: real bases > e^(1/e) (Kneser construction,
   gate-verified), real bases 1 < b < e^(1/e) (regular iteration at the
   attracting fixed point, e.g. sexp_1.2(0.5) = 1.13626…, verified

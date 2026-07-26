@@ -189,8 +189,8 @@ class FatouGPSession:
     gp: "FatouGP"
     base: GPValue
 
-    def eval_batch(self, expressions: Sequence[str], digits: int | None = None) -> list[mp.mpc]:
-        return self.gp.eval_batch(self.base, list(expressions), digits=digits)
+    def eval_batch(self, expressions: Sequence[str]) -> list[mp.mpc]:
+        return self.gp.eval_batch(self.base, list(expressions))
 
     def sexp_batch(self, xs: Sequence[GPValue]) -> list[mp.mpc]:
         return self.gp.sexp_batch(self.base, list(xs))
@@ -359,10 +359,11 @@ class FatouGP:
         self,
         base: GPValue,
         expressions: list[str],
-        digits: int | None = None,
     ) -> list[mp.mpc]:
-        if digits is None:
-            digits = max(self.dps - 8, 30)
+        # No `digits` parameter: the callers below have already rendered their
+        # arguments with _to_gp_number(x, digits), and the results come back at
+        # the engine's working precision. A `digits` argument here was accepted
+        # and silently ignored -- results were identical whatever you passed.
         if self.persistent:
             if self.n_workers > 1 and len(expressions) >= 2 * self.n_workers:
                 return self._pool_for(base).eval(expressions)
@@ -424,19 +425,18 @@ class FatouGP:
         self,
         base: GPValue,
         expressions: list[str],
-        digits: int | None = None,
     ) -> list[mp.mpc]:
-        return self._run_initialized(base, expressions, digits=digits)
+        return self._run_initialized(base, expressions)
 
     def sexp_batch(self, base: GPValue, xs: list[GPValue]) -> list[mp.mpc]:
         digits = max(self.dps - 8, 30)
         expressions = [f"sexp({_to_gp_number(x, digits)})" for x in xs]
-        return self._run_initialized(base, expressions, digits=digits)
+        return self._run_initialized(base, expressions)
 
     def slog_batch(self, base: GPValue, ys: list[GPValue]) -> list[mp.mpc]:
         digits = max(self.dps - 8, 30)
         expressions = [f"slog({_to_gp_number(y, digits)})" for y in ys]
-        return self._run_initialized(base, expressions, digits=digits)
+        return self._run_initialized(base, expressions)
 
     def roundtrip_residuals(self, base: GPValue, ys: list[GPValue]) -> list[mp.mpc]:
         digits = max(self.dps - 8, 30)
@@ -444,7 +444,7 @@ class FatouGP:
             f"sexp(slog({_to_gp_number(y, digits)})) - ({_to_gp_number(y, digits)})"
             for y in ys
         ]
-        return self._run_initialized(base, expressions, digits=digits)
+        return self._run_initialized(base, expressions)
 
     def sexp(self, base: GPValue, x: GPValue) -> mp.mpc:
         return self.sexp_batch(base, [x])[0]
