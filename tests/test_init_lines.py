@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 import unittest
 from pathlib import Path
@@ -39,13 +40,28 @@ class InitLinesTests(unittest.TestCase):
 
 
 class GpExeCandidateTests(unittest.TestCase):
-    def test_pari64_is_preferred(self) -> None:
+    def test_pari64_is_preferred_among_the_windows_candidates(self) -> None:
         self.assertIn("Pari64", str(GP_EXE_CANDIDATES[0]))
         self.assertIn("Pari64", str(GP_EXE_CANDIDATES[1]))
         self.assertIn("Pari32", str(GP_EXE_CANDIDATES[2]))
 
-    def test_default_gp_exe_resolves_to_pari64(self) -> None:
-        self.assertIn("Pari64", str(find_default_gp_exe()))
+    def test_default_gp_exe_resolves_to_something_runnable(self) -> None:
+        """Platform-agnostic on purpose.
+
+        This used to assert "Pari64" in the resolved path, which is true only on
+        a Windows box with the standard installer and no FATOU_GP_EXE override --
+        it fails on Linux/macOS, where PARI/GP installs `gp` on PATH, and it
+        failed for anyone pointing the env var elsewhere. What the resolver
+        actually promises is an executable that exists.
+        """
+        exe = find_default_gp_exe()
+        self.assertTrue(Path(exe).exists(), f"resolver returned {exe!r}")
+
+    @unittest.skipUnless(sys.platform.startswith("win"), "Windows-only paths")
+    def test_windows_default_is_a_pari_install(self) -> None:
+        if os.getenv("FATOU_GP_EXE"):
+            self.skipTest("FATOU_GP_EXE overrides the default lookup")
+        self.assertIn("Pari", str(find_default_gp_exe()))
 
 
 if __name__ == "__main__":

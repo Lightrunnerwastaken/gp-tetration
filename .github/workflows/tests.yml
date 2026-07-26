@@ -1,0 +1,59 @@
+name: tests
+
+# The fast suite only. The accuracy gate (research/gate.py) and the slow block
+# take minutes and are gated behind FATOU_BACKEND_RUN_SLOW=1; run those locally
+# before tagging. What CI is for here is the thing that was easiest to get
+# wrong and hardest to notice: that the package works on a machine that is not
+# the author's -- a Linux box where PARI/GP is `gp` on PATH rather than a
+# hardcoded Windows install path.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install PARI/GP
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pari-gp
+          gp --version
+      - name: Install package
+        run: pip install -e .
+      - name: Run the fast suite
+        run: python -m pytest tests/ -q
+
+  wheel:
+    # The base atlas and both engines are runtime data; a wheel that omits them
+    # ships a library whose advertised features cannot find their files.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install build
+      - run: python -m build --wheel
+      - name: Assert runtime data is packaged
+        run: |
+          python - <<'PY'
+          import glob, zipfile, sys
+          names = zipfile.ZipFile(glob.glob("dist/*.whl")[0]).namelist()
+          required = [
+              "fatou_backend/vendor/fatou.gp",
+              "fatou_backend/vendor/fatou_fork.gp",
+              "fatou_backend/vendor/NOTICE.md",
+              "fatou_backend/data/phi_modes.json",
+          ]
+          missing = [n for n in required if n not in names]
+          if missing:
+              sys.exit("missing from wheel: " + ", ".join(missing))
+          print("wheel contains all runtime data")
+          PY

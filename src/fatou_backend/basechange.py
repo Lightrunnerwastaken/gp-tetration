@@ -82,10 +82,9 @@ def _base_value(base) -> mp.mpf:
 # ---------------------------------------------------------------------------
 # M5.3: Phi mode table (JSON, on-demand + cache; k_head=20, dps=60,
 # universal tail per the paper-IV mode-decay law).
-# Gespeichert wird die VORWAERTS-Richtung
-# Phi_{e,b}; die Rueckrichtung folgt exakt aus dem Groupoid
-# Phi_{b,e}(H(theta)) = -Phi_{e,b}(theta) (H-Inversion via Newton,
-# H' in [0.997, 1.003]).
+# Only the FORWARD direction Phi_{e,b} is stored; the reverse follows exactly
+# from the groupoid identity Phi_{b,e}(H(theta)) = -Phi_{e,b}(theta)
+# (H inverted by Newton; H' stays in [0.997, 1.003]).
 # ---------------------------------------------------------------------------
 import json
 import os
@@ -151,13 +150,13 @@ def _load_table(path=None):
     return {"meta": {"version": 1, "dps": 60, "n_grid": 64, "k_head": 20,
                      "anchor": "e",
                      "definition": ("Phi_{e,b}(theta) = slog_e(T_b(n+theta)) - (n+theta); "
-                                    "a_k = (2/N) sum_j Phi_j e^{-2pi i jk/N}, mu = Gittermittel"),
+                                    "a_k = (2/N) sum_j Phi_j e^{-2pi i jk/N}, mu = grid mean"),
                      "universal_tail": UNIVERSAL_TAIL},
             "bases": {}}
 
 
 def phi_modes_cached(gp, base, n_grid=64, k_head=20, path=None):
-    """Komplexe Phi_{e,b}-Moden fuer eine Basis, on-demand + JSON-Cache."""
+    """Complex Phi_{e,b} modes for one base, computed on demand and cached."""
     table = _load_table(path)
     key = str(base)
     if key in table["bases"]:
@@ -176,7 +175,12 @@ def phi_modes_cached(gp, base, n_grid=64, k_head=20, path=None):
     table["bases"][key] = {
         "mu": mp.nstr(mu_v, 45),
         "modes": [{"re": mp.nstr(m.real, 45), "im": mp.nstr(m.imag, 45)} for m in modes],
-        "measured": "2026-07-13",
+        # Parameters that determine the entry, rather than a date: a
+        # hardcoded "measured" stamp claimed every on-demand base had been
+        # computed on one particular day in July 2026.
+        "n_grid": n_grid,
+        "k_head": k_head,
+        "dps": mp.mp.dps,
     }
     # Only newly computed bases are persisted, and never into the shipped seed:
     # writing there would mutate research/reference/, which the project declares
@@ -190,7 +194,7 @@ def phi_modes_cached(gp, base, n_grid=64, k_head=20, path=None):
 
 
 def phi_from_modes(mu_v, modes, theta):
-    """Phi-Rekonstruktion aus mu + Moden-Kopf: mu + sum Re(a_k e^{2pi i k theta})."""
+    """Reconstruct Phi from mu and the mode head: mu + sum Re(a_k e^{2pi i k theta})."""
     theta = _to_mpf(theta)
     s = mp.mpf(mu_v)
     for k, a in enumerate(modes, start=1):
@@ -199,13 +203,13 @@ def phi_from_modes(mu_v, modes, theta):
 
 
 def sexp_anchor(gp, base_b, y, n_lift=8, table_path=None, n_grid=64, k_head=20):
-    """sexp_b(y) NUR aus dem e-Anker + Phi-Tabelle (kein Basis-b-Init).
+    """sexp_b(y) from the e-anchor and the Phi table alone (no base-b init).
 
-    Hoehe liften: h = n_lift + y + Phi_{e,b}(y mod 1); Anker liefert
-    t = T_e(a) an moderater Hoehe a; dann exakter Rueckpeel in
-    ln-Koordinaten: v_{j+1} = ln v_j - lnln b, wobei oberhalb der
-    Praezisionsschwelle v_j = T_e(h-1-j) - lnln b exakt gilt
-    (Spiegel der Vorwaerts-Leiter; Trunkierung sub-Praezision).
+    Lift the height: h = n_lift + y + Phi_{e,b}(y mod 1). The anchor supplies
+    t = T_e(a) at a moderate height a, then an exact reverse peel in
+    ln-coordinates: v_{j+1} = ln v_j - lnln b, which holds exactly as
+    v_j = T_e(h-1-j) - lnln b above the precision threshold (mirror of the
+    forward ladder; truncation stays below working precision).
     """
     y = _to_mpf(y)
     mu_v, modes = phi_modes_cached(gp, base_b, n_grid=n_grid, k_head=k_head, path=table_path)
@@ -213,16 +217,16 @@ def sexp_anchor(gp, base_b, y, n_lift=8, table_path=None, n_grid=64, k_head=20):
     h = n_lift + y + phi_from_modes(mu_v, modes, theta)
     ln_b = mp.log(_base_value(base_b))
     lnln_b = mp.log(ln_b)
-    # Schaltlevel direkt waehlen: a = h-1-j in (2.2, 3.2], dann noetigenfalls
-    # via mpmath hochklettern bis T_e(a) > Schwelle (nie Engine-Calls auf
-    # unrepraesentierbaren Turmhoehen).
+    # Pick the switch level directly: a = h-1-j in (2.2, 3.2], then climb with
+    # mpmath if needed until T_e(a) exceeds the threshold -- never an engine
+    # call at a tower height that cannot be represented.
     thresh = mp.mpf(10) ** (mp.mp.dps // 2 + 10)
     j = int(mp.ceil(h - 1 - mp.mpf("3.2")))
     j = max(j, 1)
     a = h - 1 - j
     t = mp.mpf(gp.sexp("exp(1)", a).real)
     while t <= thresh and j > 1:
-        t = mp.e ** t          # eine e-Ebene hoch: T_e(a+1)
+        t = mp.e ** t          # one e-level up: T_e(a+1)
         j -= 1
     v = t - lnln_b
     while j < n_lift:
@@ -232,7 +236,7 @@ def sexp_anchor(gp, base_b, y, n_lift=8, table_path=None, n_grid=64, k_head=20):
 
 
 def _phi_deriv_from_modes(modes, theta):
-    """Phi'(theta) aus dem Moden-Kopf: sum Re(2 pi i k a_k e^{2pi i k theta})."""
+    """Phi'(theta) from the mode head: sum Re(2 pi i k a_k e^{2pi i k theta})."""
     theta = _to_mpf(theta)
     s = mp.mpf(0)
     for k, a in enumerate(modes, start=1):
@@ -241,13 +245,13 @@ def _phi_deriv_from_modes(modes, theta):
 
 
 def slog_anchor(gp, base_b, w, table_path=None, n_grid=64, k_head=20):
-    """slog_b(w) NUR aus dem e-Anker + Phi-Tabelle (kein Basis-b-Init).
+    """slog_b(w) from the e-anchor and the Phi table alone (no base-b init).
 
-    In b-Tuermen hochklettern (y > 1e4, m Ebenen), exakter Zwei-Level-
-    Einstieg in die e-Welt (W = lnln b + y ln b = lnln T_b(..+2)),
-    e-Peel + EIN slog_e-Call -> s_e = slog_e-Hoehe des Turms; dann
-    H(x) = x + Phi(x) = s_e - (m+2) per Newton loesen (H' in
-    [0.997, 1.003], 3 Schritte reichen fuer Volltiefe).
+    Climb the b-tower (y > 1e4, m levels), take the exact two-level entry into
+    the e-world (W = lnln b + y ln b = lnln T_b(..+2)), peel in e and make ONE
+    slog_e call to get s_e, the slog_e height of the tower; then solve
+    H(x) = x + Phi(x) = s_e - (m+2) by Newton (H' lies in [0.997, 1.003], so
+    3 steps suffice for full depth).
     """
     w = _to_mpf(w)
     mu_v, modes = phi_modes_cached(gp, base_b, n_grid=n_grid, k_head=k_head, path=table_path)
