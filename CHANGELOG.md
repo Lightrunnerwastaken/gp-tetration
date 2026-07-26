@@ -50,7 +50,14 @@ base atlas.
   against a naive O(n²) DFT, against high-precision truth for the power
   tables, and by a source check that no `powers()` call survives at a twiddle
   site — the construction that carried ~n ulp instead of ~log₂(n).
-- Tests: 72 passing, 4 skipped (`python -m pytest tests/`).
+- Tests: 83 passing, 4 skipped (`python -m pytest tests/`), including
+  end-to-end coverage of the fork itself (engine diversity against the
+  unmodified original, the sub-eta regime, and the ≥0.95·dps calibration
+  claim), the two console entry points, and the DFT/twiddle layer.
+- CI (`.github/workflows/tests.yml`) runs the fast suite on Linux, where
+  PARI/GP is `gp` on PATH — the configuration most likely to break and
+  least likely to be noticed on the author's machine — and asserts that a
+  built wheel actually contains its runtime data.
 
 ### Base atlas
 
@@ -65,6 +72,18 @@ base atlas.
 - `research/METHODS.md` — verification method, the full keep stack with
   mechanisms, measured speedups, and the negative results (what did *not* work
   and why), including the routes that were closed against the p^4.1 exponent.
+
+### Interface notes
+
+- `FatouGP` and the CLI return values at full precision regardless of the
+  caller's `mp.mp.dps`; that global still governs how they *print*, so use
+  `mp.nstr(v, n)` or raise it to see the digits.
+- Unsupported bases (b ≤ 0, 0 < b < 1, b = 1) are rejected immediately with an
+  explanatory error instead of hanging until `init_timeout`.
+- `eval_batch`'s `digits=` parameter is gone: it was accepted and ignored.
+- The state cache has no automatic eviction; `state_cache.prune_cache(...)`
+  and `state_cache.cache_size()` are there when the directory grows (measured:
+  159 states = 72 MB).
 
 ### Known limitations
 
