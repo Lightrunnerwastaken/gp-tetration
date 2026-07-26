@@ -23,17 +23,22 @@ truly delivers there (see `research/METHODS.md` §1). Methods, measurements and
 the negative results (what did *not* work, and why) are documented in
 `research/METHODS.md`.
 
-| target (base e) | true digits delivered | runtime, original | runtime, fork |
+| target (base e) | true digits delivered | runtime, original | runtime, fork¹ |
 |---|---|---|---|
-| dps 300 | 302 | ~27 min | **~36 s** |
-| dps 520 | 509 | ~5.4 h | **~4 min** |
-| dps 1020 | ≥972 | (memory crash) | **~2.0 h**¹ |
+| dps 300 | 302 | ~27 min | **54 s** |
+| dps 520 | 509 | ~5.4 h | **5.8 min** |
+| dps 1020 | ≥972 | (memory crash) | **2.0 h** |
 
-¹7124 s, core-pinned. Read it as an order of magnitude, not a constant: over
-that single ~2 h run the machine itself slowed by 18.7% (measured — dps 520 was
-re-run immediately before and after, giving 348 s and 413 s). The `≥972` is a
-limit of the reference ladder, not of the engine: past 972 digits there is
-nothing proven left to compare against.
+¹ All three fork figures come from **one** core-pinned session, so they are
+comparable with each other; mixing sessions is exactly what the
+measurement-hygiene note below warns against. They are not the fastest this
+engine has run — a cooler machine gave 36 s at dps 300 — and over the 2 h
+dps-1020 leg the machine itself slowed by 18.7% (measured: dps 520 re-run
+immediately before and after gave 348 s and 413 s). Treat them as an order of
+magnitude, not constants.
+
+The `≥972` is a limit of the reference ladder, not of the engine: past 972
+digits there is nothing proven left to compare against.
 
 Each speedup factor is from paired runs, but the two factors were measured in
 different sessions, so read the `original` column as an order of magnitude
