@@ -87,14 +87,17 @@ base atlas.
 
 ### Known limitations
 
-- **The depth-scaling exponent is ~4.1 and this release does not change it.**
-  All optimizations here are constant-factor by construction; the local
+- **The depth-scaling exponent is ~4.2–4.5 and this release does not change
+  it.** All optimizations here are constant-factor by construction; the local
   exponents confirm it (300→400: 3.31 before, 3.24 after). The structural reason
-  is documented in `research/METHODS.md` §3: with Θ(p) Picard iterations each
-  touching Θ(p²) digits, Θ(p³) is a floor for this discretization.
-- The 520→1020 pair, where the 4.13 figure was originally measured, has **not**
-  been re-measured for this release; an attempt was discarded as contaminated
-  (see below).
+  is in `research/METHODS.md` §3: with Θ(p) Picard iterations each touching
+  Θ(p²) digits, Θ(p³) is a floor for this discretization.
+- The 520→1020 pair was re-measured core-pinned and **bracketed** — dps 520 run
+  immediately before and after the dps-1020 leg. The machine slowed 18.7% across
+  that ~2 h run, so the result is an interval: **4.35, between 4.23 and 4.48**
+  depending on which bracket you divide by. It does not contain the historical
+  4.13, but that figure was taken without a bracket, so the supported claim is
+  that the exponent is ~4.2–4.5 and has not fallen — not that it rose.
 - **Timings are sensitive to CPU core placement.** On a hybrid-core CPU
   (i7-12700H, 6 P + 8 E) the same engine and input measured 51 s pinned to
   P-cores vs 85 s left to the Windows scheduler — a 1.68× swing, digit-identical.

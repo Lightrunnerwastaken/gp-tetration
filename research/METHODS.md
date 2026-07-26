@@ -177,16 +177,44 @@ pair moves the other way (3.53 -> 3.67). The movement in both directions is
 grid-quantization noise; nothing shifted the exponent, which is what section 3
 argues must be the case.
 
-**The 520->1020 pair, where the 4.13 figure comes from, has not been
-re-measured.** One attempt was made (2026-07-25) and is discarded: the dps-1020
-run was unpinned and executed late in a day of sustained load, while the
-dps-520 number it would have been divided by was recorded hours earlier under a
-faster machine state. It yields 4.81, but the same contamination inflates the
-*300->400* exponent from 3.24 to 3.54 when measured unpinned under load, so the
-excess is the scheduler, not the algorithm. A usable number needs both tiers
-pinned and back-to-back on a quiet machine (~2.5 h); until then the honest
-statement is that the exponent is unchanged at the tiers that were measured
-properly, and unmeasured at 1020.
+**The 520->1020 pair, where the 4.13 figure comes from, re-measured.** The
+first attempt (unpinned, late in a loaded day) was discarded. The second was
+core-pinned and bracketed: dps 520 immediately before the dps-1020 leg and
+again immediately after, so that any drift across the ~2 h run is measured
+rather than assumed.
+
+| leg | time |
+|---|---|
+| dps 520, before | 348.09 s |
+| dps 1020 | 7124.53 s |
+| dps 520, after | 413.17 s |
+
+The bracket earned its keep: the machine slowed by **18.7%** across the 1020
+leg (thermal — it is a laptop under two hours of sustained AVX load). So the
+exponent is an interval, not a point:
+
+| divided by | exponent |
+|---|---|
+| the later 520 (slow end) | 4.23 |
+| the geometric mean | **4.35** |
+| the earlier 520 (fast end) | 4.48 |
+
+Against true digits (508.9 -> 972 proven) it reads 4.53; against the raw 992
+agreement, 4.39.
+
+**Reading.** The interval does not contain 4.13, but that does not license
+"the exponent rose": the historical 4.13 was taken without such a bracket and
+is no more trustworthy than the number this method discards. What is supported
+is that the exponent sits at ~4.2-4.5 and has **not fallen** -- which is what
+every keep being constant-factor by construction predicts. The local exponent
+continues to grow with depth, consistently: 3.24 (300->400), 3.39 (300->520),
+~4.35 (520->1020).
+
+One more figure worth recording, because it bounds what this hardware can
+resolve at all: the pinned, quiet-machine dps-1020 run (7124 s) is **15%
+slower** than the contaminated unpinned one taken hours earlier (6202 s). The
+machine's thermal state moved further than pinning could recover. Absolute
+timings here are comparable only between runs minutes apart.
 
 The keeps, grouped by mechanism:
 

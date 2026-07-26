@@ -27,16 +27,13 @@ the negative results (what did *not* work, and why) are documented in
 |---|---|---|---|
 | dps 300 | 302 | ~27 min | **~36 s** |
 | dps 520 | 509 | ~5.4 h | **~4 min** |
-| dps 1020 | ≥972 | (memory crash) | timing not re-measured¹ |
+| dps 1020 | ≥972 | (memory crash) | **~2.0 h**¹ |
 
-¹ The **value** at dps 1020 exists and is verified: it reproduces
-`sexp|e|0.5|1000` to that reference's full proven depth of 972 digits (the
-reference itself comes from the dps 1020/1033 error-vector pair). Only the
-*runtime* is missing — the one measurement taken was contaminated by CPU core
-migration and discarded, see the measurement-hygiene note in
-`research/METHODS.md` §2. A clean number needs a quiet, core-pinned machine.
-The `≥` is a limit of the reference ladder, not of the engine: past 972 digits
-there is nothing proven left to compare against.
+¹7124 s, core-pinned. Read it as an order of magnitude, not a constant: over
+that single ~2 h run the machine itself slowed by 18.7% (measured — dps 520 was
+re-run immediately before and after, giving 348 s and 413 s). The `≥972` is a
+limit of the reference ladder, not of the engine: past 972 digits there is
+nothing proven left to compare against.
 
 Each speedup factor is from paired runs, but the two factors were measured in
 different sessions, so read the `original` column as an order of magnitude
