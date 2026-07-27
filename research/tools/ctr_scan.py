@@ -47,6 +47,15 @@ def run(mul: str, dps: int, base: str, engine: Path, extra: list[str] | None = N
         'print("SCAN-ITER ", sres);',
         'print("SCAN-TERMS ", poldegree(ct));',
         'print("SCAN-VAL ", sexp(0.5));',
+        # REFERENCE-FREE guard. The anchor column below only works when a
+        # ctrmul=1 run is in the same scan; this catches a bad setting on its
+        # own. It has to be a ROUNDTRIP: the Abel equation A(f(z)) = A(z)+1 is
+        # invariant under A -> A + theta(A) for any 1-periodic theta, so a run
+        # that converged to the wrong theta still satisfies it (measured, base
+        # 10 at ctrmul 0.85: Abel residual 0.E-96 while the value carried ZERO
+        # correct digits). The engine's own `re` is a consistency signal, not a
+        # correctness signal, for exactly the same reason.
+        'print("SCAN-RT ", abs(sexp(slog(2.5)) - 2.5));',
         "quit;",
     ]) + "\n"
     t0 = time.time()
@@ -56,11 +65,14 @@ def run(mul: str, dps: int, base: str, engine: Path, extra: list[str] | None = N
     tm = _re.search(r"SCAN-TERMS\s+(\d+)", p.stdout)
     vl = _re.search(r"SCAN-VAL\s+([-\d.eE]+)", p.stdout)
     it = _re.search(r"SCAN-ITER \[[^,]*, *(\d+)", p.stdout)
+    # PARI prints "3.74 E-96" with a space before the exponent -- match it.
+    rt = _re.search(r"SCAN-RT\s+([-\d.]+(?:\s*E-?\d+)?)", p.stdout)
     if not (ms and vl):
         return {"mul": mul, "error": p.stdout[-700:] + p.stderr[-400:]}
     return {"mul": mul, "ms": int(ms.group(1)), "deg": int(tm.group(1)) if tm else -1,
             "iter": int(it.group(1)) if it else -1,
-            "val": vl.group(1), "wall": round(time.time() - t0, 1)}
+            "val": vl.group(1), "wall": round(time.time() - t0, 1),
+            "rt": rt.group(1).replace(" ", "") if rt else None}
 
 
 def agree(a: str, b: str) -> int:
@@ -86,7 +98,8 @@ def main() -> None:
     args = ap.parse_args()
     eng = Path(args.engine)
     ref = None
-    print(f"{args.var:>8s} {'init s':>9s} {'deg(ct)':>9s} {'iters':>7s} {'digits vs 1':>13s}")
+    print(f"{args.var:>8s} {'init s':>9s} {'deg(ct)':>9s} {'iters':>7s} "
+          f"{'digits vs 1':>13s} {'roundtrip':>12s}")
     for mul in args.mul:
         r = run(mul, args.dps, args.base, eng, args.set, args.var)
         if "error" in r:
@@ -97,7 +110,16 @@ def main() -> None:
             d = "(reference)"
         else:
             d = str(agree(ref, r["val"]))
-        print(f"{mul:>8s} {r['ms']/1000:9.2f} {r['deg']:9d} {r['iter']:7d} {d:>13s}")
+        rt, flag = r.get("rt"), ""
+        if rt is not None:
+            try:
+                v = float(rt)
+                flag = "  <-- BROKEN" if v > 1e-20 else ""
+                rt = f"{v:.2e}"
+            except ValueError:
+                flag = "  <-- unparsed"
+        print(f"{mul:>8s} {r['ms']/1000:9.2f} {r['deg']:9d} {r['iter']:7d} "
+              f"{d:>13s} {rt or '-':>12s}{flag}")
 
 
 if __name__ == "__main__":
