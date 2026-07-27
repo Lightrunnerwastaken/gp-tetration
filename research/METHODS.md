@@ -69,7 +69,14 @@ is a floor, not a measurement. `research/tools/digits_vs_reference.py` enforces
 that ceiling and reports `>=972 (reference exhausted)` rather than the raw
 agreement, which is the number an unbounded comparison would print.
 
-Measured convergence rates: base e ≈ 2.05 digits/iteration, base 2 ≈ 1.27.
+Measured convergence rate, base e: **1.30 digits/iteration** (dps 100: 83
+iterations to 110.96 digits; dps 200: 158 to 204.92; marginal 75 iterations for
+93.96 digits). The earlier figure of 2.05 published here described the
+pre-exp-023 engine and was 58% too high — exp-023 and exp-045 traded convergence
+rate for a smaller grid, which is the whole point of those keeps, and the
+published rate was never updated. In the cost law this makes the iteration count
+**I(p) ≈ 0.80·p**, not 0.59·p. The *exponent* is unaffected — I(p) is Θ(p) either
+way — but any absolute cost estimate built on 0.59 or on 2.05 is wrong.
 
 Every entry in `values.json` records its full provenance in the meta
 block (engine, dps pair, measured error-vector delta, runtimes) —
@@ -438,9 +445,18 @@ These closures are load-bearing: they mean the remaining routes to a lower
 exponent are algorithmic restructuring or the theory-level approaches of the
 paper series, not tuning.
 
-**Where the exponent actually stands.** The iterate carries N(p)*p ~ 6.2 p^2
+**Where the exponent actually stands.** The iterate carries N(p)*p ~ 5.3 p^2
 digits, and the iteration count is Theta(p) -- measured, and closed from four
-independent directions (extrapolation, Krylov, spectral, asymptotic form). Any
+independent directions (extrapolation, Krylov, spectral, asymptotic form).
+A caveat on the fourth of those and on the operator route generally: what was
+measured is that the iteration matrix is not *banded* and has no global rank
+deficit. Neither property is the one a fast direct solver needs -- a circulant
+is not banded, and a hierarchically off-diagonal-low-rank (HSS/HODLR) matrix has
+full global rank. Toeplitz structure is separately excluded, because the column
+norms span 32 decades (0.0886 at mode 5 to 1.5e-33 at mode 300) where a Toeplitz
+matrix would have near-equal ones. But **off-diagonal rank has not been
+measured**, and it is the one structure class that would still collapse the
+Theta(p) factor. That is an open question, not a closure. Any
 scheme that touches its state once per iteration therefore costs Theta(p^3).
 In the cost model an N^2 evaluation gives exponent 3.8-3.9 (measured 4.13 on
 the 520->1020 pair) and a hypothetical stable quasi-linear evaluator would give
