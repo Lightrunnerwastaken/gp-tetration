@@ -177,44 +177,41 @@ pair moves the other way (3.53 -> 3.67). The movement in both directions is
 grid-quantization noise; nothing shifted the exponent, which is what section 3
 argues must be the case.
 
-**The 520->1020 pair, where the 4.13 figure comes from, re-measured.** The
-first attempt (unpinned, late in a loaded day) was discarded. The second was
-core-pinned and bracketed: dps 520 immediately before the dps-1020 leg and
-again immediately after, so that any drift across the ~2 h run is measured
-rather than assumed.
+**The 520->1020 pair, re-measured -- twice, and the second one supersedes the
+first.** Attempt one (unpinned, loaded machine) was discarded outright.
+Attempt two was pinned and bracketed -- dps 520 immediately before and after the
+1020 leg -- and gave 4.35 in an interval [4.23, 4.48], the width coming from an
+18.7% slowdown the bracket caught across that run.
 
-| leg | time |
+Attempt three was not aimed at the exponent at all: it is the dps 1200/1265
+error-vector pair (section 1), which happens to span the same depth range on a
+machine that stayed still. Bracket drift 0.991 -- i.e. 0.9% *faster* at the end.
+Three intervals from that one session:
+
+| interval | exponent |
 |---|---|
-| dps 520, before | 348.09 s |
-| dps 1020 | 7124.53 s |
-| dps 520, after | 413.17 s |
+| 520 -> 1200 | 4.159 |
+| 520 -> 1265 | 4.151 |
+| 1200 -> 1265 | 4.025 |
 
-The bracket earned its keep: the machine slowed by **18.7%** across the 1020
-leg (thermal — it is a laptop under two hours of sustained AVX load). So the
-exponent is an interval, not a point:
+**These supersede the 4.35.** The contradiction is decisive rather than a
+matter of taste: the exponent grows with depth, so 520->1200 must exceed
+520->1020. Measured, it is lower (4.16 against 4.35). What differed is the
+hardware state, not the algorithm -- the same dps-520 workload took 348-413 s
+during attempt two and 243 s during attempt three, so that machine was
+1.4-1.7x slower throughout. A bracket catches drift *within* a run; it cannot
+tell you the whole session is running degraded, and attempt two's was.
 
-| divided by | exponent |
-|---|---|
-| the later 520 (slow end) | 4.23 |
-| the geometric mean | **4.35** |
-| the earlier 520 (fast end) | 4.48 |
+So: **the exponent is ~4.0-4.16, unchanged from the historical 4.13**, which is
+what every keep being constant-factor by construction predicts. The local
+exponent still grows with depth: 3.24 (300->400), 3.39 (300->520), ~4.16
+(520->1200).
 
-Against true digits (508.9 -> 972 proven) it reads 4.53; against the raw 992
-agreement, 4.39.
-
-**Reading.** The interval does not contain 4.13, but that does not license
-"the exponent rose": the historical 4.13 was taken without such a bracket and
-is no more trustworthy than the number this method discards. What is supported
-is that the exponent sits at ~4.2-4.5 and has **not fallen** -- which is what
-every keep being constant-factor by construction predicts. The local exponent
-continues to grow with depth, consistently: 3.24 (300->400), 3.39 (300->520),
-~4.35 (520->1020).
-
-One more figure worth recording, because it bounds what this hardware can
-resolve at all: the pinned, quiet-machine dps-1020 run (7124 s) is **15%
-slower** than the contaminated unpinned one taken hours earlier (6202 s). The
-machine's thermal state moved further than pinning could recover. Absolute
-timings here are comparable only between runs minutes apart.
+The lesson is about method rather than about tetration. Two hours of sustained
+load moved this machine by 18.7%, and a whole session can sit 1.4-1.7x off its
+own best state. Absolute timings compare only between runs minutes apart, and
+an exponent is only worth quoting when a bracket shows the machine held still --
+0.991 here, against 1.187 for the number this replaces.
 
 The keeps, grouped by mechanism:
 

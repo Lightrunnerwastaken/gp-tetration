@@ -162,7 +162,8 @@ def main() -> None:
     save()
 
     print(f"\nagreement between the two runs : {proven:.1f} digits")
-    print(f"  -> PROVEN                    : {int(proven)} digits")
+    print(f"  less the measured over-claim  : -{record['over_claim_margin']}")
+    print(f"  -> PROVEN (conservative)      : {record['proven_digits']:.0f} digits")
     print(f"existing ladder tops out at    : 972 digits")
     print(f"agreement with it              : {record['vs_existing_reference_digits']:.1f}")
     print(f"machine drift across the pair  : {record['machine_drift']:.3f}x")
