@@ -132,10 +132,19 @@ basechange.sexp_anchor(gp, 3, "0.5")     # base 3: shipped in the table, ~ms
   ```
 - **Supported bases**: real bases > e^(1/e) (Kneser construction,
   gate-verified), real bases 1 < b < e^(1/e) (regular iteration at the
-  attracting fixed point, e.g. sexp_1.2(0.5) = 1.13626…, verified
-  against the unmodified original engine), and complex bases (2+I,
-  0.8+0.4*I, … are gate-verified; e.g. b = −1 works but has no
-  independent references). Bases 0 < b < 1 are not supported.
+  attracting fixed point, e.g. sexp_1.2(0.5) = 1.13626…, verified against
+  an independent implementation — `research/tools/regular_subeta.py`, not
+  against the vendored original, which is wrong in this regime), and
+  complex bases (2+I, 0.8+0.4*I, … are gate-verified; e.g. b = −1 works
+  but has no independent references). Bases 0 < b < 1 are not supported.
+- **Sub-eta bases must be given exactly.** In plain PARI/GP write
+  `sexpinit(6/5)`, not `sexpinit(1.2)`: regular iteration needs the base to
+  roughly twice the target precision, and a decimal literal only carries the
+  current `\p`. `sexpinit` refuses an inexact base rather than computing
+  quietly with a slightly different one. The Python backend converts decimal
+  *strings* for you; a Python `float` is refused, since it cannot carry the
+  base either. In this regime only `sexp` and `slog` are defined — `abel`,
+  `invabel`, `sexptaylor`, `slogtaylor` and `halfsexp` raise.
 - Batch/CLI:
   `python -m fatou_backend.cli sexp --base e --values 0.5 --dps 100 --fatou-gp fork`;
   `FatouGP(n_workers=N)` parallelizes large batches.
@@ -147,7 +156,7 @@ basechange.sexp_anchor(gp, 3, "0.5")     # base 3: shipped in the table, ~ms
   sexp(0.5)
   ```
 
-Tests: `python -m pytest tests/` (72 tests, includes atlas validation
+Tests: `python -m pytest tests/` (95 tests, 4 skipped; includes atlas validation
 against the proven references; set `FATOU_BACKEND_RUN_SLOW=1` for the
 slow gate block).
 

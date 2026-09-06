@@ -117,6 +117,21 @@ fs(z) = {
   );
   return(z);
 }
+/* exp-071: safefs() is a SEARCH aid, not an evaluator. Above 5E8 it replaces
+   the imaginary part with random(), and above |Re z|>10000 it returns the
+   hardcoded sentinel 1E400*exp(I*imag(z)). Inside abel() that is correct and
+   cheap -- the walk only needs to know "far away, keep going". But invabel()
+   used it to BUILD the value it returns, so the sentinel became the answer:
+   sexp_2(5) came back as 1E400/ln(2) = 1.4426950408889634E400 instead of
+   2^65536 ~ 1E19728, and sexp_2(5.5) came back NEGATIVE, which is impossible
+   for a real base-2 tetration -- non-deterministic, because safefs() puts a
+   random() imaginary part in first; negative in the run that was measured.
+   No error, no warning. See research/METHODS.md, section 2.
+   The reconstruction loop in invabel() now uses the exact fs(); PARI raises
+   e_OVERFLOW when the tower genuinely leaves the representable range, which
+   is a loud failure instead of a plausible-looking wrong number.
+   DO NOT route abel()'s walk through fs() -- the saturation is load-bearing
+   there and removing it would cost the exp-0xx keeps their fast path. */
 safefs(z) = {
   if (x2mode==0,
     if (abs(z)> 5E8, z=real(z)+I*random);
@@ -1073,6 +1088,7 @@ sfunc(z) = {
 
 abel(z0) = {
   local(n,z1,z0r,z1r,argz,t,z);
+  subetaguard("abel");
   z0r=abs(z0-circc);
   n=0;
   /* we can use absl(fs(z0))=abel(z0)+1, or abel(finv(z0))=abel(z0)-1 */
@@ -1137,7 +1153,153 @@ abel(z0) = {
   return(z);
 }
 
+/* ===== exp-071b: regulaere Iteration fuer reelle Basen 1 < b < eta =====
+   Kneser braucht ein komplex-konjugiertes Fixpunktpaar. Fuer reelle
+   1 < b < eta = e^(1/e) gibt es das nicht: dort liegt ein REELLER
+   ANZIEHENDER Fixpunkt L mit b^L = L und Multiplikator lam = L*ln b in
+   (0,1). Die eindeutige reelle Tetration kommt dort aus regulaerer
+   Iteration (Koenigs/Schroeder), nicht aus der Kneser-Kontur:
+       sigma(z)    = lim_n (f^n(z) - L) / lam^n
+       sigma^-1(u) = lim_n f^-n(L + lam^n u),   f^-1(z) = ln z / ln b
+       S(x)        = sigma^-1( sigma(1) * lam^x )   =>  S(0)=1, S(x+1)=b^S(x)
+
+   Vorher liefen diese Basen trotzdem durch die Kneser-Maschinerie und gaben
+   STILL ~15 richtige Stellen zurueck, wo 60 angefordert waren (b=1.2), ab
+   dps ~100 nur noch Muell -- im Original genauso wie im Fork. Der Verraeter
+   war ein Imaginaerteil 7.26e-14 auf einer beweisbar reellen Groesse.
+   Belegt in research/METHODS.md Abschnitt 2; unabhaengige Referenz
+   research/tools/regular_subeta.py.
+
+   DISJUNKT ZUM KNESER-PFAD: alles hier laeuft nur bei subeta==1. Jede
+   Gate-Basis hat subeta==0, keine exp-0xx-Optimierung wird beruehrt.
+
+   PRAEZISIONSFALLE: regn und Arbeitspraezision sind NICHT unabhaengig
+   waehlbar. sigma^-1 braucht lam^n*u oberhalb der Aufloesung von L, sonst
+   geht die Information beim Addieren verloren; und f^-1 expandiert mit
+   1/lam, verstaerkt also jeden Restfehler um lam^-n. Daher
+   regwp = regn*log10(1/lam) + precis + 60. Mit zu kleiner Arbeitspraezision
+   kommt S(0) = 14.77 statt 1 heraus (in der Python-Fassung selbst erlebt). */
+
+regL=0; reglam=0; regs1=0; regn=0; reglb=0; regwp=0; regon=0;
+
+regfix(b) = {
+  local(z, lb, n, nit);
+  lb = log(b);
+  z = 3/2;
+  nit = ceil(log(precis)/log(2)) + 12;
+  for (n = 1, nit, z = z - (z - exp(lb*z))/(1 - lb*exp(lb*z)));
+  return(z);
+}
+
+regsigma(z) = {
+  local(v, n);
+  /* Auf regwp aufpolstern, BEVOR iteriert wird. Sonst konvergiert v gegen L
+     nur bis zur Praezision der EINGABE, und danach ist v-L bitgleich 0 --
+     log(0) statt eines Ergebnisses. Das Aufpolstern erfindet keine Stellen:
+     das Resultat traegt so viele wie die Eingabe, aber die Rechnung faellt
+     nicht mehr auf null zusammen. */
+  v = precision(z, regwp);
+  for (n = 1, regn, v = exp(reglb*v));
+  return((v-regL)/reglam^regn);
+}
+
+regsigmainv(u) = {
+  local(v, n);
+  v = regL + reglam^regn*u;
+  for (n = 1, regn, v = log(v)/reglb);
+  return(v);
+}
+
+reginit(b) = {
+  local(sav, shrink, e0, e1, tol, zz, need, bp, lamr, Lr);
+  sav = default(realprecision);
+  zz = 1.0;
+  precis = precision(zz);
+  /* Durchgang 1 bei aktueller Praezision: nur um lam und damit den
+     Praezisionsbedarf zu kennen. */
+  reglb = log(b);
+  Lr = regfix(b);
+  lamr = Lr*reglb;
+  if ((lamr <= 0) || (lamr >= 1), error("reginit: lam=", lamr, " nicht in (0,1) -- b liegt nicht in (1,eta)"));
+  shrink = -log(lamr)/log(10);
+  regn = floor((precis+25)/shrink)+1;
+  need = floor(regn*shrink) + precis + 60;
+  /* Die Basis selbst muss `need` Stellen tragen, und need ist rund das
+     DOPPELTE des Ziels (regn*shrink ~ precis). Ein Literal wie 1.2 wird bei
+     der gerade gesetzten Praezision geparst und traegt daher nie genug --
+     mit einem 60-stelligen b liefert sigma^-1 nach der Verstaerkung um
+     lam^-n = 10^85 puren Muell. Exakte Basen (6/5, t_INT, t_FRAC) tragen
+     jede gewuenschte Stellenzahl. */
+  bp = if (type(b) == "t_REAL", precision(b), need);
+  if (bp < need,
+    error("reginit: die Basis traegt nur ", bp, " Stellen, gebraucht werden ", need,
+          ". Basis EXAKT uebergeben -- 6/5 statt 1.2, allgemein bestappr(b) --",
+          " ein Dezimalliteral kann das prinzipiell nicht leisten.");
+  );
+  regwp = need;
+  default(realprecision, regwp);
+  iferr(
+    reglb = log(b);
+    regL = regfix(b);
+    reglam = regL*reglb;
+    regs1 = regsigma(1);
+    /* exp-071d: der frueher hier stehende Test |sigma^-1(sigma(1)) - 1| war
+       TAUTOLOGISCH -- er reduziert sich algebraisch auf f^-n(f^n(1)) = 1 und
+       prueft nur, dass log und exp numerisch invers sind, nicht die
+       Koenigs-Linearisierung. Jetzt zwei Schritte der Funktionalgleichung:
+       S(1) = b und S(2) = b^b. Beide durchlaufen lam^1 bzw. lam^2 und sind
+       damit echte Proben. */
+    e0 = abs(regsigmainv(regs1*reglam^2) - b^b);
+    e1 = abs(regsigmainv(regs1*reglam) - b)
+  , E, default(realprecision, sav); error(E));
+  default(realprecision, sav);
+  tol = 10.0^(-precis);
+  if ((e0 > tol) || (e1 > tol), error("reginit: Selbsttests halten nicht -- S(2)-b^b=", e0, "  S(1)-b=", e1));
+  regon = 1;
+  if (quietmode==0, print("subeta: regulaere Iteration, L=", precision(regL,20), " lam=", precision(reglam,20), " n=", regn, " Arbeits-dps=", regwp));
+  return(regL);
+}
+
+regsexp(z) = {
+  local(sav, y);
+  if (regon==0, error("regsexp: reginit() wurde nicht ausgefuehrt"));
+  sav = default(realprecision);
+  default(realprecision, regwp);
+  /* exp-071c: ohne iferr bliebe die Sitzung nach einem Fehler auf regwp
+     stehen und ein spaeteres sexpinit() erbte die falsche Praezision. */
+  y = iferr(regsigmainv(regs1*reglam^z), E, default(realprecision, sav); error(E));
+  default(realprecision, sav);
+  return(precision(y, precis));
+}
+
+regslog(y) = {
+  local(sav, z);
+  if (regon==0, error("regslog: reginit() wurde nicht ausgefuehrt"));
+  sav = default(realprecision);
+  default(realprecision, regwp);
+  z = iferr(log(regsigma(y)/regs1)/log(reglam), E, default(realprecision, sav); error(E));
+  default(realprecision, sav);
+  return(precision(z, precis));
+}
+
+/* exp-071c: sexpinit() steigt fuer sub-eta VOR loop() aus, damit kein falscher
+   Kneser-Zustand entsteht. Folge: k, lnb, rslog, ct, circc, circr, L, L2 und
+   argc gehoeren dann noch zur ZUVOR initialisierten Basis. sexp() und slog()
+   routen an die regulaere Iteration; alles andere wuerde still die Werte der
+   vorigen Basis liefern -- nach sexpinit(exp(1)); sexpinit(6/5) etwa
+   bitgleich die von e, ohne Fehler. Genau die Sorte stiller Falschantwort,
+   die diese Version beseitigt. Daher hier ein lauter Abbruch.
+   Blosses Zuruecksetzen von k reicht nicht: abel() haengt zusaetzlich an
+   circc, circr, argc, ct, L und L2. */
+subetaguard(nm) = {
+  if (subeta,
+    error(nm, "(): fuer reelle 1 < b < eta ist nur sexp() und slog() definiert. ",
+          "Die Kneser-Groessen gehoeren noch zur zuvor initialisierten Basis und ",
+          "wuerden hier still deren Werte liefern."));
+}
+
 slog(z) = {
+  if (subeta, return(regslog(z)));
   abel(z*lnb+k-1)+rslog;
 }
 
@@ -1199,6 +1361,7 @@ betterest(z,est,n) = {
 
 invabel(z,est) = {
   local (t,tc,y,curyz,nest,estp,estn);
+  subetaguard("invabel");
   if (est==0,
     t = real(z);  /* biased around zero */
     if ((x2mode && (real(k)>0.5)) , tc=-0.5, tc=0);  /* new equation added this week; not online */
@@ -1267,7 +1430,8 @@ invabel(z,est) = {
 
   if (curyz>0.1, print (z" "curyz " need better initial est, invabel(z)"));
   if (t>0,
-    for (n=1,t,est=safefs(est));
+    /* exp-071: exact map, NOT safefs -- see the note at safefs(). */
+    for (n=1,t,est=fs(est));
   ,
     /* hack for x2mode symmetry */
     if ((x2mode==1) && (abs(est-circc)>circr),
@@ -1321,6 +1485,7 @@ invabeltaylor(w, r, samples) = {
 
 sexp(z) = {
   local (y);
+  if (subeta, return(regsexp(z)));  /* exp-071b */
   /* center inflection point at the origin */
   y = invabel(z-rslog);
   y = (y-k+1)/lnb;
@@ -1330,6 +1495,7 @@ sexp(z) = {
 
 sexptaylor(w, r, samples) = {
   local(y);
+  subetaguard("sexptaylor");
   y = abeltaylor(w-rslog,r,samples,1);
   y = (y-k+1)/lnb;
   return(y);
@@ -1337,6 +1503,7 @@ sexptaylor(w, r, samples) = {
 
 slogtaylor(w, r, samples) = {
   local(y,z0);
+  subetaguard("slogtaylor");
   y = abeltaylor(w*lnb+k-1,r*lnb,samples) + rslog;
   y = subst(y,x,x*lnb);
   return(y);
@@ -1443,7 +1610,9 @@ bluedft(t) = {
     chv = bd2a; fbv = bd2b; w = bd2w; M = bd2m; bd2t=bdclock++);
   fa = fft(w, concat(vector(nn, j, t[j] * chv[j]), vector(M-nn, i, 0)));
   pp = fftinv(w, vector(M, i, fa[i]*fbv[i]));
-  vector(nn, k, chv[k] * pp[(k-1)+(nn-1)+1] / M);
+  /* exp-071d: Laufvariable NICHT k nennen -- k ist die Basiskonstante der
+     Engine (fs(z) = e^z - 1 + k); siehe die NOTE in icbuild(). */
+  vector(nn, i4, chv[i4] * pp[(i4-1)+(nn-1)+1] / M);
 }
 
 /* exp-048: build one truncated copy of pp per radius level.
@@ -1456,7 +1625,7 @@ icbuild(pp, dig) = {
   /* NOTE: the loop variable must NOT be called k -- k is the base parameter
      of this engine (fs(z) = e^z - 1 + k), and using it here silently defeats
      the truncation. */
-  local(v, n, lg2, tol2, j, lr2, kk, ii, mx);
+  local(v, n, lg2, tol2, j, lr2, kk, ii, mx, bv, icsq);
   icdlon = 0;
   if (type(pp) != "t_POL", return(0));
   v = Vecrev(pp);
@@ -1465,10 +1634,37 @@ icbuild(pp, dig) = {
   lg2 = vector(n, kk, if (v[kk]==0, -1000000, exponent(v[kk])));
   mx = vecmax(lg2);
   if (mx <= -1000000, return(0));
-  tol2 = mx - dig*3.3219280948873623 - 16;
+  icsq = vector(n, kk, kk-1);   /* exp-074b: einmal, fuer die Vektorform von bv */
   icdl = vector(icnlev);
   for (j=1, icnlev,
     lr2 = log(icrmax*j/icnlev)/log(2);
+    /* exp-074: die Schwelle haengt am groessten BEITRAG |c_k|*rho^k DIESER
+       Stufe, nicht am groessten Koeffizienten mx. Beides ist dasselbe, solange
+       die Koeffizienten fallen -- dann liegt max(lg2) bei k=1 und (k-1)*lr2=0.
+       Genau das setzt der Kommentar oben voraus ("coefficients decay like
+       circr^-k"), und das gilt fuer circr > 1. Bei Basis e ist circr = 1.3372,
+       am Shell-Thron-Rand aber ~0.133: dort WACHSEN die Koeffizienten, mx sitzt
+       am hoechsten Index (gemessen 160 von 161), der groesste Beitrag bei
+       Index 2, und die alte Schwelle lag ~85 Dezimalstellen zu hoch. kk fiel
+       von 161 auf 45, sfunc lieferte Muell, die Iteration stagnierte sofort:
+       b=1.4494 gab bei dps 150 nur 1.837 statt 147.410 Stellen, ohne Fehler.
+       Belegt in research/METHODS.md Abschnitt 2; Gate danach BITGLEICH. */
+    /* exp-074b: bv als VEKTOR-Operation, nicht als GP-Schleife.
+       Die erste Fassung suchte das Maximum mit `for (i3=1,n, ...)` und kostete
+       gemessen ~10 % auf Basis e (dps 150: 4133 -> 4531 ms; dps 300:
+       36258 -> 40360 ms, Klammern 0.3-2.1 %). Mein Ueberschlag "8n Vergleiche
+       gegen N^2 Auswertungen, also 0.1 %" war doppelt falsch: die N^2-Arbeit
+       steckt in kompilierten PARI-Routinen, diese Schleife nicht -- zaehlbare
+       Operationen sind keine vergleichbaren Operationen. Und ein Waechter
+       "wenn mx vorne liegt, ist bv = mx" hilft nicht: bei Basis e liegt das
+       Maximum bei Index 32 bzw. 64 von 65, die Koeffizienten wachsen dort
+       also EBENFALLS. Die alte Schwelle war damit auch fuer Basis e zu scharf
+       (bv = -24.2 gegen mx = -7), nur folgenlos; am Rand wurde daraus der
+       Totalausfall.
+       lg2 + lr2*icsq ist Vektorarithmetik und vecmax ein Builtin -- pro Stufe
+       drei kompilierte O(n)-Durchgaenge statt n interpretierter Schritte. */
+    bv = vecmax(lg2 + lr2*icsq);
+    tol2 = bv - dig*3.3219280948873623 - 16;
     kk = n;
     while ((kk > 1) && (lg2[kk] + (kk-1)*lr2 < tol2), kk--);
     /* build the truncation explicitly from the coefficient vector: the
@@ -1733,6 +1929,16 @@ loop(kc,nlim,nskip,looplim) = {
      (b=2: kc~0.63, b=10: kc~1.83). */
   efam = (abs(kc-1) < 0.12);
   subeta = ((imag(kc)==0) && (real(kc) <= 0));
+  /* exp-071b: sub-eta verlaesst die Kneser-Maschinerie ganz. Vorher lief die
+     volle Kontur-Iteration und lieferte still ~15 Stellen; jetzt uebernimmt
+     die regulaere Iteration am reellen anziehenden Fixpunkt. Frueher Ausstieg,
+     damit kein falscher ct/theta-Zustand zurueckbleibt, den abel() spaeter
+     stillschweigend benutzt. kc = 1+log(log b)  =>  b = exp(exp(kc-1)). */
+  if (subeta,
+    error("loop(): sub-eta (kc=", kc, ") ueber sexpinit(b) aufrufen, nicht ueber loop(kc)."
+          " Der Umweg b = exp(exp(kc-1)) verliert genau die Stellen, die die"
+          " regulaere Iteration braucht -- die Basis muss exakt bleiben.");
+  );
   initsch(kc);
   /* exp-023: for the base-e family a smaller sampling radius trades a
      slightly slower rate (~2.05 -> ~1.7 digits/iter) for a much smaller
@@ -1890,6 +2096,18 @@ loop1(n,ctsamples,thsamples) = {
 
 sexpinit(b,nlim,nskip,looplim) = {
   local(z);
+  /* exp-071b: reelle Basen 1 < b <= eta verlassen die Kneser-Maschinerie hier,
+     BEVOR b ueber kc = 1+log(log b) laeuft. Der Umweg wuerde die Basis auf die
+     gerade gesetzte Praezision runden, und die regulaere Iteration braucht sie
+     auf etwa der doppelten Zielstellenzahl. */
+  if ((imag(b)==0) && (real(b) > 1) && (real(b) <= etaB),
+    /* exp-071c: subeta ERST nach erfolgreichem reginit setzen -- sonst bleibt
+       nach einem gescheiterten sexpinit eine intakt geladene Kneser-Basis
+       unbenutzbar, weil die Waechter greifen. */
+    z = reginit(b);
+    subeta = 1;
+    return(z);
+  );
   z=loop(log(log(b))+1,nlim,nskip,looplim);
   if (quietmode==0, print("sexp(z); slog(z); sexptaylor(0); /* sexptaylor series at 0; */"));
   return(z);
@@ -2009,6 +2227,7 @@ MakeGraph(width, height, x0, y0, x1, y1, filename, n) = {
 
 halfsexp(z)={
   local(y,ar,m);
+  subetaguard("halfsexp");
   m=0;
   z = invabel_sexp(z);
   if (abs(z-circc)>circr,

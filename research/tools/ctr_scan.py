@@ -31,7 +31,7 @@ GP = r"C:\Program Files (x86)\Pari64-2-17-3\gp.exe"
 
 
 def run(mul: str, dps: int, base: str, engine: Path, extra: list[str] | None = None,
-        var: str = "ctrmul") -> dict:
+        var: str = "ctrmul", timeout: float | None = None) -> dict:
     script = "\n".join([
         "default(parisizemax, 8589934592);",
         f"default(realprecision, {dps});",
@@ -59,8 +59,19 @@ def run(mul: str, dps: int, base: str, engine: Path, extra: list[str] | None = N
         "quit;",
     ]) + "\n"
     t0 = time.time()
-    p = subprocess.run([GP, "-q", "-f"], input=script, capture_output=True,
-                       text=True, encoding="utf-8", errors="replace", cwd=str(REPO))
+    # A degenerate setting does not always crash: with the exp-063 thsamples
+    # clamp in place, ctrmul <= 0.5 at dps 300 keeps `re` creeping upward by
+    # microscopic amounts while nlim extends itself (fork line ~1784), so the
+    # run never terminates. Measured: 1855 s CPU against a 72 s baseline at
+    # only 17 MB resident -- no large ct is being built, the loop just spins.
+    # Without a cap one bad point hangs the whole scan and, worse, silently
+    # discards every row that already completed.
+    try:
+        p = subprocess.run([GP, "-q", "-f"], input=script, capture_output=True,
+                           text=True, encoding="utf-8", errors="replace",
+                           cwd=str(REPO), timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return {"mul": mul, "timeout": round(time.time() - t0, 1)}
     ms = _re.search(r"SCAN-MS\s+(\d+)", p.stdout)
     tm = _re.search(r"SCAN-TERMS\s+(\d+)", p.stdout)
     vl = _re.search(r"SCAN-VAL\s+([-\d.eE]+)", p.stdout)
@@ -95,15 +106,22 @@ def main() -> None:
                     help="global to scan (ctrmul, irmul, ...)")
     ap.add_argument("--set", action="append", default=[],
                     help="extra GP assignment, e.g. --set irmul=0.8")
+    ap.add_argument("--timeout", type=float, default=900.0,
+                    help="per-run wall-clock cap in seconds (0 = no cap)")
     args = ap.parse_args()
     eng = Path(args.engine)
     ref = None
     print(f"{args.var:>8s} {'init s':>9s} {'deg(ct)':>9s} {'iters':>7s} "
-          f"{'digits vs 1':>13s} {'roundtrip':>12s}")
+          f"{'digits vs 1':>13s} {'roundtrip':>12s}", flush=True)
     for mul in args.mul:
-        r = run(mul, args.dps, args.base, eng, args.set, args.var)
+        r = run(mul, args.dps, args.base, eng, args.set, args.var,
+                args.timeout or None)
+        if "timeout" in r:
+            print(f"{mul:>8s} {r['timeout']:>9.1f}  TIMEOUT (no convergence "
+                  f"within cap; not a speed result)", flush=True)
+            continue
         if "error" in r:
-            print(f"{mul:>8s}  ERROR: {r['error'][:200]}")
+            print(f"{mul:>8s}  ERROR: {r['error'][:200]}", flush=True)
             continue
         if ref is None:
             ref = r["val"]
@@ -119,7 +137,7 @@ def main() -> None:
             except ValueError:
                 flag = "  <-- unparsed"
         print(f"{mul:>8s} {r['ms']/1000:9.2f} {r['deg']:9d} {r['iter']:7d} "
-              f"{d:>13s} {rt or '-':>12s}{flag}")
+              f"{d:>13s} {rt or '-':>12s}{flag}", flush=True)
 
 
 if __name__ == "__main__":

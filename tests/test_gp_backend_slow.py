@@ -31,17 +31,24 @@ class FatouBackendSlowTests(unittest.TestCase):
         residual = self.gp.roundtrip_residuals("1+I", [y])[0]
         self.assertLess(abs(residual), mp.mpf("1e-18"))
 
-    def test_sub_eta_base_matches_original_engine(self) -> None:
-        """Regression: exp-032 once broke real bases below eta = e^(1/e).
+    def test_sub_eta_base_matches_independent_reference(self) -> None:
+        """Regression guard for real bases below eta = e^(1/e).
 
-        The gate never covers that regime, so guard it here via engine
-        diversity: fork and unmodified original must agree at b=1.2
-        (attracting-fixed-point tetration, sexp(0.5) ~ 1.13626).
+        This used to compare the fork against the unmodified original. That
+        oracle could not work: below eta there is no complex-conjugate fixed
+        point for Kneser to use, and both engines returned the same value,
+        correct to only ~15 digits, with no error raised
+        (research/METHODS.md, section 2). Agreement between two engines that
+        share a construction
+        measures the construction, not the answer.
+
+        The fork now uses regular iteration at the real attracting fixed
+        point, so the oracle is the independent Koenigs/Schroeder value from
+        research/tools/regular_subeta.py.
         """
         mp.dps = 60
+        ref = mp.mpf("1.1362624867271280841853009186474260255893554650374189878532")
         fork = FatouGP(dps=38, fatou_gp="fork", state_cache=False)
-        orig = FatouGP(dps=38, fatou_gp="original", state_cache=False)
         vf = fork.sexp("1.2", "0.5")
-        vo = orig.sexp("1.2", "0.5")
-        self.assertLess(abs(vf - vo), mp.mpf("1e-25"))
+        self.assertLess(abs(vf - ref), mp.mpf("1e-35"))
         self.assertAlmostEqual(float(vf.real), 1.13626248673, places=9)

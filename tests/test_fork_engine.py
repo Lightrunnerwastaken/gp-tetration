@@ -60,10 +60,13 @@ class ForkEngineTests(unittest.TestCase):
         cls.orig.close()
 
     # -- engine diversity ---------------------------------------------------
-    # Measured agreement at dps 50: 4.2e-50 (e), 7.1e-51 (2), 3.6e-51 (1.2).
-    # The threshold sits ~4 orders above the worst of those: tight enough that
-    # a real regression (which collapses agreement by tens of digits) fails,
-    # loose enough not to flake on a different PARI build.
+    # Measured agreement at dps 50: 4.2e-50 (e), 7.1e-51 (2). The threshold
+    # sits ~4 orders above the worst of those: tight enough that a real
+    # regression (which collapses agreement by tens of digits) fails, loose
+    # enough not to flake on a different PARI build.
+    # b=1.2 used to be listed here at 3.6e-51. That number was real but
+    # meaningless: below eta both engines run the same construction and agree
+    # on its error. See test_fork_matches_independent_reference_sub_eta.
     DIVERSITY_TOL = mp.mpf("1e-45")
 
     def _assert_engines_agree(self, base: str, x: str) -> None:
@@ -81,18 +84,84 @@ class ForkEngineTests(unittest.TestCase):
     def test_fork_matches_original_base_2(self) -> None:
         self._assert_engines_agree("2", "0.5")
 
-    def test_fork_matches_original_sub_eta_base(self) -> None:
+    # sexp_1.2(0.5) by regular iteration at the real attracting fixed point
+    # (Koenigs/Schroeder, research/tools/regular_subeta.py; self-tests S(1)=b
+    # and S(2)=b^b hold to 148 digits -- S(0)=1 is tautological here and is
+    # deliberately not used as evidence). Owes nothing to fatou.gp.
+    # Kept as a STRING on purpose: a class-level mp.mpf(...) is evaluated at
+    # import time, when mp.mp.dps is still the default 15, and the constant
+    # would silently arrive rounded to 15 digits.
+    SUB_ETA_REF_STR = (
+        "1.136262486727128084185300918647426025589355465037418987853243230891553944148904")
+
+    def test_fork_matches_independent_reference_sub_eta(self) -> None:
         """1 < b < e^(1/e): the attracting-fixed-point regime.
 
-        This is the regime the exp-032/033/034 cache extensions broke without
-        the gate noticing (the gate does not test it), which is why the fork
-        routes these bases through the pre-extension path via the `subeta`
-        flag. Nothing in the default suite exercised that flag.
+        This test used to assert fork == original, and that oracle was wrong.
+        Kneser needs a complex-conjugate fixed-point pair, which does not
+        exist below eta, and BOTH engines returned the same value that is
+        only ~15 digits correct -- silently, with an imaginary part of
+        7.26e-14 on a provably real quantity (research/METHODS.md S2). Two
+        implementations of one construction agree on their shared error,
+        which is exactly what engine diversity is meant to exclude and
+        cannot, when the two engines share the construction.
+
+        The fork now routes these bases through regular iteration, so the
+        oracle here is an independent method, and the original is kept only
+        for the shallow cross-check it can actually support.
         """
-        self._assert_engines_agree("1.2", "0.5")
+        ref = mp.mpf(self.SUB_ETA_REF_STR)
+        got = self.fork.sexp("1.2", mp.mpf("0.5"))
+        self.assertLess(
+            abs(got - ref), mp.mpf(f"1e-{DPS - 3}"),
+            "the fork lost the sub-eta regime")
+        self.assertLess(
+            abs(mp.im(mp.mpc(got))), mp.mpf(f"1e-{DPS - 3}"),
+            "sexp is real for 1 < b < eta; an imaginary part is the defect's tell")
+
+        old = self.orig.sexp("1.2", mp.mpf("0.5"))
+        self.assertLess(
+            abs(old - ref), mp.mpf("1e-12"),
+            "the original should still be right in its leading digits")
+        self.assertGreater(
+            abs(old - ref), mp.mpf(f"1e-{DPS - 3}"),
+            "the original's sub-eta defect is gone -- did upstream fix it? "
+            "If so this test and METHODS section 2 both need revisiting")
 
     def test_fork_matches_original_complex_base(self) -> None:
         self._assert_engines_agree("1+I", "0.5")
+
+    # sexp_1.4494(0.5). Generated on the fork after the exp-074 fix at dps 80
+    # (90.6 contour digits); the leading ~60 are independently confirmed by the
+    # unmodified original, which reaches 60.67 digits there and agrees to all
+    # of them. String, not mp.mpf -- see SUB_ETA_REF_STR above for why.
+    NEAR_ETA_REF_STR = (
+        "1.2592243909108569064268681775693833372881536039326069230")
+
+    def test_near_eta_base_survives(self) -> None:
+        """b just above eta = 1.4446678610: the near-boundary band.
+
+        Two keeps have silently broken a base regime the gate does not cover.
+        exp-032 broke the sub-eta side (fixed 2026-07-15); exp-048 broke this
+        one, found 2026-07-30 by sweeping all 34 fork versions. Its degree
+        truncation anchored the tolerance to the largest *coefficient*, which
+        is only the largest *contribution* when the coefficients decay -- i.e.
+        when circr > 1. Base e has circr = 1.3372, this base has ~0.133, so
+        the coefficients grow, mx sat at the top index, and the threshold came
+        out ~85 decimal digits too high: 1.837 digits instead of 147.4 at
+        dps 150, with no error raised.
+
+        The gate cannot catch this: all six of its bases sit comfortably far
+        from eta. So it is guarded here, and deliberately with a value rather
+        than a digit count -- a wrong value is the symptom, a low digit count
+        only its cause.
+        """
+        ref = mp.mpf(self.NEAR_ETA_REF_STR)
+        got = self.fork.sexp("1.4494", mp.mpf("0.5"))
+        self.assertLess(
+            abs(got - ref), mp.mpf(f"1e-{DPS - 5}"),
+            "the near-eta band regressed -- check icbuild's truncation "
+            "threshold (exp-074) before anything else")
 
     # -- the published calibration claim ------------------------------------
     def test_fork_delivers_the_claimed_true_digits(self) -> None:

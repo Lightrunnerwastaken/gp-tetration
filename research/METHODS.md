@@ -23,7 +23,11 @@ practical proof that the fork's optimizations did not bend accuracy. Note the
 scope: that comparison was run against the 10-keep engine of the time, so it
 does not by itself cover the later keeps. What covers those is the frozen gate
 after each one, plus `tests/test_fork_engine.py`, which re-runs the diversity
-comparison (bases e, 2, 1.2, 1+I) against the current fork on every test run.
+comparison (bases e, 2, 1+I) against the current fork on every test run.
+Base 1.2 was in that list until 2026-07-30 and has been removed: below eta
+the two engines share a construction, so their agreement measured the
+construction rather than the answer. It is now checked against an
+independent implementation instead (§2).
 
 **Calibration law.** True correct digits ≈ `precis − (precis − 4.7)/21`,
 where `precis` is PARI's actual working precision (word-quantized: dps 300
@@ -104,6 +108,36 @@ only verification this project accepts.
 | sexp_e(0.5), 700 tier | 698 | error vector |
 | sexp_e(0.5), 500 tier | 497 | error vector + engine diversity (496) |
 | sexp_2(0.5), 500 tier | 497 | error vector + engine diversity |
+| sexp_e(0.5), dps 2000 run | **1973** | error vector, 2000/2033 pair (2026-07-30) |
+
+The last row is a different kind of evidence and is worth separating from the
+error-vector rows above it. A single dps-2000 run (26.69 h CPU, polynomial
+degree 10752, `research/candidates/candidate_e_2000.txt`) reproduces every
+entry of the ladder *at or above its certified depth* — 509 / 717 / 992
+digits against the 500 / 700 / 1000 tiers whose proven depths are 497 / 698 /
+972. It also settles the previously unproven `candidate_e_1020`: the two
+agree to **973** digits, and that candidate's own contour residual claimed
+973.3. Two computations at different precision, on grids of 7168 and 10752
+terms, landing on the same digit count the weaker one predicted for itself is
+the strongest cross-check the project has produced so far.
+
+That comparison could not establish the depth of the dps-2000 value itself —
+an agreement is capped by the weaker partner, and nothing deeper than the
+1000 tier existed. The dps-2033 partner has since been computed (20.60 h CPU,
+degree 11264, contour residual 2010.8): the pair agrees to **1973** digits,
+98.7 % of dps. Two controls keep that from being self-confirmation. Both runs
+agree with the proven ladder *identically* — 509 / 717 / 992 against the
+500 / 700 / 1000 tiers — so they do not share an error at those depths; and
+the 2033 run's own contour residual (2010.8, i.e. 98.9 % of its dps) lands
+where the pair predicts. The earlier extrapolation from re/dps = 0.954
+suggested ~1908 and was conservative.
+
+One caution the pair also produced: the two runs took 26.69 h and 20.60 h
+for essentially the same computation — the *higher* precision was 23 % faster.
+The logs differ in stack behaviour (the slower run regrew small stacks
+repeatedly; the faster one climbed once to 1 GB), but that is a partial
+explanation at best. Treat absolute runtimes in this document as accurate to
+no better than ±25 % unless a drift bracket is quoted with them.
 
 ## 2. The fork: 30 gate-verified optimizations
 
@@ -336,6 +370,163 @@ tests. Fixed by routing those bases through the exact pre-extension
 code path (`subeta` flag); verified against the unmodified original
 engine (agreement ~1e-33 at b = 1.2) and guarded by a regression test.
 
+**That verification was weaker than it looked** (measured 2026-07-29). It
+compared two implementations of the *same* construction, so it could only
+confirm that they share an error, not that either is right. Against an
+independent reference — regular iteration at the real attracting fixed point,
+Koenigs/Schröder, no contour and no theta function
+(`research/tools/regular_subeta.py`, self-tests S(1)=b and S(2)=b^b holding
+to 148 digits) — both engines deliver about **15 correct digits at b = 1.2 when
+60 are requested**, and nothing usable from dps ~100 upward. The tell is an
+imaginary part of 7.26e−14 on a quantity that is provably real for
+1 < b < e^(1/e). At dps 100 the two engines no longer even agree with each
+other (degree 932 vs 1136), so the `subeta` isolation is incomplete above
+dps 60 as well.
+
+This is not a fork defect — the unmodified `fatou.gp` behaves the same way,
+and sub-eta support was never its purpose. It is a *silent* one, which puts
+it in the same category as the second defect below: a plausible number
+returned with no error and no warning.
+
+Two consequences worth stating plainly. First, the regime is cheap by the
+right method and expensive by this one: regular iteration reaches 2000
+verified digits for b = 1.2 in **100 seconds** (exponent ~2.6–3.0), against
+26.69 h for base e through the Kneser machinery. Second, sub-eta bases cost
+*more* here despite converging at the same rate (~1.25 vs ~1.30 digits per
+iteration) because their sampling grid is twice as large at equal iteration
+count, and the grid enters quadratically.
+
+### Both defects fixed (exp-071, 2026-07-29)
+
+**Sub-eta now uses regular iteration** (`regfix`/`regsigma`/`regsigmainv`/
+`reginit`/`regsexp`/`regslog`; `sexp` and `slog` route there when `subeta`).
+Measured against the independent reference: **403 of 403 digits** at a
+400-digit target, with S(0)=1, S(1)=b and slog∘sexp all holding past the
+target and a zero imaginary part. Cost at b = 1.2 fell from 20.5 s to 15 ms
+at dps 60, and dps 200 went from "no result in 600 s" to 47 ms.
+
+The entry point is `sexpinit(b)`, not `loop(kc)`: recovering b from
+kc = 1 + log(log b) rounds the base to the ambient precision, and regular
+iteration needs it to roughly *twice* the target (σ⁻¹ amplifies every
+residual by λ⁻ⁿ). For the same reason the base must be exact — `sexpinit(1.2)`
+now refuses with that explanation, and the Python backend converts decimal
+sub-eta bases to rationals, scoped to that interval so no gate base changes.
+
+**The second defect was `safefs`.** It is a search aid, not an evaluator:
+above 5E8 it replaces the imaginary part with `random()`, and above
+|Re z| > 10000 it returns the hardcoded sentinel `1E400*exp(I*imag(z))`.
+Inside `abel()` that is correct and load-bearing — the walk only needs to
+know "far away". But `invabel()` used it to *build* its return value, so the
+sentinel became the answer: sexp_2(5) came back as 1E400/ln 2 =
+1.4426950408889634E400 instead of 2^65536 ≈ 1e19728, and sexp_2(5.5) came
+back negative. The reconstruction loop now uses the exact `fs()`; sexp_2(5)
+is exact, and arguments genuinely beyond the representable range raise
+`e_OVERFLOW` instead of returning a plausible number.
+
+Both fixes are disjoint from the optimized path by construction, and the
+frozen gate confirms it the strong way: 11/11 PASS with values *bit-identical*
+to the pre-fix run (2.56296e−87 / 1.05895e−88 / 9.36335e−96), not merely
+inside tolerance.
+
+### What the sub-eta regime costs, and what it yields
+
+Error-vector pairs (p, p+33) at b = 6/5, the same protocol as the base-e
+ladder:
+
+| pair | agreeing digits | share of dps |
+|---|---|---|
+| 250 / 283 | 250 | 100.0 % |
+| 500 / 533 | 499 | 99.8 % |
+| 1000 / 1033 | 999 | 99.9 % |
+| 2000 / 2033 | **2002** | 100.1 % |
+
+Against the independent mpmath implementation: 499 digits at dps 500 and
+**2002** at dps 2000 — the two verifications agree *exactly*. That is worth
+more than confirming the value: it calibrates the error-vector method itself
+against a foreign computation, which the base-e ladder can never do for lack
+of an independent implementation at depth. Where Kneser yields ~95 % of the
+requested digits (973.3 of 1020), regular iteration loses essentially none.
+
+### A third silent defect, and the pattern behind it (exp-074, 2026-07-30)
+
+The band *just above* eta was broken too, and by a fork keep rather than
+upstream. At b = 1.4494 (Re(Period) = 47.23) the engine returned **1.837**
+contour digits where 150 were requested, printing 38 of them without complaint.
+The unmodified original delivers 60.67 there.
+
+Located by sweeping b = 1.4494 against all 34 fork versions at a uniform 240 s
+budget: the collapse is a single commit, `af28712`, and an A/B switch inside it
+isolated **exp-048** (per-point degree truncation) from exp-051. Turning the
+truncation off restored 140.3 digits.
+
+The cause is one anchor. exp-048 keeps term k while
+
+    exponent(c_k) + k·log2(rho) ≥ mx − dig·log2(10) − 16,   mx = max_k exponent(c_k)
+
+so the tolerance hangs on the largest *coefficient*, where it should hang on
+the largest *contribution* |c_k|·rho^k. The two coincide exactly when the
+coefficients decay — then max(lg2) is at k = 1 and (k−1)·log2(rho) = 0 — and
+the function's own comment states that assumption: *"ct's coefficients decay
+like circr^-k"*, which holds for **circr > 1**. Base e has circr = 1.3372;
+this base has ≈ 0.133, so its coefficients *grow*, mx sat at index 160 of 161
+while the largest contribution sat at index 2, and the threshold came out
+284 bits ≈ 85 decimal digits too high. The kept degree fell from 161 to 45,
+`sfunc` returned nonsense, and the residual stalled at once.
+
+The fix anchors the threshold per level to that level's largest contribution.
+Since bv ≤ mx always, it can only *lower* the threshold and keep *more* terms:
+it cannot reduce accuracy anywhere. Measured at b = 1.4494, dps 150: 1.837 →
+**147.410** digits, and the run now *converges* (looplim ≈ 143.5) instead of
+stalling, with a value bit-identical to the unmodified original across all of
+the original's valid digits. The gate is unchanged to the last digit, verified
+both on a test copy via `gate.py --fork` and on the fork itself.
+
+**It is not free, and the reason is not what it first appeared to be.** An
+earlier draft of this section claimed the fix was a no-op wherever the old
+assumption held, on the argument that decaying coefficients put max(lg2) at
+k = 1, where (k−1)·log2(rho) = 0 and bv = mx. Measurement refuted that: for
+base e the maximum sits at index 32, then 64, of 65 — **its coefficients grow
+here too**. The old threshold was therefore already too aggressive for base e
+(bv = −24.2 against mx = −7, some five decimal digits), merely without
+consequence: the gate values are bit-identical because the extra terms do not
+reach gate precision.
+
+The cost is those extra terms, and it is **+9.7 % on base e** — median of five
+alternating runs per variant at dps 150, ranges disjoint (5500–5890 ms against
+6016–6516 ms) despite 7–8 % within-variant spread. A first attempt to buy the
+correctness back by vectorising the search (`vecmax(lg2 + lr2·icsq)` instead of
+an interpreted loop) changed nothing measurable: 9.7 % against 9.6 %. The
+expense is the retained terms in the N² path, not the search.
+
+Kept anyway, on the user's explicit decision (2026-07-30): correctness in a
+regime the old code destroyed outweighs 9.7 % on one base. The rejected
+alternative was a cutoff — use the cheap threshold while mx − bv stays small —
+which would have restored the speed at the price of a magic constant encoding
+exactly the kind of unstated assumption that produced this defect and the
+sub-eta one before it.
+
+An aside worth keeping: exp-048 had accidentally *masked* a non-termination
+introduced by exp-018, which lifts the iteration cap until the digit goal is
+met — for a base that never meets it, forever. Breaking the computation made
+the loop exit. A stall that looks like a fix.
+
+**The pattern, now twice confirmed.** exp-032 broke the sub-eta regime;
+exp-048 broke the near-boundary band. Both were framed as "all bases", both
+carried an unstated geometric assumption (the fixed point's nature; circr > 1),
+and neither was visible to the gate, whose six bases all sit comfortably far
+from eta. The question to ask of any future keep is therefore not only *does
+the gate pass* but **what does this assume about the geometry, and which base
+would violate it?** Both regimes now have their own regression test, since the
+gate by construction cannot cover them.
+
+Cost scales with an exponent near **2.5** rather than 4.1 — measured over
+dps 250…4000, but with a **broken drift bracket** (the same dps-250 run took
+46 ms at the start and 78 ms at the end, and dps 2033 came out *faster* than
+dps 2000), so the number is an order of magnitude, not a measurement, and the
+clean re-run is still owed. Structurally the lower exponent is what the method
+predicts: regn ~ p steps, each one exp/log at working precision ~2p, so
+p·M(2p) — with no sampling grid, no theta series, and hence no N² term.
+
 ## 3. Negative results (measured, not folklore)
 
 Attempts to break the p^4.1 exponent, all benchmarked on this code base:
@@ -343,9 +534,56 @@ Attempts to break the p^4.1 exponent, all benchmarked on this code base:
 - **Aitken Δ² on coefficient sequences** — no acceleration (revert).
 - **Anderson/Krylov acceleration of the fixed-point iteration** — the
   iteration *is* affine on a fixed grid (verified to machine precision),
-  but its spectrum is uniform (~1.67–1.74 digits/step across all modes),
-  so Krylov needs k ~ p dimensions: 1.9× fewer steps at best, no
-  exponent change.
+  so Anderson is exactly GMRES on (I−A)x = b. Conclusion: **~2× fewer
+  steps at best, no exponent change.** Re-measured end to end in
+  2026-07-28 and confirmed, with a sharper picture than the first pass —
+  see below.
+
+  The first pass reported the spectrum as *uniform* (~1.67–1.74
+  digits/step across all modes). Arnoldi on the scaled operator says
+  otherwise: it is strongly **clustered** — |λ| = 0.051, 0.033 (×2),
+  ~0.010 (×2), 0.0031 (×2), 0.00066, then a flat cluster at ~2.1e−4 —
+  and scale-invariant (quadrupling the dimension adds no large
+  eigenvalues). The check that settles it: the engine's own convergence
+  rate falls *out* of the spectrum rather than being put in, four times
+  independently (1.30 measured; 1.3113 and 1.2936 from the 128- and
+  512-dimensional spectra; 1.2958 from a direct prototype run).
+
+  Because the spectrum is clustered, GMRES converges superlinearly:
+  digits(k) = 0.156 k² + 2.74 k, with the quadratic coefficient invariant
+  under a 4× change of dimension, i.e. k ~ √(digits). In the running
+  engine, with the grid ladder made geometric and GMRES run to each
+  level's capacity, that reproduces as **k ≈ 2.3 √budget over six levels**
+  spanning a factor 37 in budget.
+
+  That is a genuine √p law for the *iteration count* — and it still does
+  not move the exponent, because the per-application cost moves against
+  it. Measured against the unmodified engine at three depths (value
+  agreement over the full working precision in each case):
+
+  | dps | baseline | accelerated | applications | cost/application | net |
+  |---|---|---|---|---|---|
+  | 200 | 20594 ms | 10140 ms | 2.16× fewer | 1.07× | **2.03×** |
+  | 400 | 219766 ms | 99453 ms | 2.85× fewer | 1.29× | **2.21×** |
+  | 800 | 2253812 ms | 9192078 ms | 2.06× fewer | 8.42× | **0.25×** |
+
+  End to end between dps 200 and 400 the exponent falls only from 3.415
+  to 3.294 — 0.12, not the 0.5 the iteration law alone would give. At
+  dps 800 the gain is negative. Two things break there: the application
+  saving stops growing, and the live Krylov basis (92 vectors × 4104
+  coefficients × 811 digits ≈ 127 MB, against 2.5 MB at dps 200) has to
+  survive every garbage collection. Capping the Krylov depth would bound
+  that, but the superlinearity exists precisely because annihilated
+  eigenvalues *stay* annihilated, so bounding depth bounds the gain.
+
+  One implementation note worth keeping, because it halved the
+  per-application cost: the matvec need not be the difference of two
+  large quantities. Since the operator is affine, A·v = G(v) − G(0)
+  (agrees with G(x₀+v) − G(x₀) to 7.06e−105), and G(0) is computed once
+  per burst. G(0) must be evaluated *after* G(x₀), however — `staylor`
+  caches the walk endpoints, and a walk taken from the zero polynomial
+  locks in different branches, destroying the very branch-locking that
+  makes the operator affine.
 - **Fast multipoint evaluation (FLINT)** of the orbit walks — numerically
   unstable on the walk endpoints. First read as an underflow of the
   product-tree factors (~0.55 per level) and parked pending shell-batching;

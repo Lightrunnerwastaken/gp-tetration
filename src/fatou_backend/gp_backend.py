@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 from dataclasses import dataclass, field
+from fractions import Fraction
 from pathlib import Path
 from typing import Iterable, Sequence
 
@@ -169,6 +171,43 @@ def _reject_unsupported_base(base: GPValue) -> None:
         raise ValueError("base 1 is degenerate (1^x = 1); no tetration exists.")
 
 
+# Fuehrende/abschliessende Leerzeichen, ein Vorzeichen und die Form ".5"
+# kommen in echten Aufrufen vor; ohne sie faellt die Basis stumm in den
+# Dezimal-Zweig und reginit lehnt sie erst in GP ab.
+_DECIMAL = re.compile(r"^\+?(?:\d+(?:\.\d*)?|\.\d+)$")
+# e^(1/e) = 1.44466786100976613365... — enough digits to classify safely
+_ETA = Fraction("1.4446678610097661336")
+
+
+def _exact_if_sub_eta(expr: str) -> str:
+    """Send real bases below eta to GP as exact rationals, not decimals.
+
+    The fork's regular-iteration branch (exp-071b) needs the base to roughly
+    twice the target precision, because sigma^-1 amplifies every residual by
+    lam^-n. A decimal literal is parsed at whatever \\p happens to be and can
+    never carry that, so `sexpinit(1.2)` now refuses outright rather than
+    returning 15 digits of a 60-digit request. '1.2' and '6/5' are the same
+    number, and the rational is exact at any precision.
+
+    Deliberately scoped to the sub-eta interval: every gate base (e, 2, 10,
+    1+I, 2+I, 0.8+0.4*I) leaves this function byte-identical, so the Kneser
+    path and its measured digit counts cannot shift.
+
+    Applied to STRING bases only. A Python float cannot carry a sub-eta base
+    accurately enough -- 1.2 is really 1.1999999999999999555910790149937 --
+    and converting its rendered decimal would hand GP the exact rational of
+    the wrong number, which reginit would then accept without complaint.
+    Floats are left alone so that reginit refuses them audibly.
+    """
+    stripped = expr.strip()
+    if not _DECIMAL.match(stripped):
+        return expr
+    value = Fraction(stripped)
+    if not 1 < value <= _ETA:
+        return expr
+    return f"{value.numerator}/{value.denominator}"
+
+
 def _to_gp_number(value: GPValue, digits: int) -> str:
     if isinstance(value, str):
         return value
@@ -264,7 +303,13 @@ class FatouGP:
         if isinstance(base, str):
             if base == "e":
                 return "exp(1)"
-            return base
+            return _exact_if_sub_eta(base)
+        # Bewusst NICHT _exact_if_sub_eta: _to_gp_number() rendert einen
+        # float zuerst zu einer Dezimalzeichenkette, und der exakte Bruch
+        # DAVON waere der exakte Bruch der falschen Zahl -- Python's 1.2 ist
+        # 1.1999999999999999555910790149937... Ein float traegt die Basis
+        # prinzipiell nicht genau genug; reginit lehnt sie dann laut ab,
+        # statt still die Tetration einer anderen Basis zu liefern.
         return _to_gp_number(base, max(self.dps - 8, 30))
 
     def _spawn_worker(self, base: GPValue) -> FatouGPWorker:
