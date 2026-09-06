@@ -53,3 +53,20 @@ kern
 kern.cmd
 kern.sh
 skills/
+
+# Paper VI, Segmentzertifikat 8r1: die grossen Intervall-Arrays sind AUSGABE,
+# nicht Eingabe. Sie entstehen aus trajectory_8r1.json plus den Produzenten in
+# rund sieben Minuten (interval primitives 18.5 MB) und sind ueber SHA256SUMS
+# gebunden -- genau dafuer ist die Hash-Bindung da. Was committet wird, ist die
+# Bahn, der Code und das Zertifikat; nicht der Rechenweg dorthin.
+# Nur die GROSSEN abgeleiteten Arrays. Die Berichte bleiben drin: der
+# Replay-Report traegt Y, L, q, r, p(r) und Z1..Z7, die unabhaengige
+# Verifikation traegt das PASS. Das IST das Zertifikat -- ohne sie waere nur
+# Code im Repo und kein Ergebnis. Eine Regel auf segment_8r1_*.json haette
+# beide mitgenommen; sie war zu breit.
+research/certification8r1/segment_8r1_interval_primitives.json
+research/certification8r1/segment_8r1_hilbert_primitives.json
+research/certification8r1/segment_8r1_derived_primitives.json
+research/certification8r1/segment_8r1_derived_interval_primitives.json
+research/certification8r1/segment_8r1_hilbert_derived.json
+research/certification8r1/shards/

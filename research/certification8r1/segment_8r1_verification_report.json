@@ -1,0 +1,59 @@
+{
+  "schema_version": "paper-vi-8r1-independent-verification-v1",
+  "segment_id": "8r1",
+  "panels_checked": 6,
+  "nodes_per_panel": 96,
+  "elapsed_seconds": 1714.7,
+  "derived_worst_case": {
+    "gamma_remainder": [
+      "1.69834939129766541e-14",
+      "1.69834939129766604e-14"
+    ],
+    "gamma_prime_remainder": [
+      "1.78155144466551918e-11",
+      "1.78155144466552015e-11"
+    ],
+    "tail_remainder": [
+      "1.14233168232255885e-10",
+      "1.14233168232255911e-10"
+    ],
+    "model_remainder": [
+      "1.14233168232255885e-10",
+      "1.14233168232255911e-10"
+    ],
+    "log_kappa_error": [
+      "2.50063876151775675e-17",
+      "2.50063876151775737e-17"
+    ],
+    "base_error": [
+      "1.31287668305006627e-14",
+      "1.31287668305006659e-14"
+    ],
+    "tail_ratio": [
+      "7.11942330481640142e-09",
+      "7.11942330481640307e-09"
+    ]
+  },
+  "phase_margin_lower": [
+    "1.84406880673999396e+00",
+    "1.84406880673999440e+00"
+  ],
+  "comparison_with_pre_certificate": {
+    "max_gamma_gap": [
+      "-4.94065645841246544e-324",
+      "4.94065645841246544e-324"
+    ],
+    "max_tail_gap": [
+      "1.12283413048900228e-10",
+      "1.12283413048900253e-10"
+    ],
+    "declared_beta_series_remainder": "2e-16",
+    "declared_gamma_remainder_hull": [
+      "-4.94065645841246544e-324",
+      "1.77495496820311130e-12"
+    ]
+  },
+  "primitives_payload_sha256": "fe0cec5d42b9ea0b5ee995293295123e68f01605ec40da45b787c76a468e5297",
+  "issues": [],
+  "passed": true
+}

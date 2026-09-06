@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fatou-backend"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python wrapper around Sheldonison's fatou.gp tetration engine"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -34,6 +34,8 @@ Repository = "https://github.com/Lightrunnerwastaken/gp-tetration"
 [project.scripts]
 fatou-cli = "fatou_backend.cli:main"
 mixed-phase-cli = "fatou_backend.mixed_phase:main"
+tetration-reconstruct = "fatou_backend.reconstruction:main"
+tetration-cert-audit = "fatou_backend.certification:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

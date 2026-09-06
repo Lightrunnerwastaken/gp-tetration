@@ -1,0 +1,194 @@
+{
+  "_template": {
+    "what": "Schema-v2 layout for a Paper VI certificate, as read by fatou_backend.certification.audit_certificate (tetration-cert-audit).",
+    "how_to_read": "Every string starting with 'REQUIRED' is a placeholder that the producer must replace with an outward-rounded interval bound, an exact decimal, or a SHA-256 of a shipped data file. Every boolean is false here on purpose: the auditor requires true, and a claim has to be made by the producer, not inherited from a template. Fields whose value is fixed by the auditor (schema_version, theorem_profile, domain strings, DOI, proposition) carry that fixed value.",
+    "is_not": "a certificate. tetration-cert-audit rejects this file as it stands, and it is meant to. The auditor's array_replay gate also stays fail-closed in this release, so no filled-in copy can currently pass either; see research/certification8r1/README.md.",
+    "structure_bound_to": "tests/test_reconstruction_modes.py::CertificateTests::test_template_matches_auditor_layout"
+  },
+  "schema_version": "paper-vi-cert-v2",
+  "theorem_profile": "ovsyannikov-contraction-v1",
+  "status": "template",
+  "target_base": "REQUIRED: exact decimal base b > e^(1/e)",
+  "target_beta": "REQUIRED: decimal log(log(target_base)), within target_beta_tolerance",
+  "target_beta_tolerance": "REQUIRED: decimal in (0, 1e-30]",
+  "interval_backend": {
+    "name": "REQUIRED: e.g. python-flint/Arb",
+    "version": "REQUIRED: backend version string",
+    "directed_rounding": false
+  },
+  "anchor_pure_provenance": {
+    "pass": false,
+    "initial_anchor": "e",
+    "target_engine_data_used": false,
+    "lineage_sha256": "REQUIRED: sha256 of the provenance lineage record"
+  },
+  "source_files": {
+    "candidate": {
+      "path": "REQUIRED: relative POSIX path of the candidate data file",
+      "sha256": "REQUIRED: sha256 of that file",
+      "phase_map_sha256": "REQUIRED: fingerprint of the evaluated phase map"
+    }
+  },
+  "anchor_certificate": {
+    "pass": false,
+    "rounding": "outward",
+    "data_sha256": "REQUIRED: sha256 of a source_files entry",
+    "remainder_upper": "REQUIRED: non-negative decimal",
+    "margins": {
+      "T_prime": "REQUIRED: strictly positive decimal",
+      "transfer_cut": "REQUIRED: strictly positive decimal"
+    }
+  },
+  "interval_rh": {
+    "pass": false,
+    "rounding": "outward",
+    "data_sha256": "REQUIRED: sha256 of a source_files entry",
+    "components": {
+      "qh_models": false,
+      "koenigs_models": false,
+      "geometric_quotients": false,
+      "periodic_trace": false,
+      "hardy_projection": false,
+      "normalization": false,
+      "lipschitz_and_tail": false
+    },
+    "margins": {
+      "T_prime": "REQUIRED: strictly positive decimal",
+      "koenigs_overlap": "REQUIRED: strictly positive decimal",
+      "fourier_tail": "REQUIRED: strictly positive decimal"
+    },
+    "tail_upper": "REQUIRED: non-negative decimal",
+    "lipschitz_upper": "REQUIRED: non-negative decimal"
+  },
+  "segments": [
+    {
+      "beta_a": "REQUIRED: 0 for the first segment; equal to the previous beta_b otherwise",
+      "beta_b": "REQUIRED: decimal; the last segment ends exactly at target_beta",
+      "a_upper": "REQUIRED: decimal >= |beta_b - beta_a|",
+      "rho0_lower": "REQUIRED: strictly positive decimal",
+      "kappa_lower": "REQUIRED: strictly positive decimal <= kappa_upper",
+      "kappa_upper": "REQUIRED: strictly positive decimal",
+      "rho_end_upper": "REQUIRED: strictly positive decimal; rho0 - kappa*a - rho_end > 0",
+      "L_upper": "REQUIRED: non-negative decimal",
+      "Y_head_upper": "REQUIRED: non-negative decimal",
+      "Y_tail_upper": "REQUIRED: non-negative decimal",
+      "Y_upper": "REQUIRED: decimal >= Y_head_upper + Y_tail_upper",
+      "q_upper": "REQUIRED: decimal in [0, 1), at least 4*sqrt(2)*L_upper/kappa_lower",
+      "radius": "REQUIRED: strictly positive decimal",
+      "path_endpoint_error_upper": "REQUIRED: decimal >= radius/sqrt(rho0 - kappa*a - rho_end)",
+      "q_error_upper": "REQUIRED: non-negative decimal",
+      "representation_error_upper": "REQUIRED: non-negative decimal",
+      "endpoint_error_upper": "REQUIRED: decimal >= path + q + representation errors",
+      "radii_polynomial_upper": "REQUIRED: strictly negative decimal >= Y_upper + (q_upper - 1)*radius",
+      "admissibility_margins": {
+        "strip": "REQUIRED: strictly positive decimal",
+        "derivative": "REQUIRED: strictly positive decimal",
+        "cut": "REQUIRED: strictly positive decimal"
+      },
+      "interval_rh": {
+        "pass": false,
+        "rounding": "outward",
+        "data_sha256": "REQUIRED: sha256 of a source_files entry",
+        "components": {
+          "qh_models": false,
+          "koenigs_models": false,
+          "geometric_quotients": false,
+          "periodic_trace": false,
+          "hardy_projection": false,
+          "normalization": false,
+          "lipschitz_and_tail": false
+        },
+        "margins": {
+          "T_prime": "REQUIRED: strictly positive decimal",
+          "koenigs_overlap": "REQUIRED: strictly positive decimal",
+          "fourier_tail": "REQUIRED: strictly positive decimal"
+        },
+        "tail_upper": "REQUIRED: non-negative decimal",
+        "lipschitz_upper": "REQUIRED: non-negative decimal"
+      },
+      "endpoint_ball": {
+        "pass": false,
+        "rounding": "outward",
+        "data_sha256": "REQUIRED: sha256 of a source_files entry",
+        "error_upper": "REQUIRED: decimal >= endpoint_error_upper",
+        "is_target": false
+      },
+      "segment_end_gluing": {
+        "pass": false,
+        "rounding": "outward",
+        "data_sha256": "REQUIRED: sha256 of a source_files entry",
+        "eta_upper": "REQUIRED: decimal in [0, 1)",
+        "koenigs_decay_rate_lower": "REQUIRED: strictly positive decimal",
+        "interval_newton_margin_lower": "REQUIRED: strictly positive decimal",
+        "overlap_box_count": "REQUIRED: positive integer",
+        "base_uniform": false
+      },
+      "M1_upper": "REQUIRED: non-negative decimal (see PAPER_VI_8R1_CLOSURE.md section 8 before using one)"
+    }
+  ],
+  "global_end_gluing": {
+    "pass": false,
+    "rounding": "outward",
+    "data_sha256": "REQUIRED: sha256 of a source_files entry",
+    "segment_count": "REQUIRED: integer equal to len(segments)",
+    "compatibility_margin_lower": "REQUIRED: strictly positive decimal"
+  },
+  "cut_plane_continuation": {
+    "pass": false,
+    "rounding": "outward",
+    "data_sha256": "REQUIRED: sha256 of a source_files entry",
+    "domain": "C minus (-infinity,-2]",
+    "transition_box_count": "REQUIRED: positive integer",
+    "invariant_template_count": "REQUIRED: positive integer",
+    "overlap_check_count": "REQUIRED: positive integer",
+    "induction_verified": false,
+    "upper_lower_compatible": false,
+    "margins": {
+      "cut": "REQUIRED: strictly positive decimal",
+      "zero": "REQUIRED: strictly positive decimal"
+    }
+  },
+  "static_uniqueness": {
+    "doi": "10.1007/s10444-017-9524-1",
+    "proposition": 2,
+    "comparison_domain": "Re(z)>-2",
+    "fixed_points": {
+      "upper": "L1",
+      "lower": "L2",
+      "conjugate_pair_for_real_base": false
+    },
+    "conditions": {
+      "analytic_on_half_plane_Re_gt_minus_2": false,
+      "functional_equation_on_half_plane": false,
+      "normalization_F0_eq_1": false,
+      "upper_fixed_point_limit_for_every_x_gt_minus_2": false,
+      "lower_fixed_point_limit_for_every_x_gt_minus_2": false
+    },
+    "cut_plane_bridge": {
+      "source_domain": "C minus (-infinity,-2]",
+      "comparison_domain": "Re(z)>-2",
+      "restriction_verified": false,
+      "cut_plane_connected": false,
+      "identity_theorem_extension": false
+    }
+  },
+  "array_replay": {
+    "profile": "paper-vi-array-replay-v1",
+    "status": "not-implemented",
+    "source_file": "REQUIRED_REPLAY_TRACE_SOURCE"
+  },
+  "global_error_bound": "REQUIRED: strictly positive decimal >= the recomputed Gronwall budget over segments",
+  "evaluation_enclosure": {
+    "pass": false,
+    "rounding": "outward",
+    "data_sha256": "REQUIRED: sha256 of a source_files entry",
+    "phase_map_sha256": "REQUIRED: equal to source_files.<phase_map_source>.phase_map_sha256",
+    "phase_map_source": "candidate",
+    "height_min": "REQUIRED: decimal <= height_max",
+    "height_max": "REQUIRED: decimal",
+    "phase_to_value_lipschitz_upper": "REQUIRED: non-negative decimal",
+    "raw_branch_error_upper": "REQUIRED: non-negative decimal",
+    "floating_evaluation_error_upper": "REQUIRED: non-negative decimal",
+    "radius": "REQUIRED: decimal >= lipschitz*global_error_bound + raw_branch + floating errors"
+  }
+}
