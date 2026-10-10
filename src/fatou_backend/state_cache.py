@@ -3,7 +3,8 @@
 Discovery uses the \\uv metacommand (verified on gp 2.17.3): it lists all user
 variables as "name =" lines with indented value lines. We dump every variable
 into one binary vector; functions are NOT dumped (re-reading fatou.gp is cheap
-and restores them).
+and restores them). GP defaults are not variables and travel in the JSON
+sidecar instead (see _DEFAULTS).
 """
 from __future__ import annotations
 
@@ -19,6 +20,15 @@ ANCHOR_EXPR = "sexp(0.5)"
 _NAME_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*) =$")
 # our own temp variables; note GP identifiers must start with a letter
 _EXCLUDED = {"vv", "fatoustate"}
+# GP defaults sexpinit may leave changed; \uv lists variables only. Not
+# cosmetic: `default(realprecision, n)` also sets the digits print() emits, the
+# worker reads its results back from that text, and the fork's loop() ends with
+# default(realprecision, precis). A restored engine skipped loop() and kept the
+# init line's dps -- at dps 40 it printed 40 digits of values bit-identical to
+# the fresh engine's 57. Restored in this order: realbitprecision resets the
+# printed digits, so format comes last.
+_DEFAULTS = ("realbitprecision", "seriesprecision", "format")
+_FORMAT_RE = re.compile(r"^[efg]\d*\.\d+$")
 
 
 def cache_dir() -> Path:
@@ -48,23 +58,43 @@ def discover_state_var_names(worker) -> list[str]:
 
 def dump_state(worker, names: list[str], bin_path: Path) -> None:
     gp_path = bin_path.as_posix()
+    # before the anchor: evaluating it may itself touch realprecision
+    values = worker.eval_raw([f"print(default({d}))" for d in _DEFAULTS],
+                             "__DEFAULTSDONE__", timeout=60.0)
+    if len(values) != len(_DEFAULTS):
+        raise RuntimeError(f"could not read GP defaults: {values!r}")
     worker.eval_raw([f'writebin("{gp_path}", [{", ".join(names)}]);'],
                     "__DUMPDONE__", timeout=300.0)
     anchor = worker.eval([ANCHOR_EXPR])[0]
     sidecar = {
         "names": names,
+        "defaults": dict(zip(_DEFAULTS, (v.strip() for v in values))),
         "anchor_real": mp.nstr(mp.re(anchor), 40, min_fixed=0, max_fixed=0),
         "anchor_imag": mp.nstr(mp.im(anchor), 40, min_fixed=0, max_fixed=0),
     }
     bin_path.with_suffix(".json").write_text(json.dumps(sidecar), encoding="utf-8")
 
 
-def restore_lines(names: list[str], bin_path: Path) -> list[str]:
+def restore_lines(names: list[str], bin_path: Path, defaults: dict) -> list[str]:
     gp_path = bin_path.as_posix()
     lines = [f'fatoustate = read("{gp_path}");']
     for idx, name in enumerate(names, start=1):
         lines.append(f"{name} = fatoustate[{idx}];")
+    for name in _DEFAULTS:
+        value = defaults[name]
+        lines.append(f'default({name}, "{value}");' if name == "format"
+                     else f"default({name}, {int(value)});")
     return lines
+
+
+def _valid_defaults(defaults) -> bool:
+    if not isinstance(defaults, dict) or set(defaults) != set(_DEFAULTS):
+        return False
+    try:
+        int(defaults["realbitprecision"]), int(defaults["seriesprecision"])
+    except (TypeError, ValueError):
+        return False
+    return bool(_FORMAT_RE.match(str(defaults["format"])))
 
 
 def load_sidecar(bin_path: Path) -> dict | None:
@@ -76,6 +106,10 @@ def load_sidecar(bin_path: Path) -> dict | None:
     except (OSError, json.JSONDecodeError):
         return None
     if not isinstance(data.get("names"), list) or "anchor_real" not in data:
+        return None
+    # entries written before the defaults were stored restore with the wrong
+    # printed precision; treating them as missing rebuilds them
+    if not _valid_defaults(data.get("defaults")):
         return None
     return data
 

@@ -66,5 +66,62 @@ class StateCacheTests(unittest.TestCase):
         self.assertEqual(list(Path(self._tmp.name).glob("*")), [])
 
 
+class CachedEqualsFreshTests(unittest.TestCase):
+    """A restored engine must be indistinguishable from a freshly built one.
+
+    Regression (2026-10-09): at dps 40 a base-e engine restored from the cache
+    printed 40 digits where a fresh one printed 57 -- from bit-identical
+    internal values. `default(realprecision, n)` also sets the printed digits,
+    the fork's loop() ends with default(realprecision, precis), and \\uv does
+    not see GP defaults. Runs at mpmath's default precision on purpose: the
+    anchor check used to compare at mp.mp.dps, so at 15 the cache never hit
+    and the restore path went untested.
+    """
+    DPS = 40
+    EXPRS = ["sexp(1/2)", "slog(1/2)", "sexp(-17/10)", "slog(-185/100)",
+             "sexp(1/3+I/5)"]
+    PROBE = ("[default(realprecision), default(realbitprecision), "
+             "default(seriesprecision), default(format)]")
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self._env = mock.patch.dict(os.environ, {"FATOU_CACHE_DIR": self._tmp.name})
+        self._env.start()
+
+    def tearDown(self) -> None:
+        self._env.stop()
+        self._tmp.cleanup()
+
+    def _engine(self, cache: bool) -> FatouGP:
+        return FatouGP(gp_exe=find_default_gp_exe(), fatou_gp="fork",
+                       dps=self.DPS, state_cache=cache)
+
+    def _run(self, base: str, cache: bool):
+        with self._engine(cache) as gp:
+            values = gp.eval_batch(base, self.EXPRS)
+            worker = gp._workers[gp._base_expr(base)]
+            probe = worker.eval_raw([f"print({self.PROBE})"], "__PROBE__", 60.0)
+            restored = not any("sexpinit" in ln for ln in worker.debug_init_lines)
+        return values, probe, restored
+
+    def _assert_bit_identical(self, base: str) -> None:
+        with mp.workdps(15):
+            fresh, fresh_probe, _ = self._run(base, cache=False)
+            self._run(base, cache=True)                       # fills the cache
+            cached, cached_probe, restored = self._run(base, cache=True)
+        self.assertTrue(restored, f"base {base}: second engine did not use the cache")
+        self.assertEqual(cached_probe, fresh_probe)
+        for expr, a, b in zip(self.EXPRS, fresh, cached):
+            with self.subTest(base=base, value=expr):
+                self.assertEqual(a, b, f"base {base}: {expr} differs, "
+                                       f"rel {mp.nstr(abs(a - b) / abs(a), 3)}")
+
+    def test_base_e(self) -> None:
+        self._assert_bit_identical("e")
+
+    def test_sub_eta_base(self) -> None:
+        self._assert_bit_identical("1.2")
+
+
 if __name__ == "__main__":
     unittest.main()

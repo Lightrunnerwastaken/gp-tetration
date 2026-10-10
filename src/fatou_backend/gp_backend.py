@@ -344,7 +344,8 @@ class FatouGP:
     def _try_spawn_cached(self, base: GPValue, bin_path, sidecar) -> FatouGPWorker | None:
         init = self._init_lines(base)
         # everything except the final sexpinit line, then restore cached state
-        lines = init[:-1] + state_cache.restore_lines(sidecar["names"], bin_path)
+        lines = init[:-1] + state_cache.restore_lines(
+            sidecar["names"], bin_path, sidecar["defaults"])
         try:
             worker = FatouGPWorker(
                 self.gp_exe, lines,
@@ -352,9 +353,15 @@ class FatouGP:
             anchor = worker.eval([state_cache.ANCHOR_EXPR])[0]
         except (RuntimeError, OSError):
             return None
-        expected = mp.mpc(mp.mpf(sidecar["anchor_real"]), mp.mpf(sidecar["anchor_imag"]))
-        tolerance = mp.mpf(10) ** (-(min(self.dps, 35)))
-        if abs(anchor - expected) > tolerance * max(1, abs(expected)):
+        # At the stored anchor's own precision, not the caller's mp.mp.dps: at
+        # mpmath's default of 15 the expected value rounded to a double, missed
+        # the 1e-35 tolerance by ~18 orders, and every entry was silently
+        # rebuilt -- the cache only ever hit for callers who had raised dps.
+        with mp.workdps(_needed_dps(sidecar["anchor_real"], sidecar["anchor_imag"])):
+            expected = _parse_gp_complex(sidecar["anchor_real"], sidecar["anchor_imag"])
+            tolerance = mp.mpf(10) ** (-(min(self.dps, 35)))
+            mismatch = abs(anchor - expected) > tolerance * max(1, abs(expected))
+        if mismatch:
             worker.close()
             return None
         return worker
