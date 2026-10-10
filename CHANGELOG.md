@@ -1,5 +1,331 @@
 # Changelog
 
+## Unreleased
+
+### Pentation at the engine's precision, for every base the engine runs
+
+- **`pentinit` / `pent` / `ipent` now carry the engine's digits.** The
+  original builds the Poincare function of slog at the negative fixed point of
+  sexp with a fixed 21-term series (`formalischroder(tslog,21)`), so its
+  pentation delivered ~30 digits regardless of the requested precision -- at
+  `\p 60`, `pent(0)-1 = 6.5e-31`. The fork now grows the series with the
+  working precision (Newton doubling instead of the original's O(N^4)
+  term-by-term composition) and chooses the slog sampling from the measured
+  decay of the series. At dps 40 the defining identities hold to 1e-48 ..
+  1e-57; dps 60 against dps 100 agree to 1.1e-65 relative on `pent(1/2)`.
+- **New bases.** The construction now goes through `slog()` instead of
+  `slogtaylor()`, so it also runs for real 1 < b < e^(1/e) (regular tetration,
+  where `slogtaylor` is guarded) -- the original cannot run there at all -- and
+  for complex bases, where the original's error estimate (`z1<1`) failed.
+  Checked: 21/20, 6/5, 7/5, 36/25, 29/20, 3/2, 17/10, 2, e, 10, 100, 2+i/2.
+- **A precision trap, fixed before it shipped.** For base 100 (lambda = 1100,
+  fixed point 2e-4 above the singularity at -2) the Newton solve leaves the
+  highest Poincare coefficients with 19 of 57 digits. Their contribution at
+  the evaluation radius is below 1e-65, but PARI carries precision through
+  Horner relatively, and `pent(0)-1` came out 3.6e-21. Terms whose error
+  contribution is provably below the target are now padded (as `regsigma`
+  already does); otherwise `pentinit` raises.
+- **`pentinit` reports a real error estimate.** The original returned 0
+  whenever `sexpinit` was skipped. Now: `pent(0)=1`, an inverse roundtrip and
+  the same values over two reduction depths.
+- Unchanged: `sexp`/`slog` are bit-identical to the previous fork (checked at
+  dps 60 on e, 1.2 and 2+i/2), the original `fatou.gp` keeps its version, and
+  Sheldon's hexation (`hexinit`, `hex`, `ihex`) runs on top of the new
+  pentation as before (base 2: `hex(1.5) = 2.67289396602652...`, its own
+  estimate ~8 digits).
+- New tests: `tests/test_pentation.py` -- identities on both sides of eta, a
+  large and a complex base; dps 40 against dps 60; Fox (2007) to 1e-20;
+  Levenstein (2020) for base 2; the original's pentation to 1e-25.
+
+### Hexation at full precision for real 1 < b < eta5
+
+- **`hexinit` now takes the regular route where one exists.** For real bases
+  below eta5 = 1.7373559... the pentation crosses y = x twice and the lower
+  crossing a is attracting (b = 1.7: a = 2.3876372817, P'(a) = 0.449). There
+  the hexation is the regular iteration at a -- the construction the fork
+  already uses for tetration below eta: `hex(z) = Psi_H(kappa*mu^z)`,
+  `hex(0) = 1`, `hex(z+1) = pent(hex(z))`, `hex(z) -> a`. At dps 40 the
+  identities hold to 1e-47 .. 1e-57 (1.2, 1.41, 1.5, 1.7, 1.73), and dps 40
+  against dps 60 agree to 1e-46 .. 1e-57.
+- **Above eta5** (2, e, 10) the pentation has no real fixed point; see the
+  Kneser hexation below.
+- `hexinit(B, n, skip)` gains `skip` (reuse the initialised engine, as
+  `pentinit`); `pentinit` resets the hexation state of a previous base.
+- New tests: `tests/test_hexation.py`.
+- Found on the way: GP's `local()` is dynamically scoped. A helper that
+  declared `local(L)` handed its own `L` to every engine function it called,
+  and the Kneser engine reads the global `L` (its fixed point) -- slog was
+  silently wrong for every base above eta, right below eta (regular path, no
+  `L`). The new pentation/hexation code uses `my()` throughout.
+
+### Kneser hexation for real bases above eta5
+
+- **`hexinit` now builds the Kneser hexation for b > eta5** instead of Sheldon
+  Levenstein's ~8-digit matrix approximation, which stays as the fallback.
+  At the complex fixed point p of the pentation (b = 2: p = -1.99295 +
+  1.44513 i) the Abel function of the hexation is `alpha_p + theta(alpha_p)`
+  with a 1-periodic, decaying theta; between p and the real axis it is a real
+  Taylor series around Re p. One least-squares problem couples both: theta
+  matching near p, the functional equation near the real axis (every arc
+  point gets an equation), the normalisation alpha(1) = 0. Solved by modified
+  Gram-Schmidt -- PARI's `matqr` only takes square matrices, and the normal
+  equations were singular for base e.
+- **The digit count is measured, not assumed.** Every solve is repeated on a
+  second arc with its own points and scaling; `hexerr` is their disagreement.
+  A small residual alone proves nothing here: with arc points left without an
+  equation the system was not unique, and a series 2e-21 off satisfied every
+  equation to 1e-32.
+- Measured: base 2, `hex(1.5) = 2.6728939593426194891907964716798365760`;
+  `\p 20`: 32.6 digits in 14 s, dps 45: 43.4 digits in 51 s, the two agree to
+  2e-32. Sheldon's value is 7e-9 off (his own estimate: 8.1 digits), Levenstein
+  2020 quotes 2.6729. Base e, `hex(1.5) = 9.645503939964672449631960...`: about
+  26 digits, at dps 20 and at dps 45 alike (residual 2e-26 at dps 45, cause
+  open; the error vector reports it).
+- **Base 10 was slow (superseded by exp-081 below).** p sits close to the
+  axis (Im p = 0.87), the arc has to reach 0.85 Im p, K = 740: 4.3 min at
+  `\p 20` for 13.5 digits. `hexinit` skips Kneser above `knmaxk = 600` terms;
+  set `knmaxk = 900` to force it.
+- Real bases only. Complex arguments of `hex`/`ihex` work near the real axis
+  (Newton inside the fitted disk).
+- Tests: `tests/test_hexation.py::KneserHexationTests` (base 2 by default,
+  base e with `FATOU_BACKEND_RUN_SLOW=1`).
+
+### Kneser hexation: centre planned, radius measured (exp-081)
+
+- **The expansion centre is no longer fixed at Re p.** For base 10, p lies
+  close to the axis (Im p = 0.87); a disc around Re p had to reach 0.85 Im p to
+  hold one period of the real axis with its images (K = 740, 4.3 min at `\p 20`,
+  13.5 digits). `knhexinit` now plans centre and radius together, in pairs of
+  neighbouring radii (the error vector needs the second arc).
+- **Images must stay inside the arc** (reach <= 1.02 rad, one relaxed pass at
+  1.15 if nothing qualifies). Images outside forced A to extrapolate: that was
+  the old base-e ceiling of ~26 digits (found by the tetration-graph session).
+- **K is replanned from the measured decay** of the Taylor coefficients after
+  the first solve -- the planner's radius |c - p| is too optimistic; alpha has
+  nearer singularities (base e near 0.33 +- 1.37 i).
+- Robustness: `ipent` stops after 60 slog steps (it looped forever for some
+  complex points and hung the planning), every planning candidate runs under
+  `alarm(1)`, and slow candidates are skipped; an inner `iferr` no longer
+  swallows the alarm.
+
+| base | dps | before (digits, time) | now (digits, time) |
+|---|---|---|---|
+| 2 | 20 | 32.6, 14 s | 31.9, 10 s |
+| 2 | 45 | 43.4, 51 s | 47.6, 27 s |
+| e | 20 | 29.6, 25 s | 30.8, 42 s |
+| e | 45 | 25.7, 74 s | 42.2, 42 s |
+| 10 | 20 | 13.5, 258 s | 33.4, 21 s |
+| 10 | 45 | -- | 43.6, 70 s |
+| 50 | 20 | Sheldon, 0.2 | 21.5, 64 s |
+
+  Base 100 still fails: the search for the complex fixed point of the
+  pentation (ipent iteration from 0.5) does not converge there.
+
+### Kneser hexation: fewer theta harmonics, profiled (exp-082)
+
+- **Fewer harmonics, faster and more accurate.** The N formula assumed theta
+  decays at height 0.6*(htop - hmin); the corners of the real curve lie
+  below hmin and the c_n fall on top of that, so the effective height is
+  ~0.3 larger. Too many harmonics hurt (base e, dps 45, same arc: N = 80
+  residual 9e-24, 49 -> 2e-42, 35 -> 7e-47, 25 -> 8e-47).
+- K is replanned from a fit log|a_k| ~ a + b k + c log k instead of a
+  two-point slope.
+- Profile (base e, dps 45, 58 s before): the least-squares solves were 47 s.
+  Tried and rejected: classical Gram-Schmidt via matrix-vector products
+  (slower -- the products also run over the empty columns), one
+  orthogonalisation pass (-10 digits), 1.5x instead of 2x working precision
+  (no gain: PARI computes in whole words).
+- Now: dps 45 -- base 2 46.3 digits in 25 s, e 44.4 in 33 s, 10 43.3 in 63 s;
+  dps 20 -- 2 31.8 in 8 s, e 30.7 in 31 s, 10 34.4 in 20 s.
+- **The ceiling is the input, not the solve.** At dps 45 the residual stays at
+  ~1e-47 for larger K and for 3x working precision. The pentation values the
+  equations are built from are accurate to 1e-51..1e-52, with spikes to
+  4e-49 that come from the engine's sexp (1e-52..1e-55, spikes at particular
+  fractional parts of x). More hexation digits need a more accurate sexp.
+
+### Kneser hexation: wider planning for large bases (exp-087)
+
+- The relaxed planning pass -- reached only by bases where no arc keeps its
+  images inside, b >~ 20 -- also tries radii 1.45 and 1.6 Im p and pairs equal
+  radii around neighbouring centres; the second arc is solved around its own
+  centre. Base 100, dps 20, K = 300: centre Re p + 1.5 Im p, radius 1.45 gives
+  residual 3e-31, the old main arc (Re p + Im p, radius 1.3) 1e-13 -- it was
+  outside the radius list and had no neighbouring radius.
+- The shifted sibling arc (exp-085) now runs before the own-K / half-K retry
+  of the second arc: for b = 100 at dps 20, K = 600 on the second arc cost
+  64 s for 7e-29, and the sibling afterwards gave 2e-32.
+
+| base | dps | exp-086 (digits, time) | now |
+|---|---|---|---|
+| 100 | 20 | 22.2, 98 s | 31.6, 119 s |
+| 100 | 16 | 12.1, 15 s | 12.7, 17 s |
+| 50 | 20 | 32.7, 108 s | 32.6, 60 s |
+| 10 | 45 | 52.9, 86 s | 53.0, 83 s |
+
+  Unchanged: b = 2 and e at dps 45 (51.0 in 35 s, 53.2 in 53 s), b = 28.06 at dps 16 (13.0 in 18 s).
+- Tests: full suite 123 passed / 6 skipped; level tests incl. slow 27 passed.
+
+### Kneser hexation: the second arc gets its own K (exp-086)
+
+- The half-K retry of exp-084 is right only when the second arc's images lie
+  well outside it (its error grows like (rho/rad)^K). When they lie almost
+  inside (rho/rad <= 1.05), the arc is short of terms: it now gets its own K
+  from its own coefficient decay (`knfit`, capped at knmaxk), and if it then
+  beats the main solution the two swap roles.
+- Base 50, dps 20 -- arc 1.3 Im p (rho/rad 1.015): K 221 residual 6e-23,
+  K 330 1e-32; arc 1.15 (rho/rad 1.18): K 221 6e-32, K 330 5e-31. No
+  cancellation (sum |a_k| = 4.2). Now arc 1.3 with K = 494 (2e-33) is the
+  main solution and arc 1.15 checks it: **23.1 -> 32.7 digits**, 108 s.
+- Unchanged: b = 10 at dps 45 (52.9), b = 100 at dps 20 (22.2 -- there the
+  main arc itself would need K > knmaxk), b = 2 and e at dps 45 (51.0 in 27 s, 53.2 in 51 s).
+- Tests: full suite 123 passed / 6 skipped; level tests incl. slow 27 passed.
+
+### Kneser hexation: a shifted sibling arc certifies base 10 (exp-085)
+
+- If the second arc stays much worse than the main one even after the half-K
+  retry (images outside, exp-084), one more solution is computed on an arc of
+  the main radius around a centre shifted by +0.125, +0.25 or -0.125 Im p (at
+  most three tries) -- an independent solution whose images stay inside.
+  The error vector now evaluates each solution around its own centre.
+- Base 10, dps 45: **46.5 -> 52.9 certified digits** (|s1 - s2| = 2.3e-54),
+  86 s. Shifted centres measured: +0.125 Im p residual 1e-53, +0.25 1e-53,
+  -0.125 2e-44, -0.25 1e-34.
+- Where it does not trigger nothing changes: b = 2 and e at dps 45, b = 100
+  (both arcs within a factor 100), b = 50 at dps 20 (relaxed arcs, no
+  shifted plan passes the reach test).
+- Tests: full suite 123 passed / 6 skipped; level tests incl. slow 27 passed.
+
+### Kneser hexation: base 100, the better arc leads (exp-084)
+
+- **Base 100 works.** The series of the pentation around its complex fixed
+  point p has radius 0.0075 there (b = 50: 0.013), but the sampling radius
+  was halved only down to 1/128. Now down to 1/2048 (b = 100 needs 1/256).
+  The ipent iteration did find p = -2.6587 + 0.4426i; the earlier note
+  "fails in the fixed-point search" named the wrong step.
+- The plan may ask for up to 2 knmaxk: it overestimates K (b = 28: plan 575,
+  287 sufficed), and the pre-solve with K0 = plan/2 <= knmaxk measures what
+  is needed (b = 100, dps 20: plan 1094).
+- **The better arc is the main solution.** The error vector took the
+  residual of the first arc even when its neighbour was much better (b = 10,
+  dps 45: 1.1e-46 against 1.2e-53).
+- **Images outside an arc amplify its error** like (rho/rad)^K: b = 10,
+  dps 45, arc 1.0 Im p has rho/rad = 1.06 and residual 1e-46 at K = 352,
+  7e-44 at K = 460; arc 1.15 keeps its images inside and gives 1e-53 for every
+  K and N tried. The planner's 30-point reach misses this (1.0014). If the
+  second arc is much worse, it is re-solved with half K and the better one
+  kept (b = 100, dps 20: 3e-9 -> 4e-22). A third arc further out does not
+  help -- it needs more K (b = 10, arc 1.32, K = 352: 4e-32).
+
+| base | dps | exp-083 (digits, time) | now |
+|---|---|---|---|
+| 100 | 16 | fails | 12.1, 15 s |
+| 100 | 20 | fails | 22.2, 100 s |
+| 10 | 45 | 46.0, 64-82 s | 46.5, 48 s |
+| 50 | 20 | 23.1, 71 s | 23.1, 72 s |
+| 2 | 45 | 51.0, 30 s | 51.0, 21 s |
+| e | 45 | 53.2, 65 s | 53.2, 47 s |
+
+  Base 10 at dps 45 stays at ~46.5 certified digits: the error vector needs a
+  second solution of similar quality, and on the smaller arc the images leave
+  the disc. The main solution has residual 1e-53 and round trip 1e-56, so it
+  is probably better than certified.
+- Calculator: hexation also for b = 100 (11.6 digits) -- the whole base
+  grid 1.5 ... 100 now has both levels.
+- Tests: full suite 123 passed / 6 skipped; level tests incl. slow 27 passed.
+
+### sexp spikes removed; Kneser K from a pre-solve; hexation tables to b = 50 (exp-083)
+
+- **sexp spikes (engine).** `betterest` stopped refining at
+  10^(-precis/1.2), so at particular fractional parts of x sexp held only
+  ~5/6 of the working precision (dps 60: worst point 2.5e-64, median
+  ~4e-74). It now stops at 10^(-precis+2): worst 1.3e-73, median unchanged,
+  ~25 % more time per sexp value. Gate PASS (6 min 22 s).
+- Pentation, base e, dps 45 against dps 70: error 4e-52 ... 5e-49 ->
+  4e-55 ... 1e-52; ipent(pent(x)) - x 7e-52 ... 4e-49 -> 4e-57 ... 3e-56.
+  The Kneser hexation was bounded by exactly these inputs (exp-082).
+- **K from a pre-solve.** A solve with half the planned K (~1/8 of the cost)
+  measures the coefficient decay (`knfit`); K = 1.1 x what the fit needs for
+  target + 5 digits, where before the first full solve was often redone
+  with a larger K. If the fit sees no decay, the coefficients already sit at
+  their floor and the pre-solve is kept (b = 21.7 ... 37.1 at dps 16: plan
+  K = 575, 90 s -> 12.5 s, same digits). If the larger K makes the solve
+  worse, the pre-solve is kept as well: arc points lie at |u| = rad/rho < 1,
+  images up to |u| = 1, conditioning ~ (rho/rad)^K (b = 50, dps 20: K = 600
+  residual 1e-13, K0 = 221 6e-32). A fit K above `knmaxk` is capped instead
+  of falling back to Sheldon's approximation (0.2 digits at b = 50).
+
+| base | dps | exp-082 (digits, time) | now |
+|---|---|---|---|
+| 2 | 45 | 46.3, 25 s | 51.0, 30 s |
+| e | 45 | 44.4, 33 s | 53.2, 65 s |
+| 10 | 45 | 43.3, 63 s | 46.0, 64-82 s |
+| 2 | 20 | 31.8, 8 s | 32.1, 8 s |
+| e | 20 | 30.7, 31 s | 34.1, 24 s |
+| 10 | 20 | 34.4, 20 s | 34.5, 13 s |
+| 50 | 20 | 21.5, 64 s (exp-081) | 23.1, 71 s |
+
+  Times measured with other jobs on the machine (+-30 %).
+- `pentx` / `ipentx` / `hexx` / `ihexx` raise an error beyond the overflow
+  instead of returning a zero without valid digits (b = 100, dps 16:
+  pent(1.96875) = 0.E495855885102019914, which Python read as 0).
+- **Calculator: hexation up to b = 50.3** (7 new bases 11.2 ... 50.3,
+  12.6-14.5 digits each). Along x the tables are now interpolated by a
+  monotone cubic (Catmull-Rom tangents limited after Fritsch-Carlson):
+  even in symlog space the curves explode (b = 21.66: 4.5e7, 7.8e20, 5.9e220
+  one step apart) and Catmull-Rom undershot -- hex(1.2) came out as 1875
+  instead of ~9e8. Tables end at their first overflow; a stray 0 behind the
+  gap stood in 14 tables (10 pentation, 4 hexation).
+- Tests: `test_overflow_is_an_error_not_zero`; full suite 123 passed / 6 skipped,
+  level tests incl. slow 27 passed.
+
+### Pentation and hexation from Python and the CLI
+
+- `FatouGP.pent / ipent / hex / ihex` (and `_batch` forms, also on sessions),
+  `pentation_digits(base)` and `hexation_digits(base)`; CLI commands `pent`,
+  `ipent`, `hex`, `ihex` (`fatou-cli pent --base 2 --values 1.5 --fatou-gp fork`).
+  Fork only -- the original is refused with a message, since its pentation
+  carries ~30 digits at any precision.
+- The fork's `pentx/ipentx/hexx/ihexx` initialise the level on first use per
+  (base, precision) inside the GP process (`pentensure`, `hexensure`), so each
+  expression stands on its own and a pool of workers works unchanged.
+  `hexinit` is split into `pentinit` + `hexsetup`.
+- The first hexation call above eta5 builds the Kneser solution (~15-25 s at
+  dps 20, ~1 min at dps 45).
+- Calculator: `tetration_calculator.html` gains a level switch (tetration /
+  pentation / hexation). The curves are tables computed with the fork by
+  `research/tools/calc_export_levels.py` (dps 16, step 1/32): pentation for
+  77 bases 1.5 ... 100, hexation for 49 bases 1.5 ... 100 (incl. 2, e, 3, 10;
+  12-15 digits each). Monotone cubic in symlog space along x (exp-083),
+  linear in lnln b between bases, never across eta5, no extrapolation. At
+  grid bases the page
+  matches the fork to ~1e-13: 2^^^1.5 = 2.70289057146015, 2^^^^1.5 =
+  2.67289395934264, e^^^^1.5 = 9.645503939965.
+- Tests: `tests/test_levels_api.py`.
+
+### State cache: restored engines are bit-identical to fresh ones
+
+- **A cache-restored engine returned ~15 fewer digits.** At dps 40, base e,
+  against a fresh dps-100 run: fresh 54-56 correct digits, restored 40-41
+  (dps 60: 73-75 against 60-61). The internal values were bit-identical
+  (checked with `binary()`); only the printing differed. `default(realprecision,
+  n)` also sets how many digits `print()` emits, the worker reads results back
+  from that text, and the fork's `loop()` ends with `default(realprecision,
+  precis)` -- 57 digits at dps 40. The restore path skips `sexpinit` and kept
+  the init line's 40, and `\uv` lists variables, not GP defaults. The cache
+  now stores `realbitprecision`, `seriesprecision` and `format` in the JSON
+  sidecar and restores them. Entries written before this fix lack them and are
+  rebuilt once.
+- **The cache never hit at mpmath's default precision.** The anchor check
+  parsed the stored anchor at the caller's `mp.mp.dps`; at the default 15 it
+  rounded to a double, missed the 1e-35 tolerance, and every entry was silently
+  rebuilt. The cache only ever worked for callers who had raised `mp.mp.dps`
+  -- which is also why results depended on it. The comparison now runs at the
+  stored anchor's own precision.
+- Checked fresh against restored, bit for bit: fork at dps 40 (e, 1.2, 2,
+  2+i/2) and dps 60 (e), original at dps 40 (e). New test:
+  `tests/test_state_cache.py::CachedEqualsFreshTests` (e and 1.2, at mpmath's
+  default precision).
+
 ## v0.1.1 — 2026-07-30
 
 Three correctness fixes to the fork. Each returned a plausible-looking wrong

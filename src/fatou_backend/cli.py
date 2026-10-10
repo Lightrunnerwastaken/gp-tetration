@@ -48,7 +48,10 @@ def _print_values(values: list[mp.mpc], digits: int = 30) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="CLI wrapper for fatou.gp")
-    parser.add_argument("command", choices=["sexp", "slog", "roundtrip", "eval"])
+    parser.add_argument("command", choices=["sexp", "slog", "roundtrip", "eval",
+                                            "pent", "ipent", "hex", "ihex"],
+                        help="pent/ipent/hex/ihex: pentation, hexation and their "
+                             "inverses (fork engine only)")
     parser.add_argument("--base", required=True, help="GP base expression, e.g. e, 2, 10, 1+I")
     parser.add_argument("--values", nargs="+", help="Values to evaluate")
     parser.add_argument("--expressions", nargs="+", help="Raw GP expressions for eval mode")
@@ -82,12 +85,17 @@ def main() -> None:
         result = session.eval_batch(args.expressions)
     else:
         if not args.values:
-            raise SystemExit("--values is required for sexp, slog, and roundtrip.")
+            raise SystemExit("--values is required for every command except eval.")
         values = [_parse_value(text) for text in args.values]
         if args.command == "sexp":
             result = session.sexp_batch(values)
         elif args.command == "slog":
             result = session.slog_batch(values)
+        elif args.command in ("pent", "ipent", "hex", "ihex"):
+            try:
+                result = getattr(session, f"{args.command}_batch")(values)
+            except ValueError as exc:
+                raise SystemExit(str(exc)) from exc
         else:
             result = session.roundtrip_residuals(values)
     # Deliberately conservative: the fork delivers >=0.95*dps true digits, so

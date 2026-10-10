@@ -246,6 +246,18 @@ class FatouGPSession:
     def slog(self, y: GPValue) -> mp.mpc:
         return self.gp.slog(self.base, y)
 
+    def pent_batch(self, xs: Sequence[GPValue]) -> list[mp.mpc]:
+        return self.gp.pent_batch(self.base, list(xs))
+
+    def ipent_batch(self, ys: Sequence[GPValue]) -> list[mp.mpc]:
+        return self.gp.ipent_batch(self.base, list(ys))
+
+    def hex_batch(self, xs: Sequence[GPValue]) -> list[mp.mpc]:
+        return self.gp.hex_batch(self.base, list(xs))
+
+    def ihex_batch(self, ys: Sequence[GPValue]) -> list[mp.mpc]:
+        return self.gp.ihex_batch(self.base, list(ys))
+
 
 @dataclass
 class FatouGP:
@@ -503,3 +515,63 @@ class FatouGP:
 
     def slog(self, base: GPValue, y: GPValue) -> mp.mpc:
         return self.slog_batch(base, [y])[0]
+
+    # -- pentation and hexation (fork only, exp-076..087) ----------------------
+    # The fork's pentx/ipentx/hexx/ihexx initialise the level on first use per
+    # (base, precision) inside the GP process, so every expression stands on
+    # its own -- also when a pool spreads a batch over several workers. The
+    # first hexation call above eta5 builds the Kneser solution: ~10-30 s at
+    # dps 20 for b = 2, e, 10, 1-2 min for b = 50, 100; 0.5-1.5 min at dps 45.
+
+    def _require_levels(self) -> None:
+        if getattr(self, "_levels_ok", None) is None:
+            text = Path(self.fatou_gp).read_text(encoding="utf-8", errors="replace")
+            self._levels_ok = "pentensure(" in text
+        if not self._levels_ok:
+            raise ValueError(
+                f"pentation/hexation need the fork engine (fatou_gp='fork'); "
+                f"{Path(self.fatou_gp).name} has no pentensure(). The original's "
+                f"pentation carries ~30 digits at any precision and has no hexation "
+                f"below e^(1/e).")
+
+    def _level_batch(self, base: GPValue, fn: str, xs: list[GPValue]) -> list[mp.mpc]:
+        self._require_levels()
+        digits = max(self.dps - 8, 30)
+        return self._run_initialized(base, [f"{fn}({_to_gp_number(x, digits)})" for x in xs])
+
+    def pent_batch(self, base: GPValue, xs: list[GPValue]) -> list[mp.mpc]:
+        """b^^^x: pentation, regular at the fixed point of sexp_b on (-2, -1)."""
+        return self._level_batch(base, "pentx", xs)
+
+    def ipent_batch(self, base: GPValue, ys: list[GPValue]) -> list[mp.mpc]:
+        """Inverse pentation; complex for y below that fixed point."""
+        return self._level_batch(base, "ipentx", ys)
+
+    def hex_batch(self, base: GPValue, xs: list[GPValue]) -> list[mp.mpc]:
+        """b^^^^x: hexation -- regular below eta5 = 1.7373559, Kneser above."""
+        return self._level_batch(base, "hexx", xs)
+
+    def ihex_batch(self, base: GPValue, ys: list[GPValue]) -> list[mp.mpc]:
+        return self._level_batch(base, "ihexx", ys)
+
+    def pent(self, base: GPValue, x: GPValue) -> mp.mpc:
+        return self.pent_batch(base, [x])[0]
+
+    def ipent(self, base: GPValue, y: GPValue) -> mp.mpc:
+        return self.ipent_batch(base, [y])[0]
+
+    def hex(self, base: GPValue, x: GPValue) -> mp.mpc:
+        return self.hex_batch(base, [x])[0]
+
+    def ihex(self, base: GPValue, y: GPValue) -> mp.mpc:
+        return self.ihex_batch(base, [y])[0]
+
+    def pentation_digits(self, base: GPValue) -> mp.mpf:
+        """The engine's own estimate of correct pentation digits for this base."""
+        self._require_levels()
+        return mp.re(self._run_initialized(base, ["pentensure()"])[0])
+
+    def hexation_digits(self, base: GPValue) -> mp.mpf:
+        """Estimated hexation digits; above eta5 measured by an error vector."""
+        self._require_levels()
+        return mp.re(self._run_initialized(base, ["hexensure()"])[0])

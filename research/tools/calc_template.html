@@ -32,13 +32,19 @@
   <input type="range" id="bslider" min="0" max="1000" value="380">
   <button id="logy">log-y</button>
 </div>
+<div class="row">
+  <label>Level</label>
+  <button id="lv4" class="on">tetration b↑↑x</button>
+  <button id="lv5">pentation b↑↑↑x</button>
+  <button id="lv6">hexation b↑↑↑↑x</button>
+</div>
 <canvas id="plot" width="1600" height="900"></canvas>
 <div class="row">
   <label>x range: <span class="val" id="xrange">−2 … 4</span></label>
   <input type="range" id="xmax" min="1" max="45" value="20">
 </div>
 <div class="readout" id="readout">Move the mouse over the plot to read values.</div>
-<div class="foot">Engine: gp-tetration base atlas (Kneser tetration, fatou.gp by Sheldonison; fork + atlas 2026).
+<div class="foot">Pentation and hexation: curves precomputed with the fork on the base grid (regular pentation at the fixed point of sexp_b on (−2,−1); hexation regular below η₅ = 1.73736, Kneser above), ~6 digits at grid bases, less between them.<br>Engine: gp-tetration base atlas (Kneser tetration, fatou.gp by Sheldonison; fork + atlas 2026).
 Accuracy of this demo: ~7–9 digits at table bases (incl. b = 2, e, 10), ~4–5 digits between them, ~2–3 near the edge b→e^{1/e}; the underlying library delivers up to 972 proven digits.</div>
 <script id="calcdata" type="application/json">__DATA__</script>
 <script>
@@ -72,6 +78,23 @@ const BASES = D.bases;                     // sortiert nach b
 const BS = BASES.map(e => LN(LN(e.b)));    // lnln-b-Koordinaten
 function crom(p0, p1, p2, p3, t) {          // Catmull-Rom
   return p1 + 0.5*t*(p2 - p0 + t*(2*p0 - 5*p1 + 4*p2 - p3 + t*(3*(p1 - p2) + p3 - p0)));
+}
+// Catmull-Rom tangents limited after Fritsch-Carlson: identical to crom() where
+// the curve is tame, monotone where it explodes. Even in symlog space the
+// level curves explode (b = 21.66 hexation: 4.5e7, 7.8e20, 5.9e220 one step
+// apart), and crom() undershot there: hex(1.2) came out as 1875
+function mono(p0, p1, p2, p3, t) {
+  const d0 = p1 - p0, d1 = p2 - p1, d2 = p3 - p2;
+  let m1 = 0.5*(d0 + d1), m2 = 0.5*(d1 + d2);
+  if (d1 === 0) { m1 = 0; m2 = 0; }
+  else {
+    if (d0*d1 <= 0) m1 = 0;
+    if (d1*d2 <= 0) m2 = 0;
+    const a = m1/d1, c = m2/d1, r = a*a + c*c;
+    if (r > 9) { const k = 3/Math.sqrt(r); m1 *= k; m2 *= k; }
+  }
+  const t2 = t*t, t3 = t2*t;
+  return (2*t3 - 3*t2 + 1)*p1 + (t3 - 2*t2 + t)*m1 + (3*t2 - 2*t3)*p2 + (t3 - t2)*m2;
 }
 function baseInterp(b) {                   // mu + Moden kubisch in lnln b
   const s = LN(LN(b));
@@ -150,6 +173,53 @@ function fmtVal(v) {
   return String(parseFloat(v.toPrecision(3)));
 }
 
+// --- pentation / hexation: tables from the fork (calc_export_levels.py) ---
+// Each base of the grid carries the curve on an x grid (step 1/32). Between
+// grid points: monotone cubic (mono) in symlog space; between bases: linear
+// in lnln b. Hexation is bounded below
+// eta5 = 1.7373559 and unbounded above -- never interpolated across it.
+const LVT = { 5: D.pent || [], 6: D.hex || [] };
+const ETA5 = D.eta5 || 1.7373559251516875;
+function unsym(t) { return Math.sign(t) * (Math.pow(10, Math.abs(t)) - 1); }
+function tableAt(e, x) {                   // symlog value of one base's curve, or NaN / Infinity
+  const u = (x - e.x0) / e.step, n = e.v.length;
+  if (u < 0) return NaN;
+  if (u > n - 1) return Infinity;          // beyond the last finite sample
+  let i = Math.floor(u); if (i > n - 2) i = n - 2;
+  const f = u - i, g = k => e.v[Math.max(0, Math.min(n - 1, k))];
+  const q = [g(i-1), g(i), g(i+1), g(i+2)];
+  if (q[1] === null || q[2] === null) return NaN;
+  const t = q.map((v, k) => v === null ? null : symlog(v));
+  if (t[0] === null) t[0] = 2*t[1] - t[2];
+  if (t[3] === null) t[3] = 2*t[2] - t[1];
+  return mono(t[0], t[1], t[2], t[3], f);
+}
+function levelSym(level, b, x) {           // symlog of b^^^x / b^^^^x
+  let tab = LVT[level];
+  if (level === 6) tab = tab.filter(e => (e.b > ETA5) === (b > ETA5));
+  if (!tab.length) return NaN;
+  const s = LN(LN(b));
+  let i = 0;
+  while (i < tab.length - 1 && LN(LN(tab[i+1].b)) < s) i++;
+  // no extrapolation: outside the tabulated bases there is no curve
+  const sLo = LN(LN(tab[0].b)), sHi = LN(LN(tab[tab.length - 1].b));
+  if (s < sLo - 1e-9 || s > sHi + 1e-9) return NaN;
+  if (tab.length === 1 || s <= sLo) return tableAt(tab[0], x);
+  if (i === tab.length - 1) return tableAt(tab[i], x);
+  const s0 = LN(LN(tab[i].b)), s1 = LN(LN(tab[i+1].b));
+  const w = Math.max(0, Math.min(1, (s - s0) / (s1 - s0)));
+  const a = tableAt(tab[i], x), c = tableAt(tab[i+1], x);
+  if (!isFinite(a) || !isFinite(c)) return (a === Infinity || c === Infinity) ? Infinity : NaN;
+  return a + w*(c - a);
+}
+function levelVal(level, b, x) {
+  const t = levelSym(level, b, x);
+  return isFinite(t) ? unsym(t) : t;
+}
+const LVNAME = { 4: "sexp_b(x)", 5: "b↑↑↑x", 6: "b↑↑↑↑x" };
+const LVXMIN = { 4: -2, 5: -5, 6: -2.96875 };
+let level = 4;
+
 // --- UI ---
 const cv = document.getElementById("plot"), ctx = cv.getContext("2d");
 const bslider = document.getElementById("bslider"), bval = document.getElementById("bval");
@@ -171,6 +241,15 @@ function draw() {
   for (let i = 0; i <= NPX; i++) {
     const x = xMin + (i/NPX)*(xMax - xMin);
     let yy;
+    if (level !== 4) {
+      const t = levelSym(level, curB, x);
+      yy = logy ? (t === Infinity ? 1e9 : t) : (t === Infinity ? 1e12 : unsym(t));
+      if (!isFinite(yy)) { pts.push(null); continue; }
+      pts.push([x, yy]);
+      if (yy < yLo && yy >= (logy ? -6 : -1e9)) yLo = yy;
+      if (yy > yHi && yy <= (logy ? 6 : 1e6)) yHi = yy;
+      continue;
+    }
     const y = sexpB(curB, x, curTab);
     if (logy) {
       if (y === Infinity) {                // jenseits float64: log-Raum weiterrechnen
@@ -239,7 +318,7 @@ function draw() {
     ctx.fillText(String(gx), X(gx) + 4, H - 8);
   }
   for (const t of yTicks) ctx.fillText(fmtVal(t[1]), 8, Y(t[0]) - 5);
-  ctx.fillText(logy ? "sexp_b(x), log scale" : "sexp_b(x)", 130, 26);
+  ctx.fillText(LVNAME[level] + (logy ? ", log scale" : ""), 130, 26);
   // Kurve (y auf Sichtbereich geklemmt: Extremwerte laufen oben raus)
   const span = yHi - yLo;
   const yc = v => Math.max(yLo - span, Math.min(yHi + span, v));
@@ -259,15 +338,29 @@ function update() {
   bval.textContent = curB.toFixed(3);
   curTab = baseInterp(curB);
   xMax = 1 + (+xmaxEl.value)/10;
-  xrangeEl.textContent = `−2 … ${xMax.toFixed(1)}`;
+  xMin = LVXMIN[level];
+  xrangeEl.textContent = `${xMin.toFixed(1).replace("-", "−")} … ${xMax.toFixed(1)}`;
   draw();
 }
 bslider.addEventListener("input", update);
 xmaxEl.addEventListener("input", update);
 logyBtn.addEventListener("click", () => { logy = !logy; logyBtn.classList.toggle("on", logy); draw(); });
+for (const lv of [4, 5, 6]) {
+  document.getElementById("lv" + lv).addEventListener("click", () => {
+    level = lv;
+    for (const k of [4, 5, 6]) document.getElementById("lv" + k).classList.toggle("on", k === lv);
+    update();
+  });
+}
 cv.addEventListener("pointermove", ev => {
   const r = cv.getBoundingClientRect();
   const x = xMin + (ev.clientX - r.left)/r.width*(xMax - xMin);
+  if (level !== 4) {
+    const v = levelVal(level, curB, x);
+    const txt = isFinite(v) ? v.toPrecision(6) : (isNaN(v) ? "not tabulated here" : "beyond float range");
+    readout.textContent = `b = ${curB.toFixed(6)}   x = ${x.toFixed(4)}   ${LVNAME[level]} = ${txt}   (table, interpolated)`;
+    return;
+  }
   const y = sexpB(curB, x, curTab);
   let txt;
   if (isFinite(y)) txt = y.toPrecision(8);

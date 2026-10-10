@@ -1335,7 +1335,12 @@ betterest(z,est,n) = {
       lest=est+curyz*0.0001;
       ly=abel(lest);
     );
-    pgoal=10^(-precis/1.2);
+    /* exp-083: Abbruchschranke 10^(-precis+2) statt 10^(-precis/1.2). Meist
+       schiesst der letzte Sekantenschritt weit ueber die Schranke hinaus; landet
+       er knapp darunter, blieb invabel auf ~precis/1.2 Stellen stehen. Das waren
+       die sexp-Einbrueche an bestimmten Nachkommaanteilen (dps 60: schlechtester
+       Punkt 2.5e-64 statt ~4e-74, jetzt 1.3e-73; ~25 % mehr Zeit je sexp-Wert). */
+    pgoal=10^(-precis+2);
     absest=100;
     sn=s;
 /*  while ((curyz>pgoal) && (absest>pgoal) && ((curyz<lastyz) || (s<3), */
@@ -2266,41 +2271,181 @@ pcent=0;     /* set to ipent(1) to normalize so pent(0)=1 */
 pentr=0.05;  /* constant; the pentation schroder/ischroder are very accurate withing 0.05 of the fixed point */
              /* use a smaller value of pentr for \p 57, higher than 32 digit precision */
 pentfixr=0.7;
-pentinit(B,skip) = {
-  local(s,lx,tsexp,z1,z2,n,errp,errz,pgoal);
-  if (skip==0, errp=sexpinit(B)[1]); /* initialize sexp using fatou.gp program */
-  s=0;
-  lx=100;
-  tfixed=-1.97;
-  pgoal=10^(4-precis);
-  /* generate the fixed point for pentation by iteration slog */
-  while (abs(lx-tfixed)>pgoal && (s<500) && (lx<>tfixed),
-    lx=tfixed;
-    tfixed=slog(tfixed);
-    s++;
-  );
-  for (i=1,10,tfixed=slog(tfixed));
-  /* generate taylor series with radius, 0.7* radius of convergence */
-  /* this will give us an accurate slope and taylor series at tfixed */
-  /* the slope and taylor series will be used for the pentation schroder function solution */
 
-  tslog = slogtaylor(tfixed,1);  /* slog has larger radis of convergence at fixed point than sexp */
-  if (imag(B)==0, tslog=real(tslog));
-  lambdat = 1/polcoeff(tslog,1);  /* slope at fixed point of slog */
-  pentz  = formalischroder(tslog,21)+tfixed;
-  ipentz = formalschroder(tslog,21);
+/* exp-076 (2026-10-09): Pentation mit der Praezision des Motors.
+   Das Original rechnete die Poincare-Funktion mit FESTEN 21 Gliedern
+   (formalischroder(tslog,21)) und lieferte damit ~30 Stellen, egal wie viele
+   verlangt waren -- bei \p 60: pent(0)-1 = 6.5e-31. Jetzt waechst die
+   Gliederzahl mit precis, und der Weg laeuft ueber slog() statt slogtaylor(),
+   damit er auch fuer reelle 1 < b < eta (regulaere Tetration, dort ist
+   slogtaylor gesperrt) und fuer komplexe Basen gilt.
+   Konstruktion unveraendert: Fixpunkt L von sexp auf (-2,-1), dort ist slog
+   anziehend mit mu = 1/lambdat; Psi mit Psi(mu*w) = slog(Psi(w)) ist die
+   Poincare-Funktion, pent(z) = Psi(lambdat^(z+pcent)) mit pent(0) = 1. */
+
+/* Cauchy-Taylorreihe von f um w auf |z-w| = r mit `samples` Punkten, f eine
+   Closure (slog, z->pent(z), ...). Generisch: slog() leitet fuer sub-eta an
+   regslog weiter. Grad samples-1; der Koeffizient k traegt den absoluten
+   Fehler ~ eps/r^k, was nicht stoert: ausgewertet wird nur weit innerhalb
+   von r (|Psi - L| <= pentr << r). */
+pentcauchy(fn, w, r, samples) = {
+  my(tc, v, p, c);
+  tc = vector(samples, t, exp(2*Pi*I*(t-1)/samples));
+  v = vector(samples, t, fn(w + r*tc[t]));
+  p = 0;
+  for (s = 0, samples-1,
+    c = vecsum(v)/samples/r^s;
+    p = p + c*x^s;
+    v = vector(samples, t, v[t]*conj(tc[t]));
+  );
+  return(p);
+}
+
+/* Taylorreihe von f um einen Fixpunkt nahe t0 (|t0 - L| << sr). Die
+   Stuetzstellenzahl folgt aus (sr/R)^samples < eps, R = Konvergenzradius,
+   erst auf 2 geschaetzt, dann am Wurzeltest der Reihe selbst nachgemessen.
+   Fixpunkt per Newton auf der Reihe, Reihe darauf zentriert.
+   Rueckgabe [L, sc, R] mit sc(t) = f(L+t) - L, sc(0) = 0. */
+pentfixser(fn, t0, sr, isreal, eps, name) = {
+  my(R, samples, S, s, t, lx, L, sc);
+  R = 2;
+  for (pass = 1, 3,
+    samples = ceil((precis+25)*log(10)/log(R/sr));
+    S = pentcauchy(fn, t0, sr, samples);
+    if (isreal, S=real(S));
+    s = max(8, samples\4);
+    R = min(abs(polcoeff(S, s))^(-1/s), abs(polcoeff(S, s\2))^(-2/s));
+    if (R <= 1.25*sr, error(name, ": Reihe hat um den Fixpunkt nur Radius ", precision(R,5), " -- sr kleiner waehlen"));
+    if ((sr/R)^samples < eps, break);
+  );
+  if ((sr/R)^samples >= eps, error(name, ": Abtastung erreicht die Praezision nicht (R = ", precision(R,5), ")"));
+  t = 0;
+  for (i = 1, 200,
+    lx = (subst(S, x, t) - t0 - t)/(subst(deriv(S), x, t) - 1);
+    t = t - lx;
+    if (abs(lx) < 10.0^(-precis-5), break);
+  );
+  L = t0 + t;
+  sc = subst(S, x, x + t) - L;
+  sc = sc - polcoeff(sc, 0);
+  return([L, sc, R]);
+}
+
+/* Poincare-Funktion des zentrierten slog sc (sc(0) = 0, sc'(0) = mu):
+   Psi(mu*w) = sc(Psi(w)), Psi = w + O(w^2). Newton-Verdopplung: ist Psi
+   mod w^m bekannt, so loest Delta = O(w^m) das Dreieckssystem
+     (mu^j - mu) d_j = e_j + sum_{m<=i<j} g_{j-i} d_i,
+   E = sc(Psi) - Psi(mu*w), G = sc'(Psi). Kosten O(K*M(N)*log N) statt der
+   O(N^4) von formalischroder, das jedes Glied mit voller Komposition neu
+   ansetzt. Stopp, wenn der neueste Block, gewichtet mit rr^j, unter eps liegt
+   (fruehestens ab Grad 8), sonst bei nmax. Rueckgabe [Psi, ok]. */
+pentpsi(sc, rr, eps, nmax) = {
+  my(mu, scd, P, m, m2, Pw, E, G, d, acc, tail, ok);
+  mu = polcoeff(sc, 1);
+  scd = deriv(sc);
+  P = x;
+  m = 2;
+  ok = 0;
+  while (m <= nmax,
+    m2 = min(2*m, nmax+1);
+    Pw = P + O(x^m2);
+    E = subst(truncate(sc + O(x^m2)), x, Pw) - subst(P, x, mu*x);
+    G = subst(truncate(scd + O(x^m2)), x, Pw);
+    d = vector(m2, j, 0);
+    tail = 0;
+    for (j = m, m2-1,
+      acc = polcoeff(E, j);
+      for (i = m, j-1, acc = acc + polcoeff(G, j-i)*d[i]);
+      d[j] = acc/(mu^j - mu);
+      tail = max(tail, abs(d[j])*rr^j);
+    );
+    P = P + sum(j = m, m2-1, d[j]*x^j);
+    m = m2;
+    if ((m >= 8) && (tail < eps), ok = 1; break);
+  );
+  return([P, ok]);
+}
+
+/* Reihe fuer die Auswertung bei |w| <= rr herrichten. Die hohen Glieder
+   verlieren im Newton-Loeser relative Stellen (Ausloeschung in E, bei Basis
+   100 sind es 19 von 57 Stellen bei Grad 135) -- legitim, denn ihr Beitrag
+   |c|*rr^n liegt weit unter eps. PARI fuehrt die Praezision im Horner-Schema
+   aber RELATIV mit: ein einziges solches Glied drueckte pent(0)-1 bei Basis
+   100 auf 3.6e-21. Daher: jedes Glied, dessen absoluter Fehlerbeitrag
+   |c|*10^-prec(c)*rr^n unter 10^(1-precis) liegt, auf precis auffuellen
+   (wie regsigma);
+   liegt er darueber, laut abbrechen. Glieder hinter dem letzten, das noch
+   ueber eps*1e-10 beitraegt, entfallen. */
+pentclean(P, rr, eps, name) = {
+  my(c, n0, Q, e);
+  n0 = 0;
+  for (n = 0, poldegree(P),
+    c = polcoeff(P, n);
+    if ((c != 0) && (abs(c)*rr^n > eps*1e-10), n0 = n));
+  Q = 0;
+  for (n = 0, n0,
+    c = polcoeff(P, n);
+    if (c != 0,
+      e = if ((type(c)=="t_INT") || (type(c)=="t_FRAC"), 0, abs(c)*rr^n*10.0^(-precision(c)));
+      if (e > 10.0^(1-precis), error("pentinit: ", name, "-Glied ", n, " traegt nur ", precision(c), " Stellen, Fehlerbeitrag ", precision(e,3)));
+      c = precision(c, precis));
+    Q = Q + c*x^n;
+  );
+  return(Q);
+}
+
+/* pentinit(B, skip, rr, sr): rr = Auswerteradius der Reihen (Default 0.05
+   wie im Original, gedeckelt durch den Konvergenzradius ~ lambdat*|L+2| von
+   Psi), sr = Radius der slog-Abtastung (Default 1/2). */
+pentinit(B,skip,rr,sr) = {
+  my(s,lx,t0,sc,res,eps,nmax,z1,z2,errp,errz,zz);
+  errp=0;
+  hexreg=0;           /* exp-077: eine neue Basis entwertet jede Hexation */
+  if (skip==0,
+    zz=sexpinit(B);   /* initialize sexp using fatou.gp program */
+    if (type(zz)=="t_VEC", errp=zz[1]);   /* sub-eta liefert nur L, keine Schaetzung */
+  );
+  if (sr==0, sr=1/2);
+  eps = 10.0^(-precis-8);
+  /* Fixpunkt von sexp auf (-2,-1): fuer slog anziehend, Rate 1/lambdat.
+     Grob iterieren, fein per Newton auf der Reihe. */
+  lx=100; t0=-1.97; s=0;
+  while ((abs(lx-t0) > 1e-8) && (s < 2000), lx = t0; t0 = slog(t0); s++);
+  if (s >= 2000, error("pentinit: slog-Iteration zum Fixpunkt konvergiert nicht"));
+  res = pentfixser(slog, t0, sr, imag(B)==0, eps, "pentinit");
+  tfixed = res[1];
+  sc = res[2];
+  tslog = sc + tfixed;                 /* slog um tfixed, wie im Original */
+  lambdat = 1/polcoeff(sc, 1);         /* slope at fixed point of sexp */
+  if (rr==0, rr = min(0.05, abs(lambdat*(tfixed+2))/8));
+  pentr = rr;
+  nmax = poldegree(sc) - 1;
+  res = pentpsi(sc, rr, eps, nmax);
+  if (res[2]==0, error("pentinit: Poincare-Reihe bis Grad ", nmax, " nicht konvergiert -- kleineres rr oder groesseres sr"));
+  ipentz = Pol(serreverse(res[1] + O(x^(poldegree(res[1])+1))));
+  if (abs(polcoeff(ipentz, poldegree(ipentz)))*rr^poldegree(ipentz) > eps,
+    error("pentinit: Umkehrreihe konvergiert bei pentr = ", rr, " nicht ausreichend"));
+  pentz  = pentclean(res[1], rr, eps, "Psi") + tfixed;
+  ipentz = pentclean(ipentz, rr, eps, "sigma");
 
   pperiod=2*Pi*I/log(lambdat);
   pcent=0;              /* set to zero before we normalize so pent(0)=1 */
   pcent=ipent(1); /* normalize pentation so pent(0)=1, pcent=pent^{-1}(1) */
-/*generate an error estimate for pentation ischroder series */
-  z1 = subst(pentz,x,pentr);
-  z2 = subst(pentz,x,pentr/lambdat);
-  n=0;while (z1<1,z1=sexp(z1);n++);
-  n++;while (n>0, z2=sexp(z2);n--;);
-  errz = -log(abs(z1-z2))/log(10);
+  /* Fehlerschaetzung: dieselben Werte ueber zwei Reduktionstiefen (anderer
+     Reihenpunkt, andere sexp-Kette), dazu pent(0) = 1 (Psi gegen sigma) und
+     ein Rundweg. Das Original verglich mit `z1<1` und lief deshalb nur fuer
+     reelle Basen. Der Motor selbst bleibt dabei unsichtbar: seine Stellen
+     begrenzen die Pentation zusaetzlich (errp). */
+  errz = abs(pent(0)-1);
+  errz = max(errz, abs(ipent(pent(1/3))-1/3));
+  for (j = 1, 2,
+    zz = if (j==1, 1/2, -1/2);
+    z1 = pent(zz); z2 = pent(zz, 1);
+    errz = max(errz, abs(z1-z2)/abs(z1));
+  );
+  errz = if (errz==0, precis, min(precis, -log(errz)/log(10)));
   errz = precision(errz,9);
-  if (errp<errz, errz=errp); /* if pentation precision<tetration precision ... */
+  if ((errp>0) && (errp<errz), errz=errp); /* if pentation precision<tetration precision ... */
   psing=ipent(-2)+1;  /* this is the pentation singularity, where pent(z-1)=-2, pent(z)=singularity */
   if (quietmode==0,
     print (" ");
@@ -2315,13 +2460,15 @@ pentinit(B,skip) = {
   );
   return(errz);
 }
-pent(z)={
+pent(z,extra)={
   /* generate pentation approximation, pentinit first */
   /* generated from from lambdat, the slope at the fixed point, and the pentz ischroder function */
+  /* exp-076: extra = zusaetzliche Reduktionsschritte (fuer die Fehlerschaetzung) */
   local(n,i,y);
   y=lambdat^(z+pcent);
   n=0;
   while (abs(y)>pentr, y=y/lambdat;n++); /* iterate n times until y<pentr, pentr=0.05 */
+  for (i=1,extra, y=y/lambdat;n++);
   y = subst(pentz,x,y);
   for (i=1,n,y=sexp(y));                 /* iterate sexp n times */
   return(y);
@@ -2332,7 +2479,10 @@ ipent(z)={
   local(n,i,y);
   n=0;
   y=z;
-  while (abs(y-tfixed)>pentr, y=slog(y);n++); /* iterate slog n times until y is within pentr of tfixed, pentr=0.05 */
+  while (abs(y-tfixed)>pentr, y=slog(y);n++; /* iterate slog n times until y is within pentr of tfixed, pentr=0.05 */
+    /* exp-081: fuer manche komplexen z erreicht die slog-Kette den Fixpunkt
+       nie -- ohne Obergrenze hing knhexinit bei b = e in der Bogenplanung */
+    if (n > 60, error("ipent: slog-Kette erreicht den Fixpunkt nicht")));
   y=subst(ipentz,x,(y-tfixed));
   y=log(y)/log(lambdat)-pcent+n;  /* add n to the schroder function approximation for ipent(z) */
   return(y);
@@ -2494,6 +2644,8 @@ matrix_h(lctr) = {
 }
 ihex(z) = {
   local(n,y,zn,ar);
+  if (hexreg==1, return(regihex(z)));   /* exp-077 */
+  if (hexreg==2, return(knihex(z)));    /* exp-079 */
   return(ihex_deriv(z)[1]);
 }
 ihex_deriv(z) = {
@@ -2518,6 +2670,8 @@ ihex_deriv(z) = {
 /* a pretty good version of hexation function; inverse of ihex(z) */
 hex(z) = {
   local(n,y,i,tc,est,iadd);
+  if (hexreg==1, return(reghex(z)));    /* exp-077 */
+  if (hexreg==2, return(knhex(z)));     /* exp-079 */
   /* center on -3.5 .. -2.5 */
   if (imag(z)<0,
     tc = tc - imag(hex_period)*imag(z)/real(hex_period);
@@ -2551,11 +2705,591 @@ hex(z) = {
   if (n<0, for (i=1,-n,est=pent(est)));
   return(est);
 }
-hexinit(i,n)={
+hexinit(i,n,skip)={
+  my(e);
   if (n==0, n=256);
-  pentinit(i);
-  print();
-  matrix_h(256);
+  e = pentinit(i,skip);
+  return(hexsetup(e));
+}
+/* Hexation auf der schon initialisierten Pentation; e = deren Stellenzahl */
+hexsetup(e)={
+  /* exp-077: hat die Pentation einen anziehenden reellen Fixpunkt (reelle
+     1 < b < eta5 = 1.7373559...), ist die Hexation dort regulaer und traegt
+     die volle Praezision. Sonst Sheldons Naeherung am komplexen Fixpunkt. */
+  if (reghexinit(), return(min(e, hexerr)));
+  /* exp-079: sonst Kneser am komplexen Fixpunkt der Pentation; Sheldons
+     matrix_h (~8 Stellen) nur noch, wenn das scheitert */
+  if (iferr(knhexinit(), E, if (quietmode==0, print("knhexinit: ", E)); 0), return(min(e, hexerr)));
+  if (quietmode==0, print());
+  return(min(e, matrix_h(256)));
+}
+
+/* exp-080 (2026-10-09): Einstiege fuer die Python-Schnittstelle. Sie
+   initialisieren Pentation bzw. Hexation nur, wenn Basis oder Praezision
+   gewechselt haben -- so kann jeder Ausdruck pentx(z) fuer sich stehen, auch
+   wenn ein Pool die Ausdruecke auf mehrere Worker verteilt. */
+pentstate=[0,0]; hexstate=[0,0]; pentdigits=0; hexdigits=0;
+pentensure()={
+  if ((pentstate[1] != sexp(1)) || (pentstate[2] != precis),
+    pentdigits = pentinit(sexp(1), 1);
+    pentstate = [sexp(1), precis];
+    hexstate = [0, 0]);
+  return(pentdigits);
+}
+hexensure()={
+  pentensure();
+  if ((hexstate[1] != sexp(1)) || (hexstate[2] != precis),
+    hexdigits = hexsetup(pentdigits);
+    hexstate = [sexp(1), precis]);
+  return(hexdigits);
+}
+/* exp-083: jenseits des Ueberlaufs liefert die Kette manchmal eine Null ohne
+   gueltige Stellen (b = 100: pent(1.96875) = 0.E495855885102019914, d. h. nur
+   "Betrag unter 10^(5e20)"); Python las das als 0. Dann Fehler statt Wert. */
+levelchk(y, name)={
+  if (y == 0 && exponent(y) > 0, error(name, ": Ueberlauf, keine gueltigen Stellen"));
+  return(y);
+}
+pentx(z)={ pentensure(); return(levelchk(pent(z), "pentx")); }
+ipentx(z)={ pentensure(); return(levelchk(ipent(z), "ipentx")); }
+hexx(z)={ hexensure(); return(levelchk(hex(z), "hexx")); }
+ihexx(z)={ hexensure(); return(levelchk(ihex(z), "ihexx")); }
+
+/* exp-077 (2026-10-09): regulaere Hexation fuer reelle 1 < b < eta5.
+   Dort schneidet die Pentation y = x zweimal (b = 1.70: bei ~2.44 und ~5.69);
+   der untere Schnitt a ist anziehend, P'(a) = mu in (0,1). Wie die Tetration
+   unter eta (regsexp) ist die Hexation dort die regulaere Iteration:
+   Psi_H(mu*w) = P(Psi_H(w)), hex(z) = Psi_H(kappa*mu^z), kappa = sigma_H(1),
+   also hex(0) = 1, hex(z+1) = pent(hex(z)), hex(z) -> a fuer z -> oo.
+   Sheldons hex/ihex (ohne theta, Newton auf 1E-15) liefern ~8 Stellen und
+   bleiben fuer b > eta5 zustaendig. */
+hexreg=0;
+knforce=0;
+knlsqpass=2; knsolvep=2;
+knreachtol=1.02;
+kndebug=0;
+knRmeas=0;
+knmaxk=600;
+reghexinit(sr) = {
+  my(y, y2, bad, ok, res, eps, rr, sc, ps, R, n, z1, z2, zz);
+  hexreg = 0;
+  if (sr==0, sr=1/2);
+  eps = 10.0^(-precis-8);
+  if (imag(sexp(1)) != 0, return(0));          /* komplexe Basis: kein reeller Fixpunkt */
+  /* anziehender Fixpunkt: von 1 aus iterieren. Waechst P^n(1) davon oder
+     laeuft ueber, gibt es keinen (b > eta5). */
+  y = 1; ok = 0;
+  for (i = 1, 5000,
+    bad = 0;
+    y2 = iferr(pent(y), E, bad = 1; 0);
+    if (bad || (abs(y2) > 1e6), break);
+    if (abs(y2 - y) < 1e-8, y = y2; ok = 1; break);
+    y = y2;
+  );
+  if (!ok, return(0));
+  res = pentfixser(z->pent(z), y, sr, 1, eps, "reghexinit");
+  hexa = res[1]; sc = res[2]; R = res[3];
+  hexmu = polcoeff(sc, 1);
+  if (!((hexmu > 0) && (hexmu < 1)), error("reghexinit: P'(a) = ", precision(hexmu,10), " liegt nicht in (0,1)"));
+  /* Auswerteradius so gross wie moeglich: jeder fehlende Faktor kostet einen
+     ipent-Schritt, und der verstaerkt um 1/mu (b = 6/5: ~40). */
+  rr = R/4;
+  for (k = 1, 6,
+    ps = pentpsi(sc, rr, eps, poldegree(sc) - 1);
+    if (ps[2], break);
+    rr = rr/2;
+  );
+  if (!ps[2], error("reghexinit: Poincare-Reihe der Pentation konvergiert nicht"));
+  hexr = rr;
+  hexsig = Pol(serreverse(ps[1] + O(x^(poldegree(ps[1])+1))));
+  if (abs(polcoeff(hexsig, poldegree(hexsig)))*rr^poldegree(hexsig) > eps,
+    error("reghexinit: Umkehrreihe konvergiert bei r = ", precision(rr,5), " nicht ausreichend"));
+  hexpsi = pentclean(ps[1], rr, eps, "Psi_H");
+  hexsig = pentclean(hexsig, rr, eps, "sigma_H");
+  /* kappa = sigma_H(1): von 1 aus vorwaerts in den Radius, dann zurueckskalieren */
+  y = 1; n = 0;
+  while (abs(y - hexa) > rr, y = pent(y); n++);
+  hexkappa = subst(hexsig, x, y - hexa)/hexmu^n;
+  hexreg = 1;
+  /* Fehlerschaetzung wie bei pentinit */
+  hexerr = abs(hex(0) - 1);
+  hexerr = max(hexerr, abs(ihex(hex(1/3)) - 1/3));
+  for (j = 1, 2,
+    zz = if (j==1, 1/2, -1/2);
+    z1 = reghex(zz); z2 = reghex(zz, 1);
+    hexerr = max(hexerr, abs(z1-z2)/abs(z1));
+  );
+  hexerr = if (hexerr==0, precis, min(precis, -log(hexerr)/log(10)));
+  hexerr = precision(hexerr, 9);
+  if (quietmode==0,
+    print("hexation regulaer am anziehenden Fixpunkt der Pentation");
+    print("  a = ", hexa, "   P'(a) = ", hexmu);
+    print("  hex precision ", hexerr, " decimal digits");
+  );
+  return(1);
+}
+reghex(z, extra) = {
+  my(w, m, y);
+  w = hexkappa*hexmu^z;
+  m = 0;
+  while (abs(w) > hexr, w = w*hexmu; m++);
+  for (i = 1, extra, w = w*hexmu; m++);
+  y = hexa + subst(hexpsi, x, w);
+  for (i = 1, m, y = ipent(y));
+  return(y);
+}
+regihex(y) = {
+  my(n);
+  n = 0;
+  while (abs(y - hexa) > hexr, y = pent(y); n++; if (n > 500, error("regihex: pent-Kette erreicht a nicht")));
+  return(log(subst(hexsig, x, y - hexa)/hexkappa)/log(hexmu) - n);
+}
+
+/* exp-079 (2026-10-09): Kneser-Hexation fuer reelle b > eta5 (2, e, 10, ...).
+   Dort hat die Pentation keinen reellen Fixpunkt, aber ein konjugiertes Paar
+   p, conj(p), abstossend (b = 2: p = -1.99295 + 1.44513 i, P'(p) = 1.369 +
+   2.488 i). Wie Kneser fuer exp: die Abel-Funktion alpha der Hexation
+   (alpha(pent(z)) = alpha(z) + 1, reell auf der reellen Achse, alpha(1) = 0)
+   ist oben alpha_p + theta(alpha_p), alpha_p = log(sigma_p)/log(lambda) die
+   regulaere Abel-Funktion an p, theta 1-periodisch und zu p hin abklingend.
+   Sheldons matrix_h laesst theta weg (~8 Stellen). Hier EIN lineares
+   Ausgleichsproblem: reelle Taylorreihe A um c = Re p, auf einem oberen Bogen
+     A(z) = w + sum_n c_n e^(2 pi i s n w), w = alpha_p(z)   (nahe p),
+     A(z) - A(ipent z) = 1  bzw.  A(pent z) - A(z) = 1       (nahe der Achse),
+   und eine Normierung; die Konjugationssymmetrie steckt in den reellen
+   Koeffizienten. Eindeutig bis auf eine reelle Konstante (Maximumprinzip auf
+   dem Halbzylinder), die die Normierung festlegt. Basis 2, Prototyp exp-078:
+   ~26 Stellen bei \p 30, Sheldon 7e-9 daneben. */
+
+/* min |M x - b| per modifiziertem Gram-Schmidt (zweifach) -- ohne die
+   quadrierte Kondition der Normalgleichungen, an denen Basis e scheiterte.
+   PARIs matqr nimmt nur quadratische Matrizen. */
+knlsq(M, b) = {
+  my(m = matsize(M)[1], n = matsize(M)[2], Q = vector(n), R = matrix(n, n), q, r, xs, cb);
+  for (k = 1, n,
+    q = M[,k];
+    for (pass = 1, knlsqpass, for (j = 1, k-1, r = Q[j]~ * q; R[j,k] += r; q -= r*Q[j]));
+    R[k,k] = sqrt(norml2(q));
+    if (R[k,k] == 0, error("knlsq: Spalte ", k, " linear abhaengig"));
+    Q[k] = q/R[k,k];
+  );
+  cb = vector(n, j, Q[j]~ * b);
+  xs = vector(n);
+  forstep (k = n, 1, -1, xs[k] = (cb[k] - sum(j = k+1, n, R[k,j]*xs[j]))/R[k,k]);
+  return(xs~);
+}
+
+/* regulaere Abel-Funktion an p, Hauptzweig; der Aufrufer macht die Zweige
+   entlang einer Punktfolge stetig (Mehrdeutigkeit kper = 2 pi i/log lambda). */
+knalphap(z) = {
+  my(m = 0);
+  while (abs(z - kp) > krs, z = ipent(z); m++; if (m > 60, error("knalphap: ipent laeuft nicht gegen p")));
+  return(log(subst(ksig, x, z - kp))/klog + m);
+}
+knwalk(pts) = {
+  my(W = vector(#pts), v, best, d);
+  for (j = 1, #pts,
+    W[j] = knalphap(pts[j]);
+    if (j > 1,
+      best = W[j]; d = abs(W[j] - W[j-1]);
+      for (k = -3, 3, v = W[j] + k*kper; if (abs(v - W[j-1]) < d, d = abs(v - W[j-1]); best = v));
+      W[j] = best));
+  return(W);
+}
+knarc(rad, M) = vector(M, j, knc + rad*exp(I*(0.05 + (Pi - 0.1)*(j-1)/(M-1))));
+knen(w, n) = exp(2*Pi*I*kns*n*w);
+/* Huellkurve der Koeffizienten |a_k| .. |a_k+9| (gegen zufaellig kleine
+   Glieder). Keine anonyme Funktion in knhexinit: dort schluckte "(k) -> ..."
+   den ganzen Rest des Funktionsrumpfs, knhexinit gab die Closure zurueck. */
+knenv(A, k) = vecmax(vector(10, j, abs(polcoeff(A, k + j - 1))));
+/* exp-082: Abfallgesetz log|a_k| ~ a + b*k + c*log(k) aus der Huellkurve auf
+   k in [K/4, 3K/4]. Die reine Zweipunkt-Steigung ueberschaetzte den Abfall,
+   wenn ein Potenzfaktor k^c mitspielt (Randsingularitaeten), und K kam zu
+   klein heraus (b = e, dps 45: Rest 6e-43 statt ~1e-54). Rueckgabe [a, b, c]. */
+knfit(A, K) = {
+  my(ks = vector(13, j, K\4 + ((j - 1)*(K\2))\12), X, y);
+  X = matrix(#ks, 3, i, j, [1, ks[i], log(ks[i])][j]);
+  y = vector(#ks, i, log(knenv(A, ks[i])))~;
+  return(matsolve(X~*X, X~*y)~);
+}
+/* kleinstes K mit a + b*K + c*log(K) <= ziel (b < 0) */
+knkfor(f, ziel, K0) = {
+  my(K = K0);
+  for (it = 1, 50, my(Kn = ceil((ziel - f[1] - f[3]*log(K))/f[2])); if (Kn == K, break); K = max(Kn, 8));
+  return(K);
+}
+knser(z) = subst(knA, x, (z - knc)/knrho);
+knserd(z) = subst(knAd, x, (z - knc)/knrho)/knrho;
+
+/* Vorlauf fuer einen Bogenradius: Hoehenprofil s*Im alpha_p, Bilder der
+   achsennahen Punkte, geschaetzte Glieder. Rueckgabe [kosten, K, N, rad, hmin,
+   htop, reichweite, mittelpunkt]. K setzt voraus, dass alpha um den
+   Mittelpunkt knc bis |knc - p| analytisch ist, N eine Abklinghoehe
+   0.6*(htop - hmin) fuer theta -- beides Faustregeln (theta hat an den Ecken
+   der reellen Kurve Randsingularitaeten, die Koeffizienten fallen langsamer;
+   Befund der Wissensgraph-Sitzung 09.10.2026). Deshalb misst knhexinit die
+   erreichten Stellen per Fehler-Vektor statt sie zu glauben. */
+knplan(rad, target) = {
+  my(pts = knarc(rad, 30), W, h, hmin, htop, hc2, g, reach, K, N, hc, xl, tp = getabstime());
+  W = knwalk(pts);
+  h = vector(#W, j, kns*imag(W[j]));
+  hmin = vecmin(h); htop = vecmax(h);
+  hc = 0.6*(htop - hmin); hc2 = hmin + 0.85*(htop - hmin);
+  if (hc < 0.15, return([oo, 0, 0, rad, hmin, htop, rad, knc]));
+  reach = rad;
+  for (j = 1, #pts, if (h[j] < hc2,
+    /* e_ALARM durchlassen: sonst schluckt dieses iferr das alarm(30) der
+       Bogenplanung, und ein langsamer Kandidat laeuft ohne Grenze weiter
+       (b = e, c = -0.875, rad 0.75: > 5 min) */
+    g = iferr(if (real(pts[j]) > knc, ipent(pts[j]), pent(pts[j])), E, knc + knr, errname(E) != "e_ALARM");
+    reach = max(reach, abs(g - knc))));
+  if (reach >= 0.95*abs(knc - kp), return([oo, 0, 0, rad, hmin, htop, reach, knc]));
+  /* langsame Bogen verwerfen: normal brauchen die 30 Probepunkte 15-50 ms.
+     Mehr heisst lange ipent-Ketten (Punkte weit weg von p), und das Loesen
+     mit ~10x so vielen Punkten lief dann bei b = e ueber 10 min */
+  if (getabstime() - tp > 400, return([oo, 0, 0, rad, hmin, htop, reach, knc]));
+  /* Bilder ausserhalb des Bogens: A wird dort nur extrapoliert, die hohen
+     Koeffizienten sind aber nur bis eps*rad^-k bestimmt -- Verstaerkung
+     (reach/rad)^K (Befund der Wissensgraph-Sitzung: alte e-Grenze bei 26 Stellen) */
+  if (reach > knreachtol*rad, return([oo, 0, 0, rad, hmin, htop, reach, knc]));
+  /* auf der reellen Achse muss eine volle Periode [x, pent(x)] im Bogen liegen */
+  xl = knc - 0.97*rad;
+  if (real(pent(xl)) > knc + 0.97*rad, return([oo, 0, 0, rad, hmin, htop, reach, knc]));
+  K = ceil((target + 5)/log(abs(knc - kp)/reach)*log(10));
+  /* exp-082: wirksame Abklinghoehe von theta = (hcut - hmin) + 0.3. Die Ecken der
+     reellen Kurve liegen 0.16-0.23 unter hmin (Wissensgraph-Sitzung), und die
+     c_n fallen zusaetzlich. Zu viele Harmonische schaden: b = e, dps 45, gleicher
+     Bogen: N = 80 Rest 9e-24, N = 49 2e-42, N = 35 7e-47, N = 25 8e-47. */
+  N = ceil((target + 10)/(2*Pi*(hc + 0.3))*log(10)) + 2;
+  return([K + 2*N, K, N, rad, hmin, htop, reach, knc]);
+}
+
+/* Ein Ausgleichsproblem auf dem Bogen vom Radius rad. JEDER Bogenpunkt
+   bekommt eine Gleichung (theta nahe p, Funktionalgleichung nahe der Achse),
+   und die Reihe ist bis zum weitesten Bildpunkt skaliert. Laesst man Punkte
+   aus, ist die Loesung nicht mehr eindeutig: bei b = 2 erfuellte dann eine
+   um 2e-21 falsche Reihe alle Gleichungen auf 1e-32.
+   Rueckgabe [A(u), A'(u), theta-Koeff., rho, max. Restfehler, #theta, #FE]. */
+knsolve(rad, K, N, hcut, hcut2) = {
+  my(pts, W, eqs, U, rows, scl, Mt, bv, cn, sol, A, cc, rho, tp, u1, u2, uk1, uk2, val, e, nx, nk, g, res, nth = 0, nfe = 0, sav, ts = getabstime());
+  pts = knarc(rad, ceil(0.8*(K + 1 + 2*(N + 1))));
+  W = knwalk(pts);
+  if (kndebug, print("kn:   solve K=", K, " N=", N, " Punkte ", #pts, ": alpha_p ", getabstime() - ts, " ms"));
+  eqs = List();
+  rho = rad;
+  for (j = 1, #pts,
+    if (kns*imag(W[j]) >= hcut, listput(eqs, [1, pts[j], W[j]]); nth++);
+    if (kns*imag(W[j]) < hcut2,
+      if (real(pts[j]) > knc, g = ipent(pts[j]); listput(eqs, [2, pts[j], g, 1]),
+                              g = pent(pts[j]);  listput(eqs, [2, pts[j], g, -1]));
+      rho = max(rho, abs(g - knc)); nfe++));
+  if (kndebug, print("kn:   Bilder ", getabstime() - ts, " ms (", nth, " theta, ", nfe, " FE)"));
+  U = K + 1 + 2*(N + 1);
+  rows = 2*#eqs + 1;
+  scl = vector(N + 1, n, vecmax(concat([1e-300], vector(#eqs, j, if (eqs[j][1] == 1, abs(knen(eqs[j][3], n-1)), 0)))));
+  Mt = matrix(rows, U); bv = vector(rows)~;
+  for (j = 1, #eqs,
+    tp = eqs[j][1]; u1 = (eqs[j][2] - knc)/rho; uk1 = 1;
+    if (tp == 1,
+      for (k = 1, K + 1, Mt[2*j-1, k] = real(uk1); Mt[2*j, k] = imag(uk1); uk1 *= u1);
+      for (n = 1, N + 1, e = knen(eqs[j][3], n-1)/scl[n];
+        Mt[2*j-1, K+1+2*n-1] = -real(e); Mt[2*j, K+1+2*n-1] = -imag(e);
+        Mt[2*j-1, K+1+2*n]   =  imag(e); Mt[2*j, K+1+2*n]   = -real(e));
+      bv[2*j-1] = real(eqs[j][3]); bv[2*j] = imag(eqs[j][3]);
+    ,
+      u2 = (eqs[j][3] - knc)/rho; uk2 = 1;
+      for (k = 1, K + 1, val = uk1 - uk2;
+        Mt[2*j-1, k] = real(val); Mt[2*j, k] = imag(val); uk1 *= u1; uk2 *= u2);
+      bv[2*j-1] = eqs[j][4]; bv[2*j] = 0;
+    );
+  );
+  /* Normierung alpha(1) = 0: von 1 mit ipent in den Bogen, alpha(ipent^k 1) = -k */
+  nx = 1; nk = 0;
+  while ((abs(nx - knc) > 0.9*rad) && (nk < 6), nx = ipent(nx); nk++);
+  if ((abs(nx - knc) > 0.9*rad) || (abs(imag(nx)) > 1e-20), error("knhexinit: kein reeller Normierungspunkt im Bogen"));
+  u1 = (real(nx) - knc)/rho; for (k = 1, K + 1, Mt[rows, k] = u1^(k-1)); bv[rows] = -nk;
+  cn = vector(U, k, vecmax(abs(Mt[,k])) + 1e-300);
+  Mt = matrix(rows, U, i, k, Mt[i,k]/cn[k]);
+  Mt[rows,] = Mt[rows,]*1e6; bv[rows] *= 1e6;
+  if (kndebug, print("kn:   Matrix ", rows, "x", U, " ", getabstime() - ts, " ms"));
+  sav = default(realprecision);
+  default(realprecision, ceil(knsolvep*precis));
+  sol = knlsq(Mt, bv);
+  default(realprecision, sav);
+  if (kndebug, print("kn:   geloest ", getabstime() - ts, " ms"));
+  sol = vector(U, k, precision(sol[k]/cn[k], precis));
+  A = sum(k = 1, K + 1, sol[k]*x^(k-1));
+  cc = vector(N + 1, n, (sol[K+1+2*n-1] + I*sol[K+1+2*n])/scl[n]);
+  res = 0;
+  for (j = 1, #eqs,
+    tp = eqs[j][1];
+    val = if (tp == 1, subst(A, x, (eqs[j][2] - knc)/rho) - eqs[j][3] - sum(n = 1, N + 1, cc[n]*knen(eqs[j][3], n-1)),
+          subst(A, x, (eqs[j][2] - knc)/rho) - subst(A, x, (eqs[j][3] - knc)/rho) - eqs[j][4]);
+    res = max(res, abs(val)));
+  if (kndebug, print("kn:   Rest ", precision(res, 3), "  ", getabstime() - ts, " ms"));
+  return([A, deriv(A), cc, rho, res, nth, nfe, knc]);
+}
+
+knhexinit() = {
+  my(eps = 10.0^(-precis-8), target = precis - 3, z, z2, res = 0, sr, R, sc, ps, W, pl, best,
+     pl2, s1, s2, tst, d, hf, t0);
+  hexreg = 0; knRmeas = 0;
+  if (imag(sexp(1)) != 0, error("knhexinit: nur reelle Basen"));
+  t0 = getabstime();
+  /* komplexer Fixpunkt der Pentation: fuer ipent anziehend */
+  z = 0.5;
+  for (i = 1, 2000, z2 = ipent(z); if (abs(z2 - z) < 1e-15, z = z2; break); z = z2);
+  if (imag(z) < 0, z = conj(z));
+  if (imag(z) < 1e-3, error("knhexinit: kein komplexer Fixpunkt der Pentation"));
+  if (kndebug, print("kn: p0 ", precision(z, 8), "  ", getabstime() - t0, " ms"));
+  sr = 1/4;
+  /* exp-084: bis 1/2048 statt 1/128 -- die Reihe um p hat bei b = 50 den
+     Radius 0.013, bei b = 100 nur 0.0075 (geht ab sr = 1/256) */
+  for (k = 1, 10,
+    res = iferr(pentfixser(t->pent(t), z, sr, 0, eps, "knhexinit"), E, 0);
+    if (type(res) == "t_VEC", break);
+    sr = sr/2);
+  if (type(res) != "t_VEC", error("knhexinit: Pentation um p nicht entwickelbar"));
+  kp = res[1]; sc = res[2]; R = res[3];
+  if (kndebug, print("kn: Reihe um p, R = ", precision(R, 5), "  ", getabstime() - t0, " ms"));
+  klam = polcoeff(sc, 1);
+  if (abs(klam) <= 1, error("knhexinit: p ist nicht abstossend, |P'(p)| = ", precision(abs(klam),6)));
+  ps = pentpsi(sc, R/4, eps, poldegree(sc) - 1);
+  if (!ps[2], error("knhexinit: Poincare-Reihe an p konvergiert nicht"));
+  krs = R/5;
+  ksig = Pol(serreverse(ps[1] + O(x^(poldegree(ps[1])+1))));
+  if (abs(polcoeff(ksig, poldegree(ksig)))*krs^poldegree(ksig) > eps,
+    error("knhexinit: Schroeder-Reihe an p konvergiert bei r = ", precision(krs,5), " nicht"));
+  ksig = pentclean(ksig, krs, eps, "sigma_p");
+  klog = log(klam); kper = 2*Pi*I/klog;
+  if (kndebug, print("kn: sigma_p fertig  ", getabstime() - t0, " ms"));
+  knc = real(kp); knr = imag(kp);
+  /* Abklingrichtung von theta: s*Im alpha_p waechst zu p hin */
+  W = knwalk([knc + 0.6*knr*exp(0.05*I), knc + 0.6*knr*I]);
+  kns = if (imag(W[2]) > imag(W[1]), 1, -1);
+  /* Bogenradius: kleinster geschaetzter Aufwand */
+  /* exp-081: auch der Mittelpunkt ist frei. Re p ist nur dann gut, wenn p
+     weit ueber der Achse liegt; bei b = 10 (Im p = 0.87) muss der Kreis um
+     Re p bis 0.85 Im p reichen, um eine Periode der reellen Achse samt Bildern
+     zu fassen (K = 740). Weiter rechts ist p weiter weg, die Periode gleich
+     lang: Verhaeltnis Reichweite/|c - p| 0.88 -> ~0.5 (gemessen). */
+  /* Geplant werden PAARE benachbarter Radien um denselben Mittelpunkt: der
+     Fehler-Vektor braucht einen zweiten Bogen, und bei b = e lag der beste
+     Einzelbogen isoliert zwischen unbrauchbaren Nachbarn. Kosten des Paars =
+     die des teureren Bogens; K und N gelten fuer beide. */
+  my(rads = [0.45, 0.55, 0.65, 0.75, 0.85, 1.0, 1.15, 1.3], P, c2);
+  best = [oo]; pl2 = [oo];
+  /* erst streng (Bilder <= 1.02 rad), sonst einmal mit 1.15 rad: b = 50 hat
+     streng keinen Bogen; der Fehler-Vektor zeigt dann, was es kostet */
+  /* exp-087: der gelockerte Durchgang (nur grosse Basen) sucht auch bei
+     1.45 und 1.6 Im p und paart gleiche Radien benachbarter Mittelpunkte;
+     der zweite Bogen wird um seinen eigenen Mittelpunkt (pl2[8]) gerechnet.
+     b = 100, dps 20, K 300: Versatz 1.5 Radius 1.45 Rest 3e-31, der alte
+     Hauptbogen (Versatz 1.0, Radius 1.3) 1e-13 -- er lag ausserhalb der Liste
+     und hatte keinen Nachbarradius. */
+  my(Pprev);
+  for (pass = 1, 2,
+  if ((pass == 2) && (best[1] != oo), break);
+  knreachtol = if (pass == 1, 1.02, 1.15);
+  if (pass == 2, rads = concat(rads, [1.45, 1.6]));
+  Pprev = 0;
+  for (ic = 1, 7,
+    knc = real(kp) + [0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5][ic]*knr;
+    P = vector(#rads);
+    for (j = 1, #rads,
+      /* alarm: ein haengender Kandidat kostet hoechstens 1 s, ein normaler
+         braucht 15-50 ms (alarm gibt dabei ein t_ERROR zurueck statt zu werfen) */
+      if (kndebug, print1("kn: plan c = ", precision(knc, 5), " rad = ", rads[j], " ... "));
+      pl = iferr(alarm(1, knplan(rads[j]*knr, target)), E, [oo]);
+      if (kndebug, print(if (type(pl) == "t_ERROR", "alarm", pl[1]), "  ", getabstime() - t0, " ms"));
+      if (type(pl) == "t_ERROR", pl = [oo]);
+      P[j] = pl);
+    for (j = 1, #rads - 1,
+      if ((P[j][1] != oo) && (P[j+1][1] != oo),
+        c2 = max(P[j][1], P[j+1][1]);
+        if ((best[1] == oo) || (c2 < max(best[1], pl2[1])),
+          best = P[j]; pl2 = P[j+1])));
+    if ((pass == 2) && (Pprev != 0),
+      for (j = 1, #rads,
+        if ((P[j][1] != oo) && (Pprev[j][1] != oo),
+          c2 = max(P[j][1], Pprev[j][1]);
+          if ((best[1] == oo) || (c2 < max(best[1], pl2[1])),
+            best = P[j]; pl2 = Pprev[j]))));
+    Pprev = P));
+  knreachtol = 1.02;
+  /* knforce = [Bogenanteil, theta-Schwellenanteil, K, N, Mittelpunkt-Versatz] (0 = automatisch), nur fuer Experimente */
+  if (type(knforce) == "t_VEC" && knforce[1],
+    knc = real(kp) + if (#knforce >= 5, knforce[5], 0)*knr;
+    best = knplan(knforce[1]*knr, target);
+    pl2 = knplan((knforce[1] + 0.05)*knr, target));
+  if ((best[1] == oo) || (pl2[1] == oo), error("knhexinit: kein brauchbares Bogenpaar"));
+  knc = best[8];
+  best[2] = max(best[2], pl2[2]); best[3] = max(best[3], pl2[3]);
+  if (type(knforce) == "t_VEC" && knforce[3], best[2] = knforce[3]);
+  if (type(knforce) == "t_VEC" && knforce[4], best[3] = knforce[4]);
+  /* b = 10 (alter Aufbau um Re p): K = 740, 4.3 min bei \p 20 fuer 13.5
+     Stellen -- ueber knmaxk nimmt hexinit Sheldons schnelle Naeherung */
+  /* exp-084: der Plan darf bis 2 knmaxk gehen -- er schaetzt K aus |knc - p|
+     und liegt oft doppelt zu hoch (b = 28: Plan 575, K0 = 287 genuegte); die
+     Vorab-Loesung mit K0 = Plan/2 <= knmaxk misst den wirklichen Bedarf
+     (b = 100, dps 20: Plan 1094) */
+  if (best[2] > 2*knmaxk, error("knhexinit: zu teuer (K = ", best[2], " > 2 knmaxk = ", 2*knmaxk, ")"));
+  hf =if (type(knforce) == "t_VEC" && knforce[2], knforce[2], 0.6);
+  if (kndebug, print("kn: Plan K = ", best[2], " N = ", best[3], " rad = ", precision(best[4]/knr, 3), " c = ", precision(best[8], 5), "  ", getabstime() - t0, " ms"));
+  /* exp-083: K aus einer kleinen Vorab-Loesung (halbes K, ~1/8 der Kosten)
+     statt aus einer vollen ersten Loesung, die bei b = 2 und e ohnehin noch
+     einmal mit groesserem K gerechnet werden musste. Der Planer nimmt |knc - p|
+     als Konvergenzradius; alpha hat naehere Singularitaeten (b = e um
+     knc = -0.18 bei 0.33 +- 1.37 i, Abstand 1.46 statt ~2.5). Gemessen wird
+     das Abfallgesetz log|a_k| ~ a + b k + c log k (knfit), K mit 10 % Reserve. */
+  my(K0 = max(60, best[2]\2), s0, Kn = best[2], ft, Kneed, hc1, hc2, tsw, s3, pl3, c0, cm, rr);
+  hc1 = best[5] + hf*(best[6] - best[5]); hc2 = best[5] + max(0.85, hf + 0.1)*(best[6] - best[5]);
+  s0 = knsolve(best[4], K0, best[3], hc1, hc2);
+  if (kndebug, print("kn: Vorab-Loesung K0 = ", K0, "  ", getabstime() - t0, " ms"));
+  ft = knfit(s0[1], K0);
+  if (ft[2] < 0,
+    Kneed = ceil(1.1*knkfor(ft, -(target + 5)*log(10), K0));
+    knRmeas = s0[4]*exp(-ft[2]);
+    if (kndebug, print("kn: Fit b = ", precision(ft[2], 5), " c = ", precision(ft[3], 4), " -> K ", Kneed, " (Plan ", best[2], ")"));
+    Kn = max(Kneed, K0),
+    /* kein Abfall auf [K0/4, 3K0/4]: die Glieder liegen dort schon am Boden,
+       mehr Glieder bringen nichts -- K0 reicht (b = 28, dps 16: Plan K = 575,
+       Vorab K0 = 287 Rest 9.7e-14, volle Loesungen 1.2e-13 und 1.7e-13 in je
+       40 s). Ob das stimmt, misst danach der Fehler-Vektor. */
+    Kn = K0);
+  /* der Plan lag unter knmaxk, die Vorab-Loesung lief: dann mit knmaxk
+     weiterrechnen statt auf Sheldons Naeherung zu fallen (b = 50, dps 20:
+     Fit K = 603; die Naeherung gibt dort 0.2 Stellen) */
+  Kn = min(Kn, max(K0, knmaxk));
+  best[2] = Kn;
+  s1 = if (Kn == K0, s0, knsolve(best[4], Kn, best[3], hc1, hc2));
+  /* grosses K kann die Ausgleichsrechnung verderben: Bogenpunkte bei
+     |u| = rad/rho < 1, Bilder bis |u| = 1, Kondition ~ (rho/rad)^K (b = 50,
+     dps 20, rho/rad = 1.19: K0 = 221 Rest 6e-32, K = 600 Rest 1e-13) */
+  if (s1[5] > 100*s0[5],
+    if (kndebug, print("kn: K = ", Kn, " Rest ", precision(s1[5], 3), " schlechter als K0 = ", K0, " -> K0"));
+    s1 = s0; Kn = K0; best[2] = K0);
+  if (kndebug, print("kn: erste Loesung  ", getabstime() - t0, " ms"));
+  knc = pl2[8];
+  s2 = knsolve(pl2[4], Kn, best[3], pl2[5] + hf*(pl2[6] - pl2[5]), pl2[5] + max(0.85, hf + 0.1)*(pl2[6] - pl2[5]));
+  knc = best[8];
+  /* exp-084: die Loesung mit dem kleineren Rest wird Hauptloesung, der
+     Fehler-Vektor nahm sonst den schlechteren Rest (b = 10, dps 45:
+     Hauptbogen 1.1e-46, Nachbarbogen 1.2e-53). Gleicher Mittelpunkt, K, N. */
+  if (s2[5] < s1[5],
+    tsw = s1; s1 = s2; s2 = tsw;
+    pl2[2] = best[2]; pl2[3] = best[3]; tsw = best; best = pl2; pl2 = tsw;
+    if (kndebug, print("kn: Nachbarbogen rad = ", precision(best[4]/knr, 3), " wird Hauptloesung")));
+  /* exp-084: liegen Bilder ausserhalb eines Bogens, waechst sein Rest wie
+     Boden * (rho/rad)^K (b = 10, dps 45, Bogen 1.0: rho/rad = 1.06, K 352
+     Rest 1e-46, K 460 7e-44; Bogen 1.15: rho/rad = 1, 1e-53). Der Planer
+     sieht das mit 30 Punkten nicht (Reichweite 1.0014). Ist der zweite Bogen
+     viel schlechter, ihn mit halbem K nachrechnen (1/8 der Kosten) und den
+     besseren nehmen. Ein dritter Bogen weiter aussen half nicht: er braucht
+     mehr K (b = 10, rad 1.32, K 352: Rest 4e-32). */
+  /* exp-085: zuerst einen gleich grossen Bogen um einen leicht
+     verschobenen Mittelpunkt rechnen -- eine unabhaengige zweite Loesung,
+     deren Bilder innen bleiben (b = 10, dps 45, Hauptbogen 1.15 um
+     Re p + 1.25 Im p: Versatz +0.125 Im p Rest 1e-53, +0.25 1e-53,
+     -0.125 2e-44, -0.25 1e-34). Hoechstens drei Versuche. */
+  c0 = s1[8];
+  for (io = 1, 3,
+    if (s2[5] <= 100*s1[5], break);
+    knc = c0 + [0.125, 0.25, -0.125][io]*knr;
+    pl3 = iferr(alarm(2, knplan(best[4], target)), E, [oo]);
+    if (type(pl3) == "t_ERROR" || pl3[1] == oo, next);
+    s3 = knsolve(pl3[4], best[2], best[3], pl3[5] + hf*(pl3[6] - pl3[5]), pl3[5] + max(0.85, hf + 0.1)*(pl3[6] - pl3[5]));
+    if (kndebug, print("kn: Bogen um c ", precision(knc, 6), ": Rest ", precision(s3[5], 3), " statt ", precision(s2[5], 3)));
+    if (s3[5] < s2[5], s2 = s3; pl3[2] = best[2]; pl3[3] = best[3]; pl2 = pl3));
+  knc = c0;
+  /* exp-087: Geschwisterbogen vor eigenem/halbem K -- b = 100, dps 20: K 600
+     auf dem zweiten Bogen kostete 64 s fuer 7e-29, der Geschwisterbogen danach
+     gab 2e-32. */
+  /* exp-086: das gilt nur, wenn die Bilder deutlich ausserhalb liegen. Liegen
+     sie fast innen (rho/rad <= 1.05), fehlen dem zweiten Bogen Glieder: er
+     bekommt sein eigenes K aus seinem eigenen Abfall (b = 50, dps 20: Bogen
+     1.3, rho/rad 1.015, K 221 Rest 6e-23, K 330 1e-32; Bogen 1.15, rho/rad
+     1.18, K 221 6e-32, K 330 5e-31). Danach noch einmal tauschen. */
+  if (s2[5] > 100*s1[5],
+    tsw = 0;
+    if (s2[4] <= 1.05*pl2[4],
+      ft = knfit(s2[1], poldegree(s2[1]));
+      if (ft[2] < 0, tsw = min(ceil(1.1*knkfor(ft, -(target + 5)*log(10), Kn)), max(Kn, knmaxk)));
+      if (tsw <= Kn, tsw = 0),
+      tsw = max(60, Kn\2));
+    if (tsw,
+      knc = pl2[8];
+      s3 = knsolve(pl2[4], tsw, best[3], pl2[5] + hf*(pl2[6] - pl2[5]), pl2[5] + max(0.85, hf + 0.1)*(pl2[6] - pl2[5]));
+      knc = best[8];
+      if (kndebug, print("kn: zweiter Bogen mit K = ", tsw, ": Rest ", precision(s3[5], 3), " statt ", precision(s2[5], 3)));
+      if (s3[5] < s2[5], s2 = s3)));
+  if (s2[5] < s1[5],
+    tsw = s1; s1 = s2; s2 = tsw;
+    tsw = best; best = pl2; pl2 = tsw;
+    if (kndebug, print("kn: zweiter Bogen rad = ", precision(best[4]/knr, 3), " wird Hauptloesung")));
+  best[2] = poldegree(s1[1]); best[3] = #s1[3] - 1;
+  knc = s1[8];
+  knA = s1[1]; knAd = s1[2]; kncc = s1[3]; knrho = s1[4]; knres = s1[5];
+  kngood = 0.97*best[4];
+  /* Fehler-Vektor: beide Loesungen an Punkten im gemeinsamen Gebiet; jede
+     wird um ihren eigenen Mittelpunkt (s[8]) ausgewertet */
+  d = 0;
+  cm = (s1[8] + s2[8])/2; rr = 0.9*min(best[4], pl2[4]) - abs(s1[8] - s2[8]);
+  tst = concat(vector(5, j, cm + (j - 3)/2*rr), [cm + 0.5*rr*exp(Pi*I/3), cm + 0.5*rr*exp(2*Pi*I/3)]);
+  for (j = 1, #tst, d = max(d, abs(subst(s1[1], x, (tst[j] - s1[8])/s1[4]) - subst(s2[1], x, (tst[j] - s2[8])/s2[4]))));
+  if (kndebug, print("kn: Fehler-Vektor |s1 - s2| = ", precision(d, 3), ", Rest s1 = ", precision(s1[5], 3), ", s2 = ", precision(s2[5], 3)));
+  d = max(d, knres);
+  hexerr = if (d == 0, precis, min(precis, precision(-log(d)/log(10), 9)));
+  if (hexerr < 6, error("knhexinit: nur ", precision(hexerr,3), " Stellen -- Fehler-Vektor zu gross"));
+  knt0 = knser(knc);
+  /* reelles Fenster fuer knhex: A steigt darauf und ueberstreicht mehr als
+     eine Periode (b = e: -3.624 .. -2.591) */
+  knxl = knc - kngood; knxr = knc + kngood;
+  kntl = real(knser(knxl)); kntr = real(knser(knxr));
+  if (kntr - kntl <= 1, error("knhexinit: Fenster deckt keine volle Periode (", precision(kntr - kntl, 5), ")"));
+  knpar = [best[2], best[3], best[4]/knr, best[5], best[6], s1[6] + s1[7], getabstime() - t0, s1[6], s1[7], pl2[4]/knr, best[8], knRmeas];
+  hexreg = 2;
+  if (quietmode == 0,
+    print("hexation (Kneser) am komplexen Fixpunkt der Pentation p = ", precision(kp, 20));
+    print("  P'(p) = ", precision(klam, 15), "   K = ", best[2], "  N = ", best[3], "  Bogen ", precision(best[4]/knr,3), " Im p");
+    print("  hex precision ", hexerr, " decimal digits (Fehler-Vektor zweier Boegen)"));
+  return(1);
+}
+
+/* alpha(y): mit ipent (rechts) bzw. pent (links) in den Bogen, dann A */
+knihex(y) = {
+  my(k = 0);
+  while (abs(y - knc) > kngood,
+    if (real(y) > knc, y = ipent(y); k++, y = pent(y); k--);
+    if (abs(k) > 200, error("knihex: Punkt laesst sich nicht in den Bogen abbilden")));
+  return(knser(y) + k);
+}
+/* hex(z): k so, dass Re(z) - k im reellen Fenster [kntl, kntr] liegt; dort
+   reelle Loesung per Newton mit Bisektions-Rueckfall (A steigt), fuer
+   komplexes z gedaempfter Newton ab dieser Loesung; dann pent^k bzw. ipent^-k.
+   Ein ungesicherter Newton aus der Fenstermitte sprang bei b = e schon im
+   ersten Schritt ueber den Rand, obwohl die Loesung innen lag. */
+knhex(z) = {
+  my(k, t, tr, a, b, y, fy, dy, yn, tol = 10.0^(-precis+2));
+  k = ceil(real(z) - kntr);
+  t = z - k; tr = real(t);
+  a = knxl; b = knxr; y = knc;
+  for (it = 1, 400,
+    fy = real(knser(y)) - tr;
+    if (fy > 0, b = y, a = y);
+    yn = y - fy/real(knserd(y));
+    if ((yn <= a) || (yn >= b), yn = (a + b)/2);
+    dy = yn - y; y = yn;
+    if (abs(dy) < tol, break));
+  if (imag(t) != 0,
+    for (it = 1, 200,
+      dy = (knser(y) - t)/knserd(y);
+      yn = y - dy;
+      while (abs(yn - knc) > kngood, dy = dy/2; yn = y - dy; if (abs(dy) < tol, error("knhex: Newton bleibt nicht im Bogen")));
+      y = yn;
+      if (abs(dy) < tol, break)));
+  if (k > 0, for (i = 1, k, y = pent(y)), for (i = 1, -k, y = ipent(y)));
+  return(y);
 }
 
 
