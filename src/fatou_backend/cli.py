@@ -49,9 +49,14 @@ def _print_values(values: list[mp.mpc], digits: int = 30) -> None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="CLI wrapper for fatou.gp")
     parser.add_argument("command", choices=["sexp", "slog", "roundtrip", "eval",
-                                            "pent", "ipent", "hex", "ihex"],
+                                            "pent", "ipent", "hex", "ihex",
+                                            "hyper", "ihyper"],
                         help="pent/ipent/hex/ihex: pentation, hexation and their "
-                             "inverses (fork engine only)")
+                             "inverses; hyper/ihyper: hyperoperation of any "
+                             "integer --rank (fork engine only)")
+    parser.add_argument("--rank", type=int,
+                        help="hyper/ihyper: 0 successor, 1 addition, 2 multiplication, "
+                             "3 power, 4 tetration, 5 pentation, 6 hexation, 7 ...")
     parser.add_argument("--base", required=True, help="GP base expression, e.g. e, 2, 10, 1+I")
     parser.add_argument("--values", nargs="+", help="Values to evaluate")
     parser.add_argument("--expressions", nargs="+", help="Raw GP expressions for eval mode")
@@ -94,6 +99,13 @@ def main() -> None:
         elif args.command in ("pent", "ipent", "hex", "ihex"):
             try:
                 result = getattr(session, f"{args.command}_batch")(values)
+            except ValueError as exc:
+                raise SystemExit(str(exc)) from exc
+        elif args.command in ("hyper", "ihyper"):
+            if args.rank is None:
+                raise SystemExit("--rank is required for hyper/ihyper.")
+            try:
+                result = getattr(session, f"{args.command}_batch")(args.rank, values)
             except ValueError as exc:
                 raise SystemExit(str(exc)) from exc
         else:

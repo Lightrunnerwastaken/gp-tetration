@@ -2755,6 +2755,194 @@ ipentx(z)={ pentensure(); return(levelchk(ipent(z), "ipentx")); }
 hexx(z)={ hexensure(); return(levelchk(hex(z), "hexx")); }
 ihexx(z)={ hexensure(); return(levelchk(ihex(z), "ihexx")); }
 
+/* exp-088 (2026-10-13): Hyperoperationen beliebigen ganzzahligen Rangs r.
+   H_0(b,x) = x+1, H_1 = b+x, H_2 = b*x, H_3 = b^x, H_4 = sexp, H_5 = pent,
+   H_6 = hex; ab r = 7 dieselbe Rekursion H_r(b,0) = 1,
+   H_r(b,x+1) = H_{r-1}(b, H_r(b,x)), und zwar
+   - ungerade r: regulaere Iteration am linken reellen Fixpunkt von H_{r-1},
+     der fuer H_{r-1} abstossend ist -- wie die Pentation am Fixpunkt von
+     sexp (b = 2, r = 7: p = -3.6994, Multiplikator 9.49),
+   - gerade r: regulaere Iteration am reellen anziehenden Fixpunkt von
+     H_{r-1}, solange es ihn gibt (b < eta_{r-1}: eta_6 = 1.7991,
+     eta_7 = 1.8398, eta_8 = 1.8681); darueber braucht es Kneser wie bei der
+     Hexation (noch nicht fuer r >= 8).
+   Bauweise nach dem Wissensgraphen (forschung/eta_hyperoperationen/hyper.gp,
+   12.10.2026), hier mit Radiensuche, Reihenpflege (pentclean) und
+   Fehlerschaetzung wie bei pentinit/reghexinit. Zustand je Rang in Vektoren,
+   damit sich die Raenge beim Verschachteln nicht ueberschreiben. */
+hymax = 32;
+hyp = vector(hymax); hylam = vector(hymax); hypsi = vector(hymax);
+hysig = vector(hymax); hyr = vector(hymax); hyc = vector(hymax);
+hystate = vector(hymax, j, [0, 0]); hydig = vector(hymax);
+/* exp-089: hykind[r] = 1 regulaer, 2 Kneser (gerade r ueber eta_{r-1});
+   knS[r] = Zustand der Kneser-Loesung von Rang r (knS[6] = die Hexation),
+   knSd[r] ihre Stellen; knrank = der Rang, den knhexinit gerade baut, und
+   knf/knfi = dessen untere Stufe H_{r-1} und ihre Umkehrung */
+hykind = vector(hymax); knS = vector(hymax); knSd = vector(hymax);
+knrank = 6; knslow = 1;
+/* untere Stufe ohne Waechter -- hyensure hat sie schon aufgebaut.
+   exp-090: hycall[r] = [vorwaerts, rueckwaerts] zaehlt die Aufrufe -- ein von
+   der Rechnerlast unabhaengiges Mass fuer den Aufwand */
+hycall = vector(hymax, j, [0, 0]);
+hyncalls() = sum(j = 1, hymax, hycall[j][1] + hycall[j][2]);
+hylo(r, z) = { hycall[r][1]++; return(if (r == 4, sexp(z), if (r == 5, pent(z), if (r == 6, hex(z), hyval(r, z))))); }
+hyloinv(r, y) = { hycall[r][2]++; return(if (r == 4, slog(y), if (r == 5, ipent(y), if (r == 6, ihex(y), hyinv(r, y))))); }
+knf(z) = hylo(knrank - 1, z);
+knfi(y) = hyloinv(knrank - 1, y);
+hyval(r, z, extra) = {
+  my(la = hylam[r], w, k = 0, y, up = (abs(hylam[r]) > 1));
+  if (hykind[r] == 2, return(knhexS(knS[r], z)));
+  w = hyc[r]*la^z;
+  while (abs(w) > hyr[r],
+    w = if (up, w/la, w*la); k++;
+    if (k > 400, error("hyper: Rang ", r, ", Kette laenger als 400")));
+  for (j = 1, extra, w = if (up, w/la, w*la); k++);
+  y = hyp[r] + subst(hypsi[r], x, w);
+  if (up, for (j = 1, k, y = hylo(r-1, y)), for (j = 1, k, y = hyloinv(r-1, y)));
+  return(y);
+}
+hyinv(r, y) = {
+  my(la = hylam[r], k = 0, up = (abs(hylam[r]) > 1));
+  if (hykind[r] == 2, return(knihexS(knS[r], y)));
+  while (abs(y - hyp[r]) > hyr[r],
+    y = if (up, hyloinv(r-1, y), hylo(r-1, y)); k++;
+    if (k > 400, error("ihyper: Rang ", r, ", Kette erreicht den Fixpunkt nicht")));
+  return(log(subst(hysig[r], x, y - hyp[r])/hyc[r])/log(la) + if (up, k, -k));
+}
+hyinit(r) = {
+  my(odd = r % 2, y = 1, y2, bad, ok = 0, res = 0, sc, la, R, sr, rr, ps, sig, eps, target,
+     k, fn, isreal, err, zz, z1, z2, lowd, b = sexp(1));
+  lowd = if (r == 7, hexdigits, hydig[r-1]);
+  /* komplexe Basen: die Hexation ist dort nur Sheldons Naeherung (b = 2+i/2:
+     0.8 Stellen) -- darauf laesst sich kein hoeherer Rang bauen */
+  if (lowd < 8, error("hyper: Rang ", r, ": H_", r-1, " traegt nur ", precision(lowd, 3),
+                      " Stellen, darauf baut kein hoeherer Rang"));
+  target = max(8, min(precis - 10, floor(lowd) - 5));
+  eps = 10.0^(-target - 3);
+  hykind[r] = 0;
+  /* Fixpunkt: ungerade r von 1 aus mit der Umkehrung (sie zieht zum linken
+     abstossenden Fixpunkt), gerade r vorwaerts (zum anziehenden). Waechst
+     die Vorwaertsbahn davon, gibt es keinen reellen: b > eta_{r-1}. */
+  for (i = 1, 2000,
+    bad = 0;
+    y2 = iferr(if (odd, hyloinv(r-1, y), hylo(r-1, y)), E, bad = 1; 0);
+    if (bad || (abs(y2) > 1e6), break);
+    if ((imag(b) == 0) && (abs(imag(y2)) > 1e-10*(1 + abs(y2))), break);
+    if (abs(y2 - y) < 1e-12*(1 + abs(y)), y = y2; ok = 1; break);
+    y = y2);
+  if (!ok,
+    if (odd, error("hyper: Rang ", r, ": kein linker Fixpunkt von H_", r-1, " gefunden"));
+    /* exp-089: gerades r ueber eta_{r-1} -- Kneser am komplexen Fixpunkt von
+       H_{r-1}, dieselbe Konstruktion wie die Hexation auf der Pentation */
+    if (imag(b) != 0, error("hyper: Rang ", r, ": kein anziehender Fixpunkt, und Kneser nur fuer reelle Basen"));
+    knhexinit(r);
+    hykind[r] = 2;
+    return(precision(min(knSd[r], lowd), 9)));
+  isreal = (imag(b) == 0) && (abs(imag(y)) < 1e-10);
+  if (isreal, y = real(y));
+  fn = if (odd, (t -> hyloinv(r-1, t)), (t -> hylo(r-1, t)));
+  sr = 1/8;
+  for (i = 1, 10,
+    res = iferr(pentfixser(fn, y, sr, isreal, eps, Str("hyper Rang ", r)), E, 0);
+    if (type(res) == "t_VEC", break);
+    sr = sr/2);
+  if (type(res) != "t_VEC", error("hyper: Rang ", r, ": H_", r-1, " am Fixpunkt nicht entwickelbar"));
+  hyp[r] = res[1]; sc = res[2]; R = res[3];
+  la = polcoeff(sc, 1);
+  if (odd, la = 1/la);
+  if (odd && (abs(la) <= 1), error("hyper: Rang ", r, ": Fixpunkt nicht abstossend, |lambda| = ", precision(abs(la), 6)));
+  if (!odd && (abs(la) >= 1), error("hyper: Rang ", r, ": Fixpunkt nicht anziehend, |lambda| = ", precision(abs(la), 6)));
+  rr = R/4;
+  for (i = 1, 8,
+    ps = pentpsi(sc, rr, eps, poldegree(sc) - 1);
+    if (ps[2], break);
+    rr = rr/2);
+  if (!ps[2], error("hyper: Rang ", r, ": Poincare-Reihe konvergiert nicht"));
+  sig = Pol(serreverse(ps[1] + O(x^(poldegree(ps[1])+1))));
+  if (abs(polcoeff(sig, poldegree(sig)))*rr^poldegree(sig) > eps,
+    error("hyper: Rang ", r, ": Umkehrreihe konvergiert bei r = ", precision(rr, 5), " nicht"));
+  hypsi[r] = pentclean(ps[1], rr, eps, "Psi");
+  hysig[r] = pentclean(sig, rr, eps, "sigma");
+  hylam[r] = la; hyr[r] = rr; hykind[r] = 1;
+  /* Normierung H_r(0) = 1: von 1 aus in den Radius, dann zurueckskalieren */
+  y = 1; k = 0;
+  while (abs(y - hyp[r]) > rr,
+    y = if (odd, hyloinv(r-1, y), hylo(r-1, y)); k++;
+    if (k > 400, error("hyper: Rang ", r, ": Normierungskette laenger als 400")));
+  hyc[r] = subst(hysig[r], x, y - hyp[r])*la^(if (odd, k, -k));
+  /* Fehlerschaetzung wie bei pentinit: H(0) = 1, H(1) = b, Rundweg und
+     dieselben Werte ueber zwei Reduktionstiefen */
+  err = max(abs(hyval(r, 0) - 1), abs(hyval(r, 1) - b)/abs(b));
+  err = max(err, abs(hyinv(r, hyval(r, 1/3)) - 1/3));
+  for (j = 1, 2,
+    zz = if (j == 1, 1/2, -1/2);
+    z1 = hyval(r, zz); z2 = hyval(r, zz, 1);
+    err = max(err, abs(z1 - z2)/abs(z1)));
+  err = if (err == 0, precis, min(precis, -log(err)/log(10)));
+  if (quietmode == 0,
+    print("hyper Rang ", r, ": ", if (odd, "abstossender", "anziehender"), " Fixpunkt p = ", precision(hyp[r], 15),
+          ", lambda = ", precision(la, 12), ", ", precision(min(err, lowd), 4), " Stellen"));
+  return(precision(min(err, lowd), 9));
+}
+hyensure(r) = {
+  if (r <= 4, return(precis));
+  if (r == 5, return(pentensure()));
+  if (r == 6, return(hexensure()));
+  if (r > hymax, error("hyper: Rang ", r, " > hymax = ", hymax));
+  if (hystate[r] != [sexp(1), precis],
+    hyensure(r - 1);
+    hydig[r] = hyinit(r);
+    hystate[r] = [sexp(1), precis]);
+  return(hydig[r]);
+}
+hyrank(r) = {
+  if ((type(r) != "t_INT") || (r < 0), error("hyper: der Rang muss eine ganze Zahl >= 0 sein, nicht ", r));
+  return(r);
+}
+hyper(r, z) = {
+  hyrank(r);
+  if (r == 0, return(z + 1));
+  if (r == 1, return(sexp(1) + z));
+  if (r == 2, return(sexp(1)*z));
+  if (r == 3, return(sexp(1)^z));
+  if (r == 4, return(levelchk(sexp(z), "hyper")));
+  if (r == 5, return(pentx(z)));
+  if (r == 6, return(hexx(z)));
+  hyensure(r);
+  return(levelchk(hyval(r, z), "hyper"));
+}
+ihyper(r, y) = {
+  hyrank(r);
+  if (r == 0, return(y - 1));
+  if (r == 1, return(y - sexp(1)));
+  if (r == 2, return(y/sexp(1)));
+  if (r == 3, return(log(y)/log(sexp(1))));
+  if (r == 4, return(levelchk(slog(y), "ihyper")));
+  if (r == 5, return(ipentx(y)));
+  if (r == 6, return(ihexx(y)));
+  hyensure(r);
+  return(levelchk(hyinv(r, y), "ihyper"));
+}
+hyperdigits(r) = { hyrank(r); return(hyensure(r)); }
+/* exp-091: Tabellen fuer den Rechner -- H_r auf dem Gitter x0 + (i-1)*step,
+   Punkt fuer Punkt in aufsteigender Reihenfolge abgefragt (i = 1, 2, ...).
+   Ist der Punkt eine Periode frueher reell bekannt, reicht ein Schritt der
+   unteren Stufe, H_r(x + 1) = H_{r-1}(H_r(x)), statt einer eigenen Kette
+   (b = 1.5, r = 9: 0.57 s je Wert direkt). Nicht reelle Werte (gerade Raenge
+   links) werden nicht weitergereicht; dort rechnet der naechste Punkt direkt. */
+hygtab = [0, 0, 0, []];
+hypergridval(r, x0, step, i) = {
+  my(per = round(1/step), p = 0, y);
+  hyrank(r);
+  if ((i == 1) || (hygtab[1] != r) || (hygtab[2] != x0) || (hygtab[3] != step) || (i > #hygtab[4]),
+    if (i == 1, hygtab = [r, x0, step, vector(8192)], error("hypergridval: Punkte der Reihe nach ab i = 1 abfragen")));
+  if (r >= 5, hyensure(r));
+  if (i > per, p = hygtab[4][i - per]);
+  y = if ((r >= 5) && (type(p) == "t_REAL"), levelchk(hylo(r - 1, p), "hyper"), hyper(r, x0 + (i - 1)*step));
+  if (abs(imag(y)) <= 1e-9*(1 + abs(y)), hygtab[4][i] = real(y)*1.);
+  return(y);
+}
+
 /* exp-077 (2026-10-09): regulaere Hexation fuer reelle 1 < b < eta5.
    Dort schneidet die Pentation y = x zweimal (b = 1.70: bei ~2.44 und ~5.69);
    der untere Schnitt a ist anziehend, P'(a) = mu in (0,1). Wie die Tetration
@@ -2883,13 +3071,17 @@ knlsq(M, b) = {
    entlang einer Punktfolge stetig (Mehrdeutigkeit kper = 2 pi i/log lambda). */
 knalphap(z) = {
   my(m = 0);
-  while (abs(z - kp) > krs, z = ipent(z); m++; if (m > 60, error("knalphap: ipent laeuft nicht gegen p")));
+  while (abs(z - kp) > krs, z = knfi(z); m++; if (m > 60, error("knalphap: ipent laeuft nicht gegen p")));
   return(log(subst(ksig, x, z - kp))/klog + m);
 }
 knwalk(pts) = {
-  my(W = vector(#pts), v, best, d);
+  my(W = vector(#pts), v, best, d, tw);
   for (j = 1, #pts,
+    tw = getabstime();
+    if (kndebug >= 3, print("kn:     alpha_p ", j, "/", #pts, " bei ", precision(pts[j], 8)));
     W[j] = knalphap(pts[j]);
+    if ((kndebug >= 2) && (getabstime() - tw > 1000),
+      print("kn:     alpha_p langsam: ", getabstime() - tw, " ms bei ", precision(pts[j], 8)));
     if (j > 1,
       best = W[j]; d = abs(W[j] - W[j-1]);
       for (k = -3, 3, v = W[j] + k*kper; if (abs(v - W[j-1]) < d, d = abs(v - W[j-1]); best = v));
@@ -2930,7 +3122,9 @@ knserd(z) = subst(knAd, x, (z - knc)/knrho)/knrho;
    Befund der Wissensgraph-Sitzung 09.10.2026). Deshalb misst knhexinit die
    erreichten Stellen per Fehler-Vektor statt sie zu glauben. */
 knplan(rad, target) = {
-  my(pts = knarc(rad, 30), W, h, hmin, htop, hc2, g, reach, K, N, hc, xl, tp = getabstime());
+  /* exp-089: ab Rang 8 16 statt 30 Probepunkte -- jeder kostet dort eine
+     Kette in H_{r-1} (b = 2, r = 8, dps 16: Planung 88 von 90 s) */
+  my(pts = knarc(rad, if (knrank > 6, 16, 30)), W, h, hmin, htop, hc2, g, reach, K, N, hc, xl, tp = getabstime());
   W = knwalk(pts);
   h = vector(#W, j, kns*imag(W[j]));
   hmin = vecmin(h); htop = vecmax(h);
@@ -2941,20 +3135,20 @@ knplan(rad, target) = {
     /* e_ALARM durchlassen: sonst schluckt dieses iferr das alarm(30) der
        Bogenplanung, und ein langsamer Kandidat laeuft ohne Grenze weiter
        (b = e, c = -0.875, rad 0.75: > 5 min) */
-    g = iferr(if (real(pts[j]) > knc, ipent(pts[j]), pent(pts[j])), E, knc + knr, errname(E) != "e_ALARM");
+    g = iferr(if (real(pts[j]) > knc, knfi(pts[j]), knf(pts[j])), E, knc + knr, errname(E) != "e_ALARM");
     reach = max(reach, abs(g - knc))));
   if (reach >= 0.95*abs(knc - kp), return([oo, 0, 0, rad, hmin, htop, reach, knc]));
   /* langsame Bogen verwerfen: normal brauchen die 30 Probepunkte 15-50 ms.
      Mehr heisst lange ipent-Ketten (Punkte weit weg von p), und das Loesen
      mit ~10x so vielen Punkten lief dann bei b = e ueber 10 min */
-  if (getabstime() - tp > 400, return([oo, 0, 0, rad, hmin, htop, reach, knc]));
+  if (getabstime() - tp > 400*knslow, return([oo, 0, 0, rad, hmin, htop, reach, knc]));
   /* Bilder ausserhalb des Bogens: A wird dort nur extrapoliert, die hohen
      Koeffizienten sind aber nur bis eps*rad^-k bestimmt -- Verstaerkung
      (reach/rad)^K (Befund der Wissensgraph-Sitzung: alte e-Grenze bei 26 Stellen) */
   if (reach > knreachtol*rad, return([oo, 0, 0, rad, hmin, htop, reach, knc]));
-  /* auf der reellen Achse muss eine volle Periode [x, pent(x)] im Bogen liegen */
+  /* auf der reellen Achse muss eine volle Periode [x, H_{r-1}(x)] im Bogen liegen */
   xl = knc - 0.97*rad;
-  if (real(pent(xl)) > knc + 0.97*rad, return([oo, 0, 0, rad, hmin, htop, reach, knc]));
+  if (real(knf(xl)) > knc + 0.97*rad, return([oo, 0, 0, rad, hmin, htop, reach, knc]));
   K = ceil((target + 5)/log(abs(knc - kp)/reach)*log(10));
   /* exp-082: wirksame Abklinghoehe von theta = (hcut - hmin) + 0.3. Die Ecken der
      reellen Kurve liegen 0.16-0.23 unter hmin (Wissensgraph-Sitzung), und die
@@ -2980,8 +3174,11 @@ knsolve(rad, K, N, hcut, hcut2) = {
   for (j = 1, #pts,
     if (kns*imag(W[j]) >= hcut, listput(eqs, [1, pts[j], W[j]]); nth++);
     if (kns*imag(W[j]) < hcut2,
-      if (real(pts[j]) > knc, g = ipent(pts[j]); listput(eqs, [2, pts[j], g, 1]),
-                              g = pent(pts[j]);  listput(eqs, [2, pts[j], g, -1]));
+      tp = getabstime();
+      if (real(pts[j]) > knc, g = knfi(pts[j]); listput(eqs, [2, pts[j], g, 1]),
+                              g = knf(pts[j]);  listput(eqs, [2, pts[j], g, -1]));
+      if ((kndebug >= 2) && (getabstime() - tp > 1000),
+        print("kn:     Bild langsam: ", getabstime() - tp, " ms bei ", precision(pts[j], 8)));
       rho = max(rho, abs(g - knc)); nfe++));
   if (kndebug, print("kn:   Bilder ", getabstime() - ts, " ms (", nth, " theta, ", nfe, " FE)"));
   U = K + 1 + 2*(N + 1);
@@ -3003,9 +3200,11 @@ knsolve(rad, K, N, hcut, hcut2) = {
       bv[2*j-1] = eqs[j][4]; bv[2*j] = 0;
     );
   );
-  /* Normierung alpha(1) = 0: von 1 mit ipent in den Bogen, alpha(ipent^k 1) = -k */
+  /* Normierung alpha(1) = 0: von 1 mit ipent in den Bogen, alpha(ipent^k 1) = -k.
+     exp-090: bis 60 statt 6 Schritte -- der Bogen von Rang r liegt bei
+     Re ~ -(r - 5) (b = 2, r = 12: um -6.99, die Bahn 1, 0, -1, ... braucht ~8) */
   nx = 1; nk = 0;
-  while ((abs(nx - knc) > 0.9*rad) && (nk < 6), nx = ipent(nx); nk++);
+  while ((abs(nx - knc) > 0.9*rad) && (nk < 60), nx = knfi(nx); nk++);
   if ((abs(nx - knc) > 0.9*rad) || (abs(imag(nx)) > 1e-20), error("knhexinit: kein reeller Normierungspunkt im Bogen"));
   u1 = (real(nx) - knc)/rho; for (k = 1, K + 1, Mt[rows, k] = u1^(k-1)); bv[rows] = -nk;
   cn = vector(U, k, vecmax(abs(Mt[,k])) + 1e-300);
@@ -3030,15 +3229,22 @@ knsolve(rad, K, N, hcut, hcut2) = {
   return([A, deriv(A), cc, rho, res, nth, nfe, knc]);
 }
 
-knhexinit() = {
+knhexinit(r) = {
   my(eps = 10.0^(-precis-8), target = precis - 3, z, z2, res = 0, sr, R, sc, ps, W, pl, best,
-     pl2, s1, s2, tst, d, hf, t0);
-  hexreg = 0; knRmeas = 0;
+     pl2, s1, s2, tst, d, hf, t0, kd, tq, tslow, nafter);
+  /* exp-089: Rang r >= 8 baut auf H_{r-1} (knf/knfi); ohne Angabe Rang 6 auf
+     der Pentation. Ziel nach den Stellen der unteren Stufe. */
+  if (!r, r = 6);
+  knrank = r; knslow = 1;
+  if (r > 6,
+    target = max(8, min(precis - 3, floor(hydig[r-1]) - 3));
+    eps = 10.0^(-target - 8));
+  if (r == 6, hexreg = 0); knRmeas = 0;
   if (imag(sexp(1)) != 0, error("knhexinit: nur reelle Basen"));
   t0 = getabstime();
   /* komplexer Fixpunkt der Pentation: fuer ipent anziehend */
   z = 0.5;
-  for (i = 1, 2000, z2 = ipent(z); if (abs(z2 - z) < 1e-15, z = z2; break); z = z2);
+  for (i = 1, 2000, z2 = knfi(z); if (abs(z2 - z) < 1e-15, z = z2; break); z = z2);
   if (imag(z) < 0, z = conj(z));
   if (imag(z) < 1e-3, error("knhexinit: kein komplexer Fixpunkt der Pentation"));
   if (kndebug, print("kn: p0 ", precision(z, 8), "  ", getabstime() - t0, " ms"));
@@ -3046,7 +3252,7 @@ knhexinit() = {
   /* exp-084: bis 1/2048 statt 1/128 -- die Reihe um p hat bei b = 50 den
      Radius 0.013, bei b = 100 nur 0.0075 (geht ab sr = 1/256) */
   for (k = 1, 10,
-    res = iferr(pentfixser(t->pent(t), z, sr, 0, eps, "knhexinit"), E, 0);
+    res = iferr(pentfixser(t->knf(t), z, sr, 0, eps, "knhexinit"), E, 0);
     if (type(res) == "t_VEC", break);
     sr = sr/2);
   if (type(res) != "t_VEC", error("knhexinit: Pentation um p nicht entwickelbar"));
@@ -3067,6 +3273,16 @@ knhexinit() = {
   /* Abklingrichtung von theta: s*Im alpha_p waechst zu p hin */
   W = knwalk([knc + 0.6*knr*exp(0.05*I), knc + 0.6*knr*I]);
   kns = if (imag(W[2]) > imag(W[1]), 1, -1);
+  /* exp-089: die Zeitgrenzen der Planung (alarm, 400 ms je Kandidat) sind fuer
+     Rang 6 gemessen, wo ein pent ~0.5 ms kostet; hoehere Raenge skalieren sie
+     mit den gemessenen Kosten der unteren Stufe */
+  if (r > 6,
+    tq = getabstime();
+    for (j = 1, 6,
+      iferr(knf(knc + 0.8*knr*exp(I*Pi*j/7)), E, 0);
+      iferr(knfi(knc + 0.8*knr*exp(I*Pi*j/7)), E, 0));
+    knslow = max(1, (getabstime() - tq)/12/0.5);
+    if (kndebug, print("kn: Rang ", r, ": ", precision((getabstime() - tq)/12., 3), " ms je Wert der unteren Stufe -> Zeitgrenzen x", precision(knslow, 3))));
   /* Bogenradius: kleinster geschaetzter Aufwand */
   /* exp-081: auch der Mittelpunkt ist frei. Re p ist nur dann gut, wenn p
      weit ueber der Achse liegt; bei b = 10 (Im p = 0.87) muss der Kreis um
@@ -3087,65 +3303,95 @@ knhexinit() = {
      b = 100, dps 20, K 300: Versatz 1.5 Radius 1.45 Rest 3e-31, der alte
      Hauptbogen (Versatz 1.0, Radius 1.3) 1e-13 -- er lag ausserhalb der Liste
      und hatte keinen Nachbarradius. */
-  my(Pprev);
+  my(Pprev, prs = List());
   for (pass = 1, 2,
   if ((pass == 2) && (best[1] != oo), break);
   knreachtol = if (pass == 1, 1.02, 1.15);
   if (pass == 2, rads = concat(rads, [1.45, 1.6]));
-  Pprev = 0;
+  Pprev = 0; nafter = -1;
   for (ic = 1, 7,
-    knc = real(kp) + [0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5][ic]*knr;
-    P = vector(#rads);
+    /* exp-090: ab Rang 8 die Mittelpunkte von rechts nach links und Schluss
+       einen Mittelpunkt nach dem ersten mit brauchbarem Paar -- gewaehlt wurde
+       bisher immer Versatz 1.5 oder 1.25 (Raenge 6, 8, 10, 12 bei b = 2), und
+       die Planung trug 74-87 % aller Aufrufe der unteren Stufen */
+    if ((knrank > 6) && (nafter >= 1), break);
+    knc = real(kp) + [0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5][if (knrank > 6, 8 - ic, ic)]*knr;
+    P = vector(#rads); tslow = 0;
     for (j = 1, #rads,
+      /* exp-089: ab Rang 8 nach dem ersten zu langsamen Radius den Rest dieses
+         Mittelpunkts auslassen -- groessere Radien haben laengere Ketten (b = 2,
+         r = 8, dps 16: 11 Kandidaten liefen in alarm, 31 von 43 s) */
+      if (tslow && (knrank > 6), P[j] = [oo]; next);
       /* alarm: ein haengender Kandidat kostet hoechstens 1 s, ein normaler
          braucht 15-50 ms (alarm gibt dabei ein t_ERROR zurueck statt zu werfen) */
       if (kndebug, print1("kn: plan c = ", precision(knc, 5), " rad = ", rads[j], " ... "));
-      pl = iferr(alarm(1, knplan(rads[j]*knr, target)), E, [oo]);
+      tq = getabstime();
+      pl = iferr(alarm(ceil(knslow), knplan(rads[j]*knr, target)), E, [oo]);
       if (kndebug, print(if (type(pl) == "t_ERROR", "alarm", pl[1]), "  ", getabstime() - t0, " ms"));
+      if ((type(pl) == "t_ERROR") || (getabstime() - tq > 400*knslow), tslow = 1);
       if (type(pl) == "t_ERROR", pl = [oo]);
       P[j] = pl);
     for (j = 1, #rads - 1,
       if ((P[j][1] != oo) && (P[j+1][1] != oo),
         c2 = max(P[j][1], P[j+1][1]);
+        listput(prs, [c2, P[j], P[j+1]]);
         if ((best[1] == oo) || (c2 < max(best[1], pl2[1])),
           best = P[j]; pl2 = P[j+1])));
     if ((pass == 2) && (Pprev != 0),
       for (j = 1, #rads,
         if ((P[j][1] != oo) && (Pprev[j][1] != oo),
           c2 = max(P[j][1], Pprev[j][1]);
+          listput(prs, [c2, P[j], Pprev[j]]);
           if ((best[1] == oo) || (c2 < max(best[1], pl2[1])),
             best = P[j]; pl2 = Pprev[j]))));
+    if (nafter >= 0, nafter++, if (best[1] != oo, nafter = 0));
     Pprev = P));
   knreachtol = 1.02;
   /* knforce = [Bogenanteil, theta-Schwellenanteil, K, N, Mittelpunkt-Versatz] (0 = automatisch), nur fuer Experimente */
   if (type(knforce) == "t_VEC" && knforce[1],
     knc = real(kp) + if (#knforce >= 5, knforce[5], 0)*knr;
     best = knplan(knforce[1]*knr, target);
-    pl2 = knplan((knforce[1] + 0.05)*knr, target));
+    pl2 = knplan((knforce[1] + 0.05)*knr, target);
+    prs = List([[0, best, pl2]]));
   if ((best[1] == oo) || (pl2[1] == oo), error("knhexinit: kein brauchbares Bogenpaar"));
-  knc = best[8];
-  best[2] = max(best[2], pl2[2]); best[3] = max(best[3], pl2[3]);
-  if (type(knforce) == "t_VEC" && knforce[3], best[2] = knforce[3]);
-  if (type(knforce) == "t_VEC" && knforce[4], best[3] = knforce[4]);
-  /* b = 10 (alter Aufbau um Re p): K = 740, 4.3 min bei \p 20 fuer 13.5
-     Stellen -- ueber knmaxk nimmt hexinit Sheldons schnelle Naeherung */
-  /* exp-084: der Plan darf bis 2 knmaxk gehen -- er schaetzt K aus |knc - p|
-     und liegt oft doppelt zu hoch (b = 28: Plan 575, K0 = 287 genuegte); die
-     Vorab-Loesung mit K0 = Plan/2 <= knmaxk misst den wirklichen Bedarf
-     (b = 100, dps 20: Plan 1094) */
-  if (best[2] > 2*knmaxk, error("knhexinit: zu teuer (K = ", best[2], " > 2 knmaxk = ", 2*knmaxk, ")"));
-  hf =if (type(knforce) == "t_VEC" && knforce[2], knforce[2], 0.6);
-  if (kndebug, print("kn: Plan K = ", best[2], " N = ", best[3], " rad = ", precision(best[4]/knr, 3), " c = ", precision(best[8], 5), "  ", getabstime() - t0, " ms"));
-  /* exp-083: K aus einer kleinen Vorab-Loesung (halbes K, ~1/8 der Kosten)
-     statt aus einer vollen ersten Loesung, die bei b = 2 und e ohnehin noch
-     einmal mit groesserem K gerechnet werden musste. Der Planer nimmt |knc - p|
-     als Konvergenzradius; alpha hat naehere Singularitaeten (b = e um
-     knc = -0.18 bei 0.33 +- 1.37 i, Abstand 1.46 statt ~2.5). Gemessen wird
-     das Abfallgesetz log|a_k| ~ a + b k + c log k (knfit), K mit 10 % Reserve. */
-  my(K0 = max(60, best[2]\2), s0, Kn = best[2], ft, Kneed, hc1, hc2, tsw, s3, pl3, c0, cm, rr);
-  hc1 = best[5] + hf*(best[6] - best[5]); hc2 = best[5] + max(0.85, hf + 0.1)*(best[6] - best[5]);
-  s0 = knsolve(best[4], K0, best[3], hc1, hc2);
-  if (kndebug, print("kn: Vorab-Loesung K0 = ", K0, "  ", getabstime() - t0, " ms"));
+  /* exp-091: alle brauchbaren Paare der Kosten nach; scheitert die Vorab-Loesung
+     auf einem (b = 1.85 und 1.9, Rang 8: ein Bildpunkt verlangt die Hexation
+     ausserhalb ihres Kreises, "Newton bleibt nicht im Bogen"), das naechste --
+     hoechstens vier */
+  /* zuerst genau das bisher gewaehlte Paar (Rang 6 unveraendert), dann die
+     uebrigen nach Kosten */
+  prs = concat([[0, best, pl2]], select(e -> (e[2] != best) || (e[3] != pl2), vecsort(Vec(prs), 1)));
+  my(K0, s0 = 0, Kn, ft, Kneed, hc1, hc2, tsw, s3, pl3, c0, cm, rr);
+  for (ip = 1, min(#prs, 4),
+    best = prs[ip][2]; pl2 = prs[ip][3];
+    knc = best[8];
+    best[2] = max(best[2], pl2[2]); best[3] = max(best[3], pl2[3]);
+    if (type(knforce) == "t_VEC" && knforce[3], best[2] = knforce[3]);
+    if (type(knforce) == "t_VEC" && knforce[4], best[3] = knforce[4]);
+    /* b = 10 (alter Aufbau um Re p): K = 740, 4.3 min bei \p 20 fuer 13.5
+       Stellen -- ueber knmaxk nimmt hexinit Sheldons schnelle Naeherung */
+    /* exp-084: der Plan darf bis 2 knmaxk gehen -- er schaetzt K aus |knc - p|
+       und liegt oft doppelt zu hoch (b = 28: Plan 575, K0 = 287 genuegte); die
+       Vorab-Loesung mit K0 = Plan/2 <= knmaxk misst den wirklichen Bedarf
+       (b = 100, dps 20: Plan 1094) */
+    if (best[2] > 2*knmaxk,
+      if (ip == 1, error("knhexinit: zu teuer (K = ", best[2], " > 2 knmaxk = ", 2*knmaxk, ")"));
+      next);
+    hf =if (type(knforce) == "t_VEC" && knforce[2], knforce[2], 0.6);
+    if (kndebug, print("kn: Plan K = ", best[2], " N = ", best[3], " rad = ", precision(best[4]/knr, 3), " c = ", precision(best[8], 5), "  ", getabstime() - t0, " ms, Aufrufe ", hyncalls()));
+    /* exp-083: K aus einer kleinen Vorab-Loesung (halbes K, ~1/8 der Kosten)
+       statt aus einer vollen ersten Loesung, die bei b = 2 und e ohnehin noch
+       einmal mit groesserem K gerechnet werden musste. Der Planer nimmt |knc - p|
+       als Konvergenzradius; alpha hat naehere Singularitaeten (b = e um
+       knc = -0.18 bei 0.33 +- 1.37 i, Abstand 1.46 statt ~2.5). Gemessen wird
+       das Abfallgesetz log|a_k| ~ a + b k + c log k (knfit), K mit 10 % Reserve. */
+    K0 = max(60, best[2]\2); Kn = best[2];
+    hc1 = best[5] + hf*(best[6] - best[5]); hc2 = best[5] + max(0.85, hf + 0.1)*(best[6] - best[5]);
+    s0 = iferr(knsolve(best[4], K0, best[3], hc1, hc2),
+               E, if (kndebug, print("kn: Paar ", ip, " scheitert: ", E)); 0, errname(E) != "e_ALARM");
+    if (type(s0) == "t_VEC", break));
+  if (type(s0) != "t_VEC", error("knhexinit: kein Bogenpaar laesst sich loesen (", min(#prs, 4), " versucht)"));
+  if (kndebug, print("kn: Vorab-Loesung K0 = ", K0, "  ", getabstime() - t0, " ms, Aufrufe ", hyncalls()));
   ft = knfit(s0[1], K0);
   if (ft[2] < 0,
     Kneed = ceil(1.1*knkfor(ft, -(target + 5)*log(10), K0));
@@ -3169,9 +3415,14 @@ knhexinit() = {
   if (s1[5] > 100*s0[5],
     if (kndebug, print("kn: K = ", Kn, " Rest ", precision(s1[5], 3), " schlechter als K0 = ", K0, " -> K0"));
     s1 = s0; Kn = K0; best[2] = K0);
-  if (kndebug, print("kn: erste Loesung  ", getabstime() - t0, " ms"));
+  if (kndebug, print("kn: erste Loesung  ", getabstime() - t0, " ms, Aufrufe ", hyncalls()));
   knc = pl2[8];
-  s2 = knsolve(pl2[4], Kn, best[3], pl2[5] + hf*(pl2[6] - pl2[5]), pl2[5] + max(0.85, hf + 0.1)*(pl2[6] - pl2[5]));
+  /* exp-089: scheitert der zweite Bogen (ab Rang 8: Punkte nahe dem komplexen
+     Fixpunkt der Stufe darunter lassen sich dort nicht umkehren), gilt er als
+     unbrauchbar -- Rest oo, die Ausweichwege unten versuchen andere Boegen */
+  s2 = iferr(knsolve(pl2[4], Kn, best[3], pl2[5] + hf*(pl2[6] - pl2[5]), pl2[5] + max(0.85, hf + 0.1)*(pl2[6] - pl2[5])),
+             E, if (kndebug, print("kn: zweiter Bogen scheitert: ", E)); [0, 0, [0], oo, oo, 0, 0, pl2[8]],
+             errname(E) != "e_ALARM");
   knc = best[8];
   /* exp-084: die Loesung mit dem kleineren Rest wird Hauptloesung, der
      Fehler-Vektor nahm sonst den schlechteren Rest (b = 10, dps 45:
@@ -3196,9 +3447,10 @@ knhexinit() = {
   for (io = 1, 3,
     if (s2[5] <= 100*s1[5], break);
     knc = c0 + [0.125, 0.25, -0.125][io]*knr;
-    pl3 = iferr(alarm(2, knplan(best[4], target)), E, [oo]);
+    pl3 = iferr(alarm(2*ceil(knslow), knplan(best[4], target)), E, [oo]);
     if (type(pl3) == "t_ERROR" || pl3[1] == oo, next);
-    s3 = knsolve(pl3[4], best[2], best[3], pl3[5] + hf*(pl3[6] - pl3[5]), pl3[5] + max(0.85, hf + 0.1)*(pl3[6] - pl3[5]));
+    s3 = iferr(knsolve(pl3[4], best[2], best[3], pl3[5] + hf*(pl3[6] - pl3[5]), pl3[5] + max(0.85, hf + 0.1)*(pl3[6] - pl3[5])),
+               E, [0, 0, [0], oo, oo, 0, 0, knc], errname(E) != "e_ALARM");
     if (kndebug, print("kn: Bogen um c ", precision(knc, 6), ": Rest ", precision(s3[5], 3), " statt ", precision(s2[5], 3)));
     if (s3[5] < s2[5], s2 = s3; pl3[2] = best[2]; pl3[3] = best[3]; pl2 = pl3));
   knc = c0;
@@ -3219,7 +3471,8 @@ knhexinit() = {
       tsw = max(60, Kn\2));
     if (tsw,
       knc = pl2[8];
-      s3 = knsolve(pl2[4], tsw, best[3], pl2[5] + hf*(pl2[6] - pl2[5]), pl2[5] + max(0.85, hf + 0.1)*(pl2[6] - pl2[5]));
+      s3 = iferr(knsolve(pl2[4], tsw, best[3], pl2[5] + hf*(pl2[6] - pl2[5]), pl2[5] + max(0.85, hf + 0.1)*(pl2[6] - pl2[5])),
+                 E, [0, 0, [0], oo, oo, 0, 0, pl2[8]], errname(E) != "e_ALARM");
       knc = best[8];
       if (kndebug, print("kn: zweiter Bogen mit K = ", tsw, ": Rest ", precision(s3[5], 3), " statt ", precision(s2[5], 3)));
       if (s3[5] < s2[5], s2 = s3)));
@@ -3227,6 +3480,7 @@ knhexinit() = {
     tsw = s1; s1 = s2; s2 = tsw;
     tsw = best; best = pl2; pl2 = tsw;
     if (kndebug, print("kn: zweiter Bogen rad = ", precision(best[4]/knr, 3), " wird Hauptloesung")));
+  if (s2[5] == oo, error("knhexinit: kein brauchbarer zweiter Bogen fuer den Fehler-Vektor"));
   best[2] = poldegree(s1[1]); best[3] = #s1[3] - 1;
   knc = s1[8];
   knA = s1[1]; knAd = s1[2]; kncc = s1[3]; knrho = s1[4]; knres = s1[5];
@@ -3237,10 +3491,10 @@ knhexinit() = {
   cm = (s1[8] + s2[8])/2; rr = 0.9*min(best[4], pl2[4]) - abs(s1[8] - s2[8]);
   tst = concat(vector(5, j, cm + (j - 3)/2*rr), [cm + 0.5*rr*exp(Pi*I/3), cm + 0.5*rr*exp(2*Pi*I/3)]);
   for (j = 1, #tst, d = max(d, abs(subst(s1[1], x, (tst[j] - s1[8])/s1[4]) - subst(s2[1], x, (tst[j] - s2[8])/s2[4]))));
-  if (kndebug, print("kn: Fehler-Vektor |s1 - s2| = ", precision(d, 3), ", Rest s1 = ", precision(s1[5], 3), ", s2 = ", precision(s2[5], 3)));
+  if (kndebug, print("kn: Fehler-Vektor |s1 - s2| = ", precision(d, 3), ", Rest s1 = ", precision(s1[5], 3), ", s2 = ", precision(s2[5], 3), ", Aufrufe ", hyncalls()));
   d = max(d, knres);
-  hexerr = if (d == 0, precis, min(precis, precision(-log(d)/log(10), 9)));
-  if (hexerr < 6, error("knhexinit: nur ", precision(hexerr,3), " Stellen -- Fehler-Vektor zu gross"));
+  kd = if (d == 0, precis, min(precis, precision(-log(d)/log(10), 9)));
+  if (kd < 6, error("knhexinit: nur ", precision(kd,3), " Stellen -- Fehler-Vektor zu gross"));
   knt0 = knser(knc);
   /* reelles Fenster fuer knhex: A steigt darauf und ueberstreicht mehr als
      eine Periode (b = e: -3.624 .. -2.591) */
@@ -3248,49 +3502,63 @@ knhexinit() = {
   kntl = real(knser(knxl)); kntr = real(knser(knxr));
   if (kntr - kntl <= 1, error("knhexinit: Fenster deckt keine volle Periode (", precision(kntr - kntl, 5), ")"));
   knpar = [best[2], best[3], best[4]/knr, best[5], best[6], s1[6] + s1[7], getabstime() - t0, s1[6], s1[7], pl2[4]/knr, best[8], knRmeas];
-  hexreg = 2;
+  knS[r] = knpack(r); knSd[r] = kd;
+  if (r == 6, hexerr = kd; hexreg = 2);
   if (quietmode == 0,
-    print("hexation (Kneser) am komplexen Fixpunkt der Pentation p = ", precision(kp, 20));
-    print("  P'(p) = ", precision(klam, 15), "   K = ", best[2], "  N = ", best[3], "  Bogen ", precision(best[4]/knr,3), " Im p");
-    print("  hex precision ", hexerr, " decimal digits (Fehler-Vektor zweier Boegen)"));
+    print("Rang ", r, " (Kneser) am komplexen Fixpunkt von H_", r-1, ": p = ", precision(kp, 20));
+    print("  H_", r-1, "'(p) = ", precision(klam, 15), "   K = ", best[2], "  N = ", best[3], "  Bogen ", precision(best[4]/knr,3), " Im p");
+    print("  ", kd, " Stellen (Fehler-Vektor zweier Boegen)"));
   return(1);
 }
 
-/* alpha(y): mit ipent (rechts) bzw. pent (links) in den Bogen, dann A */
-knihex(y) = {
-  my(k = 0);
-  while (abs(y - knc) > kngood,
-    if (real(y) > knc, y = ipent(y); k++, y = pent(y); k--);
-    if (abs(k) > 200, error("knihex: Punkt laesst sich nicht in den Bogen abbilden")));
-  return(knser(y) + k);
+/* exp-089: Auswertung aus einem Zustand je Rang, damit hoehere gerade
+   Raenge (Kneser auf H_{r-1}) die Hexation nicht ueberschreiben.
+   S = [A, A', Mittelpunkt, rho, Fensterradius, xl, xr, tl, tr, Rang]. */
+knpack(r) = [knA, knAd, knc, knrho, kngood, knxl, knxr, kntl, kntr, r];
+knserS(S, z) = subst(S[1], x, (z - S[3])/S[4]);
+knserdS(S, z) = subst(S[2], x, (z - S[3])/S[4])/S[4];
+/* alpha(y): mit der Umkehrung (rechts) bzw. H_{r-1} (links) in den Bogen, dann A */
+knihexS(S, y) = {
+  my(k = 0, n = 0, r1 = S[10] - 1);
+  /* exp-089: alle Schritte zaehlen, nicht nur k -- nahe dem komplexen
+     Fixpunkt springt y zwischen links und rechts hin und her, ohne das Fenster
+     zu treffen, und k bleibt bei 0 (b = 2, Rang 8 bei -4.086 + 0.707i: hing
+     beim Aufbau von Rang 10 ohne Ende) */
+  while (abs(y - S[3]) > S[5],
+    if (real(y) > S[3], y = hyloinv(r1, y); k++, y = hylo(r1, y); k--);
+    n++;
+    if (n > 200, error("knihex: Punkt laesst sich nicht in den Bogen abbilden (Rang ", S[10], ")")));
+  return(knserS(S, y) + k);
 }
-/* hex(z): k so, dass Re(z) - k im reellen Fenster [kntl, kntr] liegt; dort
+/* H_r(z): k so, dass Re(z) - k im reellen Fenster [tl, tr] liegt; dort
    reelle Loesung per Newton mit Bisektions-Rueckfall (A steigt), fuer
-   komplexes z gedaempfter Newton ab dieser Loesung; dann pent^k bzw. ipent^-k.
+   komplexes z gedaempfter Newton ab dieser Loesung; dann H_{r-1}^k bzw. ^-k.
    Ein ungesicherter Newton aus der Fenstermitte sprang bei b = e schon im
    ersten Schritt ueber den Rand, obwohl die Loesung innen lag. */
-knhex(z) = {
-  my(k, t, tr, a, b, y, fy, dy, yn, tol = 10.0^(-precis+2));
-  k = ceil(real(z) - kntr);
+knhexS(S, z) = {
+  my(k, t, tr, a, b, y, fy, dy, yn, tol = 10.0^(-precis+2), r1 = S[10] - 1);
+  k = ceil(real(z) - S[9]);
   t = z - k; tr = real(t);
-  a = knxl; b = knxr; y = knc;
+  a = S[6]; b = S[7]; y = S[3];
   for (it = 1, 400,
-    fy = real(knser(y)) - tr;
+    fy = real(knserS(S, y)) - tr;
     if (fy > 0, b = y, a = y);
-    yn = y - fy/real(knserd(y));
+    yn = y - fy/real(knserdS(S, y));
     if ((yn <= a) || (yn >= b), yn = (a + b)/2);
     dy = yn - y; y = yn;
     if (abs(dy) < tol, break));
   if (imag(t) != 0,
     for (it = 1, 200,
-      dy = (knser(y) - t)/knserd(y);
+      dy = (knserS(S, y) - t)/knserdS(S, y);
       yn = y - dy;
-      while (abs(yn - knc) > kngood, dy = dy/2; yn = y - dy; if (abs(dy) < tol, error("knhex: Newton bleibt nicht im Bogen")));
+      while (abs(yn - S[3]) > S[5], dy = dy/2; yn = y - dy; if (abs(dy) < tol, error("knhex: Newton bleibt nicht im Bogen")));
       y = yn;
       if (abs(dy) < tol, break)));
-  if (k > 0, for (i = 1, k, y = pent(y)), for (i = 1, -k, y = ipent(y)));
+  if (k > 0, for (i = 1, k, y = hylo(r1, y)), for (i = 1, -k, y = hyloinv(r1, y)));
   return(y);
 }
+knihex(y) = knihexS(knS[6], y);
+knhex(z) = knhexS(knS[6], z);
 
 
 /* ecalle routine is used for base eta cheta and sexpeta functions */

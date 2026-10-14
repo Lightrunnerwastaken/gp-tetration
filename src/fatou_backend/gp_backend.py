@@ -258,6 +258,12 @@ class FatouGPSession:
     def ihex_batch(self, ys: Sequence[GPValue]) -> list[mp.mpc]:
         return self.gp.ihex_batch(self.base, list(ys))
 
+    def hyper_batch(self, rank: int, xs: Sequence[GPValue]) -> list[mp.mpc]:
+        return self.gp.hyper_batch(self.base, rank, list(xs))
+
+    def ihyper_batch(self, rank: int, ys: Sequence[GPValue]) -> list[mp.mpc]:
+        return self.gp.ihyper_batch(self.base, rank, list(ys))
+
 
 @dataclass
 class FatouGP:
@@ -575,3 +581,53 @@ class FatouGP:
         """Estimated hexation digits; above eta5 measured by an error vector."""
         self._require_levels()
         return mp.re(self._run_initialized(base, ["hexensure()"])[0])
+
+    # -- hyperoperations of any integer rank (fork only, exp-088) --------------
+    # H_0 = x+1, H_1 = b+x, H_2 = b*x, H_3 = b^x, H_4 = sexp, H_5 = pentation,
+    # H_6 = hexation; from rank 7 on the fork builds each level from the one
+    # below: odd ranks regular at the left real fixed point of H_{r-1}, even
+    # ranks regular at its attracting fixed point (b < eta_{r-1}) and Kneser
+    # at its complex fixed point above (exp-089). The cost grows steeply with
+    # the rank: b = 2 at dps 20 builds rank 8 in ~2 min, rank 10 in ~4 min.
+
+    @staticmethod
+    def _rank(rank: int) -> int:
+        if isinstance(rank, bool) or not isinstance(rank, int) or rank < 0:
+            raise ValueError(f"rank must be an integer >= 0, not {rank!r}")
+        return rank
+
+    def _require_hyper(self) -> None:
+        if getattr(self, "_hyper_ok", None) is None:
+            text = Path(self.fatou_gp).read_text(encoding="utf-8", errors="replace")
+            self._hyper_ok = "hyensure(" in text
+        if not self._hyper_ok:
+            raise ValueError(
+                f"hyperoperations of any rank need the fork engine (fatou_gp='fork'); "
+                f"{Path(self.fatou_gp).name} has no hyensure().")
+
+    def _hyper_batch(self, base: GPValue, fn: str, rank: int, xs: list[GPValue]) -> list[mp.mpc]:
+        rank = self._rank(rank)
+        self._require_hyper()
+        digits = max(self.dps - 8, 30)
+        return self._run_initialized(
+            base, [f"{fn}({rank}, {_to_gp_number(x, digits)})" for x in xs])
+
+    def hyper_batch(self, base: GPValue, rank: int, xs: list[GPValue]) -> list[mp.mpc]:
+        """H_rank(b, x); rank 4 is sexp, 5 pentation, 6 hexation, and so on."""
+        return self._hyper_batch(base, "hyper", rank, xs)
+
+    def ihyper_batch(self, base: GPValue, rank: int, ys: list[GPValue]) -> list[mp.mpc]:
+        """Inverse of H_rank(b, .) in its second argument."""
+        return self._hyper_batch(base, "ihyper", rank, ys)
+
+    def hyper(self, base: GPValue, rank: int, x: GPValue) -> mp.mpc:
+        return self.hyper_batch(base, rank, [x])[0]
+
+    def ihyper(self, base: GPValue, rank: int, y: GPValue) -> mp.mpc:
+        return self.ihyper_batch(base, rank, [y])[0]
+
+    def hyper_digits(self, base: GPValue, rank: int) -> mp.mpf:
+        """The engine's estimate of correct digits of H_rank for this base."""
+        rank = self._rank(rank)
+        self._require_hyper()
+        return mp.re(self._run_initialized(base, [f"hyperdigits({rank})"])[0])
