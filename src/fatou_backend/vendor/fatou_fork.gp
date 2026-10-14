@@ -2970,7 +2970,11 @@ hypergridval(r, x0, step, i) = {
    bleiben fuer b > eta5 zustaendig. */
 hexreg=0;
 knforce=0;
-knlsqpass=2; knsolvep=2;
+/* exp-094: knlsqpass = 1 (ein MGS-Durchgang, rechte Seite nacheinander, s. knlsq).
+   knsolvep wirkt nicht: PARI rechnet mit der Genauigkeit der Operanden, nicht mit
+   realprecision, und die Matrix hat precis Stellen. */
+knptsf=0.8;  /* Bogenpunkte je Unbekannte in knsolve */
+knlsqpass=1; knsolvep=2; knlsqcond=0;
 knreachtol=1.02;
 kndebug=0;
 knRmeas=0;
@@ -3066,22 +3070,36 @@ regihex(y) = {
    dem Halbzylinder), die die Normierung festlegt. Basis 2, Prototyp exp-078:
    ~26 Stellen bei \p 30, Sheldon 7e-9 daneben. */
 
-/* min |M x - b| per modifiziertem Gram-Schmidt (zweifach) -- ohne die
-   quadrierte Kondition der Normalgleichungen, an denen Basis e scheiterte.
-   PARIs matqr nimmt nur quadratische Matrizen. */
-knlsq(M, b) = {
-  my(m = matsize(M)[1], n = matsize(M)[2], Q = vector(n), R = matrix(n, n), q, r, xs, cb);
+/* min |M x - b| per modifiziertem Gram-Schmidt -- ohne die quadrierte
+   Kondition der Normalgleichungen, an denen Basis e scheiterte. PARIs matqr
+   nimmt nur quadratische Matrizen.
+   exp-094: EIN Durchgang (knlsqpass = 1) und Q^T b NACHEINANDER wie eine
+   weitere Spalte (c_j = q_j.w, w -= c_j q_j). Ein MGS-Durchgang laesst Q um
+   ~ eps*Kondition schief, aber so angewandt ist es Bjoercks rueckwaertsstabile
+   MGS-Loesung; erst als Produkt Q^T b braucht es den zweiten Durchgang.
+   Gemessen b = 2, dps 100, 1275x644: zwei Durchgaenge + Produkt 88 s, Rest
+   |b - Mx| 1.7e-102; ein Durchgang nacheinander 47 s, Rest 1.4e-109, x gleich
+   bis 1e-95. Die Zeit steckt in den k-1 Vektorbefehlen je Spalte im
+   Interpreter, kaum in der Stellenzahl (38/57/77/115 Stellen: 28/32/36/47 s);
+   gekuerzte Zerlegung + Nachbesserung stockt (38 St.: x bis 1e-49, 57 St.:
+   1e-83; Rest ~ eps_f^2) und lohnt nicht. knlsqpass = 2 bleibt als Schalter. */
+knlsq(M, b, passes = knlsqpass) = {
+  my(m = matsize(M)[1], n = matsize(M)[2], Q = vector(n), R = matrix(n, n), q, r, xs, cb, w);
   for (k = 1, n,
     q = M[,k];
-    for (pass = 1, knlsqpass, for (j = 1, k-1, r = Q[j]~ * q; R[j,k] += r; q -= r*Q[j]));
+    for (pass = 1, passes, for (j = 1, k-1, r = Q[j]~ * q; R[j,k] += r; q -= r*Q[j]));
     R[k,k] = sqrt(norml2(q));
     if (R[k,k] == 0, error("knlsq: Spalte ", k, " linear abhaengig"));
     Q[k] = q/R[k,k];
   );
-  cb = vector(n, j, Q[j]~ * b);
-  xs = vector(n);
-  forstep (k = n, 1, -1, xs[k] = (cb[k] - sum(j = k+1, n, R[k,j]*xs[j]))/R[k,k]);
-  return(xs~);
+  cb = vector(n); w = b;
+  for (j = 1, n, cb[j] = Q[j]~ * w; w -= cb[j]*Q[j]);
+  xs = vector(n)~;
+  forstep (k = n, 1, -1, xs[k] = (cb[k] - if (k < n, R[k, k+1..n]*xs[k+1..n], 0))/R[k,k]);
+  /* Groessenordnung der Kondition aus der R-Diagonale (Spalten sind auf
+     Betrag 1 normiert); nur eine untere Schranke, fuer die Ausgabe */
+  knlsqcond = vecmax(vector(n, j, abs(R[j,j])))/vecmin(vector(n, j, abs(R[j,j])));
+  return(xs);
 }
 
 /* regulaere Abel-Funktion an p, Hauptzweig; der Aufrufer macht die Zweige
@@ -3183,7 +3201,7 @@ knplan(rad, target) = {
    Rueckgabe [A(u), A'(u), theta-Koeff., rho, max. Restfehler, #theta, #FE]. */
 knsolve(rad, K, N, hcut, hcut2) = {
   my(pts, W, eqs, U, rows, scl, Mt, bv, cn, sol, A, cc, rho, tp, u1, u2, uk1, uk2, val, e, nx, nk, g, res, nth = 0, nfe = 0, sav, ts = getabstime());
-  pts = knarc(rad, ceil(0.8*(K + 1 + 2*(N + 1))));
+  pts = knarc(rad, ceil(knptsf*(K + 1 + 2*(N + 1))));
   W = knwalk(pts);
   if (kndebug, print("kn:   solve K=", K, " N=", N, " Punkte ", #pts, ": alpha_p ", getabstime() - ts, " ms"));
   eqs = List();
@@ -3232,7 +3250,7 @@ knsolve(rad, K, N, hcut, hcut2) = {
   default(realprecision, ceil(knsolvep*precis));
   sol = knlsq(Mt, bv);
   default(realprecision, sav);
-  if (kndebug, print("kn:   geloest ", getabstime() - ts, " ms"));
+  if (kndebug, print("kn:   geloest ", getabstime() - ts, " ms, log10 R-Diagonale ", precision(log(knlsqcond)/log(10), 4)));
   sol = vector(U, k, precision(sol[k]/cn[k], precis));
   A = sum(k = 1, K + 1, sol[k]*x^(k-1));
   cc = vector(N + 1, n, (sol[K+1+2*n-1] + I*sol[K+1+2*n])/scl[n]);
@@ -3242,7 +3260,7 @@ knsolve(rad, K, N, hcut, hcut2) = {
     val = if (tp == 1, subst(A, x, (eqs[j][2] - knc)/rho) - eqs[j][3] - sum(n = 1, N + 1, cc[n]*knen(eqs[j][3], n-1)),
           subst(A, x, (eqs[j][2] - knc)/rho) - subst(A, x, (eqs[j][3] - knc)/rho) - eqs[j][4]);
     res = max(res, abs(val)));
-  if (kndebug, print("kn:   Rest ", precision(res, 3), "  ", getabstime() - ts, " ms"));
+  if (kndebug, print("kn:   Rest ", precision(res, 3), "  rho/rad ", precision(rho/rad, 5), "  ", getabstime() - ts, " ms"));
   return([A, deriv(A), cc, rho, res, nth, nfe, knc]);
 }
 

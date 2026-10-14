@@ -143,6 +143,49 @@
   4e-49 that come from the engine's sexp (1e-52..1e-55, spikes at particular
   fractional parts of x). More hexation digits need a more accurate sexp.
 
+### Kneser least squares: one Gram-Schmidt pass -- hexation to 110 digits (exp-093/094)
+
+- **The "double solve precision" never acted.** PARI computes with the
+  precision of the operands, not `realprecision`; the Kneser matrix is built
+  at `precis` digits, so `knlsq` ran at `precis` digits whatever `knsolvep`
+  said. That is why 1.5x instead of 2x "solve precision" changed nothing in
+  exp-082.
+- **Mixed precision does not pay (exp-093, withdrawn).** One modified
+  Gram-Schmidt pass on the matrix cut to 38 digits plus iterative refinement
+  looked fine at dps 45, but at dps 100 the refinement stalls: on the same
+  matrix (b = 2, 1275x644) x is right only to 1e-49 with a 38-digit
+  factorisation and to 1e-83 with 57 digits (the floor goes like eps_f^2);
+  77 digits converge. The R-diagonal ratio (1e20) badly underestimates the
+  real condition, so the precision check never fired. That dps-100 build
+  certified only 54 digits -- the limit was this solver, not the system.
+- **What pays: one pass, right-hand side applied column by column.**
+  `knlsq` now does a single MGS pass (`knlsqpass = 1`) and applies Q^T to b
+  the MGS way (c_j = q_j.w, w -= c_j q_j), i.e. b treated as one more
+  column. One MGS pass leaves Q non-orthogonal by ~eps*condition, but used
+  like this it is Bjoerck's backward-stable MGS least squares; only the
+  product Q^T b needed the second pass. The time sits in the interpreter's
+  k-1 vector operations per column, hardly in the digits (one pass at
+  38/57/77/115 digits: 28/32/36/47 s). Same matrix, back to back:
+
+  | case | two passes | one pass | residual two / one | max abs x difference |
+  |---|---|---|---|---|
+  | b = 2, dps 45, 611x310 | 7.0 s | 3.6 s | 4.4e-51 / 4.4e-51 | 3e-46 |
+  | b = e, dps 45, 861x437 | 18.8 s | 10.0 s | 3.4e-52 / 0 | 2e-47 |
+  | b = 2, dps 100, 1275x644 | 88 s | 47 s | 1.7e-102 / 1.4e-109 | 1e-95 |
+
+  Builds at dps 45 give the same digit estimates as before (b = 2 51.0,
+  b = e 53.2). `knlsqpass = 2` stays as a switch.
+- **Kneser hexation b = 2 at dps 100: 110.4 digits in 150 s** (before: 54.2
+  in 8.2 min). Solves reach residuals 4e-111 / 7e-111, error vector
+  2.4e-111. Cross-check: hex(1/2) agrees with a dps-130 build to 1.5e-111
+  (and with the dps-60 build, 71.3 digits, to 1e-73). dps 130: 128.4 digits
+  in 260 s (K = 556, N = 63).
+- `knptsf` (arc points per unknown, default 0.8) is now a variable for
+  experiments; the debug line of `knsolve` shows log10 of the R-diagonal
+  ratio and rho/rad.
+- Tests: full suite 133 passed / 10 skipped; slow hexation and hyper tests
+  22 passed.
+
 ### sexp off the real axis at dps >= 60 (exp-092)
 
 - **Bug (fork only, found by the tetration-graph session):** at dps 60 and
