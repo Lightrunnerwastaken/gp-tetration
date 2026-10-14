@@ -143,6 +143,177 @@
   4e-49 that come from the engine's sexp (1e-52..1e-55, spikes at particular
   fractional parts of x). More hexation digits need a more accurate sexp.
 
+### Calculator: ranks 7 to 10 (exp-091)
+
+- **Rank switch 4 ... 10** (tetration to decation) in
+  `tetration_calculator.html`; the buttons come from the data
+  (`levels[r]`), so more ranks need no template change. Each table carries its
+  kind (1 regular, 2 Kneser). Between two bases of different kind lies a
+  critical base and the page draws no curve there -- octation between 1.83
+  and 1.85 (eta_7 = 1.8398), decation between 1.85 and 1.9.
+- **eta_9 bracketed on the way:** decation is regular at b = 1.85 and Kneser
+  at b = 1.9, so 1.85 < eta_9 < 1.9 (the graph session expects ~1.89).
+- `calc_export_levels.py --ranks 7 8 9 10` over 19 bases 1.5 ... 100, dps 16,
+  9-15 digits per table:
+
+| rank | bases with a table | missing |
+|---|---|---|
+| 7 | 19 | -- |
+| 8, 9 | 17 | 50, 100: the planner finds no arc pair (Im p = 0.44 at b = 50) |
+| 10 | 16 | 20, 50, 100: no series around the fixed point of nonation at 20 |
+
+  Steps 1/32 for ranks 7-8, 1/16 from rank 9; tables start at
+  x = -(r - 2), even ranks at their first real value (b = 2, octation:
+  -5.69). ~40 min in all on the laptop; bases >= 2 take ~1 min each, the
+  small ones 2-3 min (regular even ranks with multipliers near 1).
+- **`hypergridval(r, x0, step, i)`** -- grid values for tables, asked in
+  order: a point whose value one period earlier is known and real costs one
+  step of the rank below, H_r(x + 1) = H_{r-1}(H_r(x)), instead of a chain of
+  its own. b = 1.5, 256 points: rank 8 7.6 s, rank 9 21 s (2-4x faster),
+  agreement with direct values 1e-14 at dps 16.
+- **Fallback arc pairs for Kneser.** The planner keeps every usable pair; if
+  the pre-solve fails on the chosen one -- b = 1.85 and 1.9, rank 8: one image
+  point asks the hexation outside its disc ("Newton bleibt nicht im Bogen") --
+  the next pair by cost is tried, up to four. The first try is exactly the
+  old choice, so the hexation is unchanged. b = 1.85, rank 8: second pair,
+  12.3 digits.
+- Checked in the browser: rank buttons 4-10, values at table bases equal the
+  engine's (H_7 ... H_10 at b = 2, x = 0.5: 1.4872662, 1.4902561, 1.4928111,
+  1.4961951), gaps only between bases of different kind, no console errors.
+- Tests: `test_grid_matches_direct`; full suite 132 passed / 10 skipped; slow hyper and
+  hexation tests 22 passed.
+
+### Speed for high ranks: base 2 up to rank 13 (exp-090)
+
+- **Counted, not timed.** `hycall[r] = [forward, inverse]` counts the calls of
+  every level (`hyncalls()` in the `kndebug` lines). Wall times were useless
+  for a while: another session on the machine ran heavy jobs and killed
+  `gp.exe` processes by name, which ended runs silently with exit code 1.
+- **Where the work goes.** Building octation called the levels below 28 125
+  times, 87 % of them in the arc planning; decation 84 737 times, 74 % in
+  planning. A value of H_r costs about three values of H_{r-1} (b = 2,
+  dps 16: H_7 2.6 ms, H_8 7.3 ms, H_9 22 ms, H_10 69 ms) -- the Kneser
+  evaluation itself is cheap (hexation ~1 ms), the chains through the levels
+  multiply.
+- **Planning from the right.** From rank 8 on the planner tries the centres
+  from right to left and stops one centre after the first that has a usable
+  arc pair; ranks 6, 8, 10 and 12 at b = 2 all chose offset 1.25 or 1.5 Im p.
+  Same plans, same digits; calls for octation 28 125 -> 18 394, decation
+  84 737 -> 53 714. The hexation keeps the full search.
+- **Normalisation further out.** Normalising alpha(1) = 0 walks from 1 into
+  the arc with the inverse of H_{r-1}; the arc of rank r lies near
+  Re ~ -(r - 5), and the old limit of 6 steps (tuned for the hexation)
+  refused rank 12 ("kein reeller Normierungspunkt im Bogen"). Now 60.
+- The oscillation guard of exp-089 was also the largest speed-up: planning
+  candidates whose points hit that loop ran into their time limit every time
+  (octation at dps 20: 122 s -> 47 s).
+- Tried and dropped: a 5-point pre-check of the height profile before the 16
+  planning points -- it rejected almost nothing and added calls (H_7^-1
+  3503 -> 4114).
+
+| rank | dps 16: digits, build | dps 20: digits, build |
+|---|---|---|
+| 8 | 11.5, 16 s | 29.5, 48 s |
+| 9 | 10.0, 1 s | 29.1, 1 s |
+| 10 | 9.7, 28 s | 28.2, 85 s |
+| 11 | 8.5, 5 s | 27.4, 13 s |
+| 12 | 8.1, 29 s | 27.0, 77 s |
+| 13 | 6.9, 30 s | 25.7, 49 s |
+
+  Base 2, each rank on top of the ones below (all up to 13: ~2 min at
+  dps 16, ~5 min at dps 20, measured with another job on the machine). At
+  dps 16 rank 14 is refused because rank 13 carries fewer than 8 digits:
+  there the precision, not the time, ends the tower; at dps 20 the loss is
+  ~0.5-1 digit per rank.
+- Still open: every value of H_r runs chains through all levels below, so its
+  cost grows by ~3 per rank. Local series of the lower levels (a cache of
+  Taylor patches) would cut that; not built.
+- Tests: `test_rank_12_base_2` (slow).
+
+### Kneser for every even rank: octation to decation at base 2 (exp-089)
+
+- **The Kneser construction is now rank-generic.** `knhexinit(r)` builds H_r
+  on H_{r-1}: the construction calls the level below through `knf`/`knfi`
+  (H_{r-1} and its inverse) instead of `pent`/`ipent`, and its result is
+  packed into a state per rank (`knS[r]`). Evaluation (`knhexS`, `knihexS`)
+  runs from that state and reaches the level below through the rank, so
+  building octation on heptation -- which evaluates the hexation all the time
+  -- no longer overwrites the hexation's globals. That is why the
+  tetration-graph session had to copy the whole Kneser code under another
+  prefix (`o8kn*`) for rank 8. `hexreg`/`hexerr` are only touched for rank 6;
+  the hexation is bit-identical to before (b = 2 and e at dps 20: same
+  digits, same values).
+- `hyper(r, x)` uses it for even r above eta_{r-1}: b = 2, r = 8 at the
+  complex fixed point p = -4.29477 + 1.28345i of heptation. Target digits
+  follow the level below; the planner's time limits scale with the measured
+  cost of one value of H_{r-1} (x13 at dps 20), samples 16 instead of 30
+  points per candidate, and skips a centre's larger radii once one of them is
+  too slow (planning at dps 16: 71 -> 32 s).
+- Base 2, against the graph session's values (~14-16 digits):
+
+| rank | dps | digits | build | H_r(2, 0.5) | graph |
+|---|---|---|---|---|---|
+| 8 | 16 | 11.5 | 34 s | 1.4902561240275 | 1.49025612402668 |
+| 8 | 20 | 29.5 | 122 s | 1.49025612402667683627 | 1.49025612402668 |
+| 9 | 20 | 29.1 | +1.9 s | 1.49281110382265611770 | 1.49281110382266 |
+| 10 | 16 | 9.7 | +25 s | 1.4961951115164 | -- |
+| 10 | 20 | 28.2 | +102 s | 1.49619511148591262 | -- |
+
+  Identities H(0) = 1, H(1) = 2, H(2) = H_{r-1}(2) and the round trip hold to
+  ~1e-30 at dps 20. Decation's dps-16 build agrees with the dps-20 one to
+  3e-11 (H(1.5) = 2.61864191104773 at dps 20); the graph session has no
+  value at base 2.
+- **Decation needed two fixes.** The inverse of a Kneser level brings a point
+  into its window by applying H_{r-1} from the left and its inverse from the
+  right. Near the level's complex fixed point the point jumps between left
+  and right without ever hitting the window; the guard counted only the net
+  steps (+1, -1, ...) and never fired -- the rank-10 build hung on octation
+  at -4.086 + 0.707i. All steps are counted now (error after 200). And a
+  second arc that fails this way no longer aborts the build: it counts as
+  unusable and the shifted sibling arcs take over (b = 2, r = 10: the second
+  arc and the first sibling fail, the sibling at c = -4.885 certifies to
+  1.9e-30).
+- Rank 10 at base 2 costs ~4 min at dps 20 (ranks below included); higher ranks need step 4 -- the levels below as local series instead of chains.
+- Tests: full suite 131 passed / 9 skipped; slow tests (octation, nonation, decation at
+  2 and 1.83) 38 passed with FATOU_BACKEND_RUN_SLOW=1 (hyper, hexation, levels, pentation).
+
+### Hyperoperations of any integer rank (exp-088)
+
+- **`hyper(r, x)` / `ihyper(r, y)` in the fork**, r = 0, 1, 2, ...:
+  H_0 = x+1, H_1 = b+x, H_2 = b*x, H_3 = b^x, H_4 = sexp, H_5 = pentation,
+  H_6 = hexation, and from rank 7 on the same recursion H_r(b,0) = 1,
+  H_r(b,x+1) = H_{r-1}(b, H_r(b,x)). Each level is built from the one below:
+  odd ranks by regular iteration at the left real fixed point of H_{r-1}
+  (repelling for H_{r-1}, as the pentation at the fixed point of sexp; b = 2,
+  r = 7: p = -3.6994, multiplier 9.49), even ranks at its attracting real
+  fixed point while there is one (b < eta_{r-1}; eta_6 = 1.7991,
+  eta_7 = 1.8398, eta_8 = 1.8681). Even ranks above eta_{r-1} raise: their
+  Kneser construction is not in the fork yet. State per rank in vectors, so
+  nested ranks do not overwrite each other; lazy initialisation per (base,
+  precision) like `pentx`/`hexx`. The construction follows the
+  tetration-graph session's `hyper.gp` (12.10.2026), with radius search,
+  series cleaning (`pentclean`) and an error estimate like `pentinit`'s.
+- Checked at dps 20 against that session's independent values:
+  H_7(2, 0.5) = 1.4872661556019864, H_7(2, 1.5) = 2.6516179965226069
+  (theirs 1.48726615560199, 2.65161799652261); H_10(1.83, 0.5) =
+  1.4567116144379456, H_10(1.83, 1.5) = 2.0842795704106401 (theirs 1.4567116,
+  2.0842796 from backward Koenigs iteration).
+
+| base | ranks | digits (dps 20) | init of the top rank |
+|---|---|---|---|
+| 2 | 7 | 29.6 | 0.3 s |
+| 1.83 | 7 / 8 / 9 / 10 | 33.0 / 32.7 / 29.7 / 29.5 | 0.3 / 2.3 / 10 / 53 s |
+| 1.5 | 7 / 8 / 9 / 10 | 32.8 / 31.7 / 29.8 / 29.8 | 0.4 / 0.7 / 13 / 69 s |
+| 6/5 | 7 / 8 / 9 | 32.7 / 31.4 / 30.1 | 1.3 / 7.2 / 38 s |
+
+  The cost grows by a factor ~5 per rank: every value of H_r runs a chain of
+  H_{r-1} values, each with its own chain below.
+- Complex bases stop at the hexation (Sheldon's approximation, ~1 digit at
+  2+i/2): rank 7 refuses to build on fewer than 8 digits below.
+- Python: `FatouGP.hyper(base, rank, x)`, `ihyper`, `hyper_batch`,
+  `ihyper_batch`, `hyper_digits(base, rank)`; CLI `hyper` / `ihyper --rank r`.
+- Tests: `tests/test_hyper.py` (decation at 1.83 with FATOU_BACKEND_RUN_SLOW=1).
+
 ### Kneser hexation: wider planning for large bases (exp-087)
 
 - The relaxed planning pass -- reached only by bases where no arc keeps its

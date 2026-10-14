@@ -36,6 +36,21 @@ KNMAXK = 600       # exp-081/083: centre planning makes b = 10 cost K ~ 200
 HEX_BMAX = 105.0    # b = 100 works since exp-084 (series around p needs
                     # sr = 1/256; 12.1 digits at dps 16) -- the whole grid
 HEX_MIN_DIGITS = 5
+# exp-091: ranks 7, 8, ... -- the curves overflow float64 beyond x ~ 1.4.
+# Probe at dps 16 (ranks 7-10): every base 1.5 ... 10 reaches rank 10 with
+# 9-14 digits; b = 20 stops at rank 9 (no series around the fixed point of
+# nonation). Bases >= 2 cost ~1 min each (Kneser even ranks, short chains),
+# 1.5 ... 1.8 ~2-3 min (regular even ranks with multipliers near 1, long
+# chains). Denser around eta_7 = 1.83976, where octation changes kind.
+XMAX_RANK = 3.0
+RANK_BASES = [1.5, 1.6, 1.7, 1.75, 1.8, 1.83, 1.85, 1.9, 2.0, 2.3, 2.718281828459045,
+              3.2, 4.0, 5.0, 7.0, 10.0, 20.0, 50.0, 100.0]
+
+
+def rank_step(rank: int) -> float:
+    # ranks 9 and up: each value costs a step of the rank below; 1/16 halves
+    # the cost, the monotone cubic in symlog space keeps ~5 digits
+    return STEP if rank <= 8 else 2*STEP
 
 
 class SmallGP(FatouGP):
@@ -71,6 +86,69 @@ def sample(gp: FatouGP, base: str, fn: str, x0: float, x1: float) -> list:
     return out
 
 
+def sample_rank(gp: FatouGP, base: str, rank: int) -> tuple[float, list]:
+    """H_rank on [-(rank - 1), XMAX_RANK] at STEP: the leading values that are
+    not real (even ranks leave the real axis on the left, around
+    x = -(rank - 3)) are dropped, the table starts at the first real one and
+    ends before the first value that is not finite."""
+    x_start = -(rank - 2.0)
+    step = rank_step(rank)
+    n = int(round((XMAX_RANK - x_start)/step)) + 1
+    # hypergridval: in order, one step of H_{rank-1} from the point one period
+    # earlier instead of a full chain per point
+    exprs = [f'(v->if(type(v)=="t_ERROR",{SENTINEL},v))'
+             f"(iferr(alarm(20, hypergridval({rank}, {x_start}, {step}, {i + 1})), E, {SENTINEL}))"
+             for i in range(n)]
+    vals = []
+    for v in gp.eval_batch(base, exprs):
+        re, im = float(mp.re(v)), float(mp.im(v))
+        ok = math.isfinite(re) and abs(re) <= 1e300 and abs(im) <= 1e-9*max(1.0, abs(re))
+        vals.append(re if ok else None)
+    first = next((i for i, v in enumerate(vals) if v is not None), len(vals))
+    vals = vals[first:]
+    if None in vals:
+        vals = vals[:vals.index(None)]
+    return x_start + first*step, vals
+
+
+def export_ranks(args, data: dict) -> None:
+    """exp-091: tables for ranks 7, 8, ... in data["levels"][str(rank)], merged
+    by base. One engine per base builds the ranks in turn (each needs the one
+    below); a rank that fails or carries fewer than HEX_MIN_DIGITS digits ends
+    that base's tower."""
+    levels = data.setdefault("levels", {})
+    for b in (args.bases or RANK_BASES):
+        with SmallGP(fatou_gp="fork", dps=args.dps, eval_timeout=3600.0) as gp:
+            base = repr(b)
+            for r in sorted(args.ranks):
+                t0 = time.time()
+                try:
+                    d = float(gp.hyper_digits(base, r))
+                    if d < HEX_MIN_DIGITS:
+                        print(f"b={b} r={r}: only {d:.1f} digits -- tower ends", flush=True)
+                        break
+                    kind = int(mp.re(gp.eval_batch(base, [f"hykind[{r}]"])[0]))
+                    t1 = time.time()
+                    x0, v = sample_rank(gp, base, r)
+                except Exception as exc:  # one bad base/rank must not cost the rest
+                    print(f"b={b} r={r}: FEHLER {str(exc)[:200]}", flush=True)
+                    break
+                entry = {"b": b, "x0": x0, "step": rank_step(r), "v": v, "digits": round(d, 1), "kind": kind}
+                tab = [e for e in levels.get(str(r), []) if e["b"] != b] + [entry]
+                levels[str(r)] = sorted(tab, key=lambda e: e["b"])
+                print(f"b={b} r={r}: {d:.1f} digits, kind {kind}, build {t1 - t0:.1f}s, "
+                      f"{len(v)} pts from x = {x0} in {time.time() - t1:.1f}s", flush=True)
+
+
+def write_outputs(data: dict) -> None:
+    data_path = HERE / "calc_data.json"
+    data_path.write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
+    template = (HERE / "calc_template.html").read_text(encoding="utf-8")
+    html = template.replace("__DATA__", json.dumps(data, separators=(",", ":")))
+    (HERE / "tetration_calculator.html").write_text(html, encoding="utf-8")
+    print(f"wrote calc_data.json and tetration_calculator.html ({len(html)//1024} KB)")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--bases", nargs="*", type=float)
@@ -79,12 +157,20 @@ def main() -> None:
     ap.add_argument("--merge", action="store_true",
                     help="add/replace only the given --bases in the existing tables, "
                          "with hexation for every one of them")
+    ap.add_argument("--ranks", nargs="*", type=int,
+                    help="exp-091: tables for these ranks (7, 8, ...) instead of pentation "
+                         "and hexation; --bases defaults to RANK_BASES")
     args = ap.parse_args()
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     mp.mp.dps = 40
 
     data_path = HERE / "calc_data.json"
     data = json.loads(data_path.read_text(encoding="utf-8"))
+    if args.ranks:
+        export_ranks(args, data)
+        if not args.dry_run:
+            write_outputs(data)
+        return
     bases = args.bases or sorted({e["b"] for e in data["bases"]} | set(EXTRA))
 
     pent, hexa = [], []

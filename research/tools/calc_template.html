@@ -22,6 +22,7 @@
   button { font: inherit; padding: 2px 10px; border-radius: 6px; border: 1px solid
            color-mix(in srgb, CanvasText 30%, transparent); background: transparent; color: inherit; cursor: pointer; }
   button.on { background: color-mix(in srgb, CanvasText 15%, transparent); }
+  .lvrow { display: flex; gap: 6px; flex-wrap: wrap; }
 </style>
 </head>
 <body>
@@ -33,10 +34,12 @@
   <button id="logy">log-y</button>
 </div>
 <div class="row">
-  <label>Level</label>
-  <button id="lv4" class="on">tetration b↑↑x</button>
-  <button id="lv5">pentation b↑↑↑x</button>
-  <button id="lv6">hexation b↑↑↑↑x</button>
+  <label>Rank</label>
+  <span id="lvbuttons" class="lvrow">
+    <button id="lv4" class="on" title="tetration b↑↑x">4 tetration</button>
+    <button id="lv5" title="pentation b↑↑↑x">5 pentation</button>
+    <button id="lv6" title="hexation b↑↑↑↑x">6 hexation</button>
+  </span>
 </div>
 <canvas id="plot" width="1600" height="900"></canvas>
 <div class="row">
@@ -44,7 +47,7 @@
   <input type="range" id="xmax" min="1" max="45" value="20">
 </div>
 <div class="readout" id="readout">Move the mouse over the plot to read values.</div>
-<div class="foot">Pentation and hexation: curves precomputed with the fork on the base grid (regular pentation at the fixed point of sexp_b on (−2,−1); hexation regular below η₅ = 1.73736, Kneser above), ~6 digits at grid bases, less between them.<br>Engine: gp-tetration base atlas (Kneser tetration, fatou.gp by Sheldonison; fork + atlas 2026).
+<div class="foot">Ranks 5 and up: curves precomputed with the fork on a grid of bases. Odd ranks are the regular iteration at the left real fixed point of the rank below (pentation at the fixed point of sexp_b on (−2,−1)); even ranks are regular below their critical base (η₅ = 1.73736 for the hexation, η₇ = 1.83976 for the octation) and Kneser above. ~6 digits at table bases, less between them; no curve between two bases on different sides of a critical base.<br>Engine: gp-tetration base atlas (Kneser tetration, fatou.gp by Sheldonison; fork + atlas 2026).
 Accuracy of this demo: ~7–9 digits at table bases (incl. b = 2, e, 10), ~4–5 digits between them, ~2–3 near the edge b→e^{1/e}; the underlying library delivers up to 972 proven digits.</div>
 <script id="calcdata" type="application/json">__DATA__</script>
 <script>
@@ -178,7 +181,11 @@ function fmtVal(v) {
 // grid points: monotone cubic (mono) in symlog space; between bases: linear
 // in lnln b. Hexation is bounded below
 // eta5 = 1.7373559 and unbounded above -- never interpolated across it.
+// Ranks 7, 8, ... (exp-091): D.levels[r] = tables like pent/hex plus "kind"
+// (1 regular, 2 Kneser). Even ranks change kind at eta_{r-1}; two neighbouring
+// tables of different kind have that threshold between them -- no curve there.
 const LVT = { 5: D.pent || [], 6: D.hex || [] };
+for (const r of Object.keys(D.levels || {})) LVT[+r] = D.levels[r];
 const ETA5 = D.eta5 || 1.7373559251516875;
 function unsym(t) { return Math.sign(t) * (Math.pow(10, Math.abs(t)) - 1); }
 function tableAt(e, x) {                   // symlog value of one base's curve, or NaN / Infinity
@@ -207,6 +214,11 @@ function levelSym(level, b, x) {           // symlog of b^^^x / b^^^^x
   if (tab.length === 1 || s <= sLo) return tableAt(tab[0], x);
   if (i === tab.length - 1) return tableAt(tab[i], x);
   const s0 = LN(LN(tab[i].b)), s1 = LN(LN(tab[i+1].b));
+  if (level > 6 && tab[i].kind !== tab[i+1].kind) {    // eta_{level-1} lies between them
+    if (Math.abs(s - s0) < 1e-9) return tableAt(tab[i], x);
+    if (Math.abs(s - s1) < 1e-9) return tableAt(tab[i+1], x);
+    return NaN;
+  }
   const w = Math.max(0, Math.min(1, (s - s0) / (s1 - s0)));
   const a = tableAt(tab[i], x), c = tableAt(tab[i+1], x);
   if (!isFinite(a) || !isFinite(c)) return (a === Infinity || c === Infinity) ? Infinity : NaN;
@@ -218,6 +230,19 @@ function levelVal(level, b, x) {
 }
 const LVNAME = { 4: "sexp_b(x)", 5: "b↑↑↑x", 6: "b↑↑↑↑x" };
 const LVXMIN = { 4: -2, 5: -5, 6: -2.96875 };
+const RANKWORD = { 7: "heptation", 8: "octation", 9: "nonation", 10: "decation",
+                   11: "rank 11", 12: "rank 12", 13: "rank 13" };
+const SUB = n => String(n).replace(/\d/g, d => "₀₁₂₃₄₅₆₇₈₉"[d]);
+const RANKS = [4, 5, 6].concat(Object.keys(D.levels || {}).map(Number).sort((a, b) => a - b));
+for (const r of RANKS) if (r > 6) {
+  LVNAME[r] = "H" + SUB(r) + "(b, x)";
+  LVXMIN[r] = Math.max(-8, Math.min(...LVT[r].map(e => e.x0)));
+  const bt = document.createElement("button");
+  bt.id = "lv" + r; bt.textContent = r + " " + (RANKWORD[r] || "rank " + r);
+  bt.title = "H" + SUB(r) + "(b, x): " + (r % 2 ? "regular at the left real fixed point of H" + SUB(r - 1)
+           : "regular below the critical base, Kneser above");
+  document.getElementById("lvbuttons").appendChild(bt);
+}
 let level = 4;
 
 // --- UI ---
@@ -345,10 +370,10 @@ function update() {
 bslider.addEventListener("input", update);
 xmaxEl.addEventListener("input", update);
 logyBtn.addEventListener("click", () => { logy = !logy; logyBtn.classList.toggle("on", logy); draw(); });
-for (const lv of [4, 5, 6]) {
+for (const lv of RANKS) {
   document.getElementById("lv" + lv).addEventListener("click", () => {
     level = lv;
-    for (const k of [4, 5, 6]) document.getElementById("lv" + k).classList.toggle("on", k === lv);
+    for (const k of RANKS) document.getElementById("lv" + k).classList.toggle("on", k === lv);
     update();
   });
 }
