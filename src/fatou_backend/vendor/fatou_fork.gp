@@ -1364,6 +1364,23 @@ betterest(z,est,n) = {
   return([est,p,curyz]);
 }
 
+/* exp-092: ct am Rand seines Abtastkreises auswerten -- am Fixpunkt L bzw. L2,
+   |L - circc| = circr. Die Groesse ist nur die Startschaetzung fuer betterest.
+   Bei dps 40 (Grad 256) fallen die Glieder dort bis ~1e-5; bei dps 60 (Grad
+   512) wachsen sie auf 1e23, exp(y/rlnlm) lief ueber, und sexp(z) brach fuer
+   jedes z mit Im z > invabeli ab ("overflow in expo()", b = e, z = 0.5+0.3i;
+   gefunden von der Wissensgraph-Sitzung). Ist der Schwanz klein, wie bisher die
+   volle Summe; sonst die Summe bis zum kleinsten Glied der Huellkurve
+   (optimale Abbruchstelle einer Reihe am Rand ihres Kreises). */
+ctedge(w) = {
+  my(n = poldegree(ct), t, tail, env, jmin);
+  t = vector(n + 1, j, polcoeff(ct, j - 1)*w^(j - 1));
+  tail = vecmax(vector(min(10, n + 1), j, abs(t[n + 2 - j])));
+  if (tail < 1e-3, return(vecsum(t)));
+  env = vector(n + 1, j, vecmax(vector(min(5, n + 2 - j), i, abs(t[j + i - 1]))));
+  jmin = 1; for (j = 2, n + 1, if (env[j] < env[jmin], jmin = j));
+  return(vecsum(t[1..jmin]));
+}
 invabel(z,est) = {
   local (t,tc,y,curyz,nest,estp,estn);
   subetaguard("invabel");
@@ -1390,7 +1407,7 @@ invabel(z,est) = {
       /* abel(z) = abelest(z-k/2,ct) - 1/2                             */
       /* abel(z) = log(z-L)*rlnlm + log(z-L2)*rlnlm2 + subst(e,x,z-k/2) - 1/2   */
 
-      y = z - log(L-L2)*rlnlm2 - subst(ct,x,(L-circc)) - sfunczero;
+      y = z - log(L-L2)*rlnlm2 - ctedge(L-circc) - sfunczero;
       est = exp(y/rlnlm)+L;
 
       if (argc<1.45, nest=betterest(z,est,3), nest=betterest(z,est,0)); /* use old algorithm for argc>1.45, for theta mapping */
@@ -1409,7 +1426,7 @@ invabel(z,est) = {
 
     , if ((imag(z)<-invabeli),
 
-      y = z - log(L2-L)*rlnlm - subst(ct,x,(L2-circc)) - sfunczero;
+      y = z - log(L2-L)*rlnlm - ctedge(L2-circc) - sfunczero;
       est = exp(y/rlnlm2)+L2;
 
       if (argc<1.45, nest=betterest(z,est,3), nest=betterest(z,est,0)); /* use old algorithm for argc>1.45, for theta mapping */

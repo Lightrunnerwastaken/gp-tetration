@@ -194,5 +194,36 @@ class ForkEngineTests(unittest.TestCase):
                                 f"fork roundtrip broken for base {base}")
 
 
+class ComplexHeightTests(unittest.TestCase):
+    """exp-092: sexp(z) off the real axis at dps >= 60.
+
+    invabel starts its Newton search for Im z > invabeli from the Taylor
+    series ct evaluated at the fixed point L -- on the rim of the circle the
+    series was sampled on. At dps 40 (degree 256) its terms there fall to
+    ~1e-5; at dps 60 (degree 512) they grow to 1e23, exp() overflowed and
+    sexp(0.5 + 0.3i) failed at base e (found by the tetration-graph session).
+    Measured after the fix: dps 60 against dps 80 agrees to ~3e-74.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        mp.mp.dps = 120
+        cls.f60 = FatouGP(gp_exe=find_default_gp_exe(), fatou_gp="fork", dps=60)
+        cls.f80 = FatouGP(gp_exe=find_default_gp_exe(), fatou_gp="fork", dps=80)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.f60.close()
+        cls.f80.close()
+
+    def test_sexp_off_the_axis_at_dps_60(self) -> None:
+        zs = [mp.mpc("0.5", "0.3"), mp.mpc("-0.5", "0.5"), mp.mpc("1.5", "1.0"), mp.mpc("0.5", "-0.4")]
+        a = self.f60.sexp_batch("e", zs)
+        b = self.f80.sexp_batch("e", zs)
+        for z, u, v in zip(zs, a, b):
+            with self.subTest(z=str(z)):
+                self.assertLess(abs(u - v), mp.mpf("1e-70"))
+
+
 if __name__ == "__main__":
     unittest.main()

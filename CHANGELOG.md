@@ -143,6 +143,35 @@
   4e-49 that come from the engine's sexp (1e-52..1e-55, spikes at particular
   fractional parts of x). More hexation digits need a more accurate sexp.
 
+### sexp off the real axis at dps >= 60 (exp-092)
+
+- **Bug (fork only, found by the tetration-graph session):** at dps 60 and
+  above, `sexp(z)` failed for every z with Im z > `invabeli` = 1/4 --
+  "exp: overflow in expo()" at base e, z = 0.5 + 0.3i, and the same at
+  -0.5 + 0.5i, 1.5 + i, 0.5 - 0.4i. dps 40 and Im z <= 0.2 were fine. The
+  original fatou.gp computes these points; the fork state before this
+  session (20a0f6a) already failed.
+- **Cause:** for points off the axis, `invabel` starts its Newton search
+  from an estimate that evaluates the Taylor series `ct` at the fixed point
+  L -- on the rim of the circle the series was sampled on (|L - circc| =
+  circr). The fork builds `ct` with reduced-precision incremental extraction
+  and per-radius truncation (exp-027, exp-048); its high coefficients are
+  noise, harmless inside the circle, but amplified on the rim. Terms of
+  c_k (L - circc)^k there: dps 40 (degree 256) down to ~1e-5; dps 60
+  (degree 512) up to 1e23, so the estimate exp(y/rlnlm) overflowed; dps 80
+  also broken (sum 5e4). The original's series (degree 636 at dps 60) has a
+  tail of 1e-13.
+- **Fix:** `ctedge(w)` -- if the tail on the rim is small (< 1e-3), the full
+  sum as before (dps <= 50 unchanged); otherwise the sum up to the smallest
+  term of the smoothed envelope, the optimal truncation of a series on its
+  rim. At dps 60 it gives -0.0032808109 - 0.0384325598i, the original's
+  value to 2e-12; `betterest` refines from there.
+- After the fix, base e: dps 60 against dps 80 agrees to ~3e-74, dps 40
+  against dps 80 to ~3e-54, and the value at 0.5 + 0.3i equals the
+  original's. Gate PASS with unchanged values; full suite 133 passed /
+  10 skipped; slow level tests 40 passed. New test:
+  `test_fork_engine.py::ComplexHeightTests`.
+
 ### Calculator: ranks 7 to 10 (exp-091)
 
 - **Rank switch 4 ... 10** (tetration to decation) in
