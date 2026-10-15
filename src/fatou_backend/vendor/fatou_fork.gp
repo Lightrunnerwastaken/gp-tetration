@@ -2975,6 +2975,12 @@ knforce=0;
    realprecision, und die Matrix hat precis Stellen. */
 knptsf=0.8;  /* Bogenpunkte je Unbekannte in knsolve */
 knlsqpass=1; knsolvep=2; knlsqcond=0;
+/* exp-095: knmode = 1 loest jeden Bogen per Wiederholung (knisolve, wie loop()
+   in fatou.gp) statt per Ausgleichsrechnung (knsolvelsq); knmaxki ersetzt dann
+   knmaxk. Regler: Kreispunkte je Glied, Grenze |Bild|/R fuer die
+   Funktionalgleichung, Anderson-Tiefe, hoechstens so viele Schritte. */
+knmode=1; knfast=0; knmaxki=3000; knis=0.7; kniqmax=0.92; kniumax=0.9; knimem=20; knimaxit=300;
+kpsi=0; kur=0; kntarget=0; knistat=0;
 knreachtol=1.02;
 kndebug=0;
 knRmeas=0;
@@ -3159,7 +3165,7 @@ knserd(z) = subst(knAd, x, (z - knc)/knrho)/knrho;
 knplan(rad, target) = {
   /* exp-089: ab Rang 8 16 statt 30 Probepunkte -- jeder kostet dort eine
      Kette in H_{r-1} (b = 2, r = 8, dps 16: Planung 88 von 90 s) */
-  my(pts = knarc(rad, if (knrank > 6, 16, 30)), W, h, hmin, htop, hc2, g, reach, K, N, hc, xl, tp = getabstime());
+  my(pts = knarc(rad, if (knfast, 16, 30)), W, h, hmin, htop, hc2, g, reach, K, N, hc, xl, tp = getabstime());
   W = knwalk(pts);
   h = vector(#W, j, kns*imag(W[j]));
   hmin = vecmin(h); htop = vecmax(h);
@@ -3200,6 +3206,13 @@ knplan(rad, target) = {
    um 2e-21 falsche Reihe alle Gleichungen auf 1e-32.
    Rueckgabe [A(u), A'(u), theta-Koeff., rho, max. Restfehler, #theta, #FE]. */
 knsolve(rad, K, N, hcut, hcut2) = {
+  if (!knmode, return(knsolvelsq(rad, K, N, hcut, hcut2)));
+  /* exp-095: scheitert die Wiederholung auf diesem Bogen, die Ausgleichsrechnung */
+  return(iferr(knisolve(rad, K), E,
+               if (kndebug, print("kn:   Wiederholung scheitert (", E, "), Ausgleichsrechnung"));
+               knsolvelsq(rad, min(K, knmaxk), N, hcut, hcut2), errname(E) != "e_ALARM"));
+}
+knsolvelsq(rad, K, N, hcut, hcut2) = {
   my(pts, W, eqs, U, rows, scl, Mt, bv, cn, sol, A, cc, rho, tp, u1, u2, uk1, uk2, val, e, nx, nk, g, res, nth = 0, nfe = 0, sav, ts = getabstime());
   pts = knarc(rad, ceil(knptsf*(K + 1 + 2*(N + 1))));
   W = knwalk(pts);
@@ -3264,6 +3277,137 @@ knsolve(rad, K, N, hcut, hcut2) = {
   return([A, deriv(A), cc, rho, res, nth, nfe, knc]);
 }
 
+/* exp-095: Kneser als Wiederholung, nach loop()/staylor()/thtaylor() in fatou.gp.
+   A(u) = sum a_k u^k, u = (z - c)/R, reell. Ein Schritt:
+     theta  aus A an Mt Punkten EINER Periode w = wre + j/Mt + i s hth im Kreis
+            (z = alpha_p^-1(w)): t_j = A(z_j) - w_j, DFT, nur n >= 0 behalten;
+     Werte  auf dem oberen Halbkreis |u| = 1: nahe der Achse A(g) +- 1 mit dem Bild
+            g = ipent/pent z, sofern |g - c| <= kniqmax R; sonst W + theta(W),
+            W = alpha_p(z);
+     Glieder per DFT der Kreiswerte (unten konjugiert), dann A(1) = 0.
+   Alles, was nicht von A abhaengt (Kreispunkte, alpha_p, Bilder, theta-Punkte,
+   DFT-Matrizen), wird einmal aufgebaut; ein Schritt sind nur Polynomwerte und
+   zwei Matrix-Vektor-Produkte. Die Abbildung ist affin, Anderson-Beschleunigung
+   (Tiefe knimem, entspricht GMRES) statt einfacher Wiederholung: b = 2, dps 40,
+   20 statt 101 Schritte. Die Reihe wird nach jedem Schritt auf precis Stellen
+   gesetzt (wie ct in loop()): sonst speichert PARI die winzigen hohen Glieder mit
+   weniger Woertern, und der Verlust steckt die naechsten Schritte an (gemessen
+   57 -> 38 -> 19 Stellen, Boden 3e-22 statt 1e-51).
+   Gemessen b = 2, dps 100, R = 0.65 Im p, K 500: 30 Schritte, 17.5 s (davon 12.8 s
+   Aufbau) gegen 206 s fuer die Ausgleichsrechnung, beide ~110.5 Stellen. */
+knainv(w) = {
+  my(m = max(0, ceil((real(klog*w) - log(kur))/real(klog))), z);
+  z = kp + subst(kpsi, x, exp(klog*(w - m)));
+  for (i = 1, m, z = knf(z));
+  return(z);
+}
+knimap(P, a) = {
+  my(A = Polrev(a), S = P[3], v = vector(S), tj, thv, An);
+  tj = vector(#P[10], j, subst(A, x, P[10][j]) - P[11][j]);
+  thv = P[14]*(P[13]*tj~);
+  for (s = 1, S, if (P[5][s] == 2, v[s] = subst(A, x, P[6][s]) + P[7][s]));
+  for (i = 1, #P[8], v[P[8][i]] = P[9][i] + thv[i]);
+  An = real(P[12]*v~)/S;
+  An[1] -= subst(Polrev(An), x, P[15]) + P[16];
+  return(precision(An, precis));
+}
+/* Urbilder der theta-Linie w = wre + j/Mt + i s hth; 0, wenn eines scheitert
+   oder ausserhalb von |u| <= kniumax liegt */
+knitline(c, R, wre, hth, Mt) = {
+  my(z = vector(Mt));
+  for (j = 1, Mt,
+    z[j] = iferr(knainv(wre + (j - 1)/Mt + I*kns*hth), E, oo, errname(E) != "e_ALARM");
+    if ((z[j] == oo) || (abs(z[j] - c)/R > kniumax), return(0)));
+  return(z);
+}
+knisolve(rad, K) = {
+  my(c = knc, R = rad, S, phi, zs, Ws, hs, hmin, htop, typ, ug, sg, g, q, nfe = 0, Wth = List(), ith = List(),
+     hth, wre = 0, found = 0, tlo, thi, nt, us, mx, best, Mt, Nt, wj, zj, uj, nx, nk, E, eth, eW, P, a, gv, f, fn,
+     Fs = List(), Gs = List(), dF, dG, gam, fbest = oo, nst = 0, tol, it, A, tj, cc, res, val, ts = getabstime(), tg,
+     tgt = if (kntarget, kntarget, precis));
+  S = max(32, ceil(knis*(K + 1)));
+  phi = vector(S, s, Pi*(s - 1/2)/S);
+  zs = vector(S, s, c + R*exp(I*phi[s]));
+  Ws = knwalk(zs);
+  hs = vector(S, s, kns*imag(Ws[s])); hmin = vecmin(hs);
+  typ = vector(S); ug = vector(S); sg = vector(S);
+  for (s = 1, S,
+    g = iferr(if (real(zs[s]) > c, knfi(zs[s]), knf(zs[s])), E, oo, errname(E) != "e_ALARM");
+    q = if (g == oo, oo, abs(g - c)/R);
+    if (q <= kniqmax, typ[s] = 2; ug[s] = (g - c)/R; sg[s] = if (real(zs[s]) > c, 1, -1); nfe++,
+                      typ[s] = 1; listput(Wth, Ws[s]); listput(ith, s)));
+  if ((#Wth == 0) || (nfe == 0), error("knisolve: Kreis ohne theta- oder FE-Teil (", #Wth, "/", nfe, ")"));
+  htop = vecmin(vector(#ith, i, hs[ith[i]]));
+  tg = getabstime() - ts;
+  /* theta-Linie: eine Periode auf der Hoehe hth knapp unter dem theta-Teil des
+     Kreises, deren Urbilder im Kreis liegen (|u| <= kniumax); das Fenster mit
+     dem kleinsten groessten |u| */
+  tlo = vecmin(vector(#Wth, i, real(Wth[i]))) - 1; thi = vecmax(vector(#Wth, i, real(Wth[i]))) + 1;
+  nt = ceil(16*(thi - tlo)) + 1;
+  hth = htop - 0.1;
+  /* je Hoehe zuerst die Periode um die Mitte des theta-Teils, sonst das beste
+     Fenster aus einem 1/16-Raster; angenommen wird erst, wenn ALLE Mt Urbilder
+     gelingen und im Kreis liegen (b = 2, Rang 8: ein einzelnes H_7 an der
+     Linie scheiterte zwischen den Probepunkten und brach den Aufbau ab) */
+  while ((!found) && (hth > hmin + 0.3),
+    /* theta faellt wie e^(-2 pi n (h - hs)), hs ~ hmin - 0.25 (Ecken der reellen Kurve, exp-082) */
+    Mt = 8*ceil(2*ceil((tgt + 10)*log(10)/(2*Pi*(hth - hmin + 0.25)))/8);
+    wre = (tlo + thi)/2 - 1/2;
+    zj = knitline(c, R, wre, hth, Mt);
+    if (zj, found = 1,
+      us = vector(nt, i, iferr(abs(knainv(tlo + (i - 1)/16 + I*kns*hth) - c)/R, E, oo, errname(E) != "e_ALARM"));
+      best = oo;
+      for (i = 1, nt - 16, mx = vecmax(us[i..i+16]); if (mx < best, best = mx; wre = tlo + (i - 1)/16));
+      if (best <= kniumax, zj = knitline(c, R, wre, hth, Mt); if (zj, found = 1)));
+    if (!found, hth -= 0.1));
+  if (!found, error("knisolve: keine theta-Periode im Kreis"));
+  best = vecmax(vector(Mt, j, abs(zj[j] - c)/R));
+  Nt = Mt/2 - 1;
+  wj = vector(Mt, j, wre + (j - 1)/Mt + I*kns*hth);
+  uj = vector(Mt, j, (zj[j] - c)/R);
+  nx = 1; nk = 0;
+  while ((abs(nx - c) > 0.9*R) && (nk < 60), nx = knfi(nx); nk++);
+  if ((abs(nx - c) > 0.9*R) || (abs(imag(nx)) > 1e-20), error("knisolve: kein reeller Normierungspunkt im Kreis"));
+  /* Potenzen per Verdopplung (geopow, Fehler ~log K) statt K*S exp() -- b = 2,
+     dps 100, K 484: 8 s des Aufbaus */
+  E = vector(S, s, geopow(exp(-I*phi[s]), K));
+  E = matrix(K + 1, S, k, s, E[s][k]);
+  eth = matrix(Nt + 1, Mt, n, j, exp(-2*Pi*I*kns*(n - 1)*((j - 1)/Mt + wj[1]))/Mt);
+  eW = matrix(#Wth, Nt + 1, i, n, exp(2*Pi*I*kns*(n - 1)*Wth[i]));
+  P = [c, R, S, K, typ, ug, sg, Vec(ith), Vec(Wth), uj, wj, E, eth, eW, (nx - c)/R, nk];
+  if (kndebug, print("kn:   iter K=", K, " S=", S, ": ", nfe, " FE, ", #Wth, " theta, theta-Linie h ", precision(hth, 4),
+                     " (Kreis ", precision(hmin, 4), "..", precision(htop, 4), "), |u| <= ", precision(best, 3), ", Mt ", Mt,
+                     "  Aufbau ", getabstime() - ts, " ms (Kreis ", tg, ")"));
+  /* Anderson-Wiederholung ab A = 0 */
+  a = vectorv(K + 1); tol = 10.^(1 - precis);
+  for (i = 1, knimaxit,
+    it = i;
+    gv = knimap(P, a); f = gv - a; fn = vecmax(apply(abs, f));
+    if (fn < tol, a = gv; break);
+    if (2*fn < fbest, fbest = fn; nst = 0, nst++);
+    if (nst >= 6, a = gv; break);
+    listput(Gs, gv); listput(Fs, f);
+    if (#Fs > knimem + 1, listpop(Gs, 1); listpop(Fs, 1));
+    if (#Fs > 1,
+      dF = matrix(#f, #Fs - 1, i1, j1, Fs[j1+1][i1] - Fs[j1][i1]);
+      dG = matrix(#f, #Fs - 1, i1, j1, Gs[j1+1][i1] - Gs[j1][i1]);
+      gam = knlsq(dF, f, 2);
+      a = precision(gv - dG*gam, precis),
+      a = gv));
+  knistat = [it, fn];
+  A = Polrev(a);
+  tj = vector(Mt, j, subst(A, x, uj[j]) - wj[j]);
+  cc = (eth*tj~)~;
+  /* Rest: die Gleichungen auf dem Kreis mit dem fertigen A */
+  res = 0;
+  for (s = 1, S,
+    val = if (typ[s] == 2, subst(A, x, exp(I*phi[s])) - subst(A, x, ug[s]) - sg[s],
+              subst(A, x, exp(I*phi[s])) - Ws[s] - sum(n = 1, Nt + 1, cc[n]*knen(Ws[s], n - 1)));
+    res = max(res, abs(val)));
+  if (kndebug, print("kn:   iter ", it, " Schritte, |G(a) - a| ", precision(fn, 3), ", Rest ", precision(res, 3), "  ", getabstime() - ts, " ms"));
+  return([A, deriv(A), cc, R, res, #Wth, nfe, c]);
+}
+
 knhexinit(r) = {
   my(eps = 10.0^(-precis-8), target = precis - 3, z, z2, res = 0, sr, R, sc, ps, W, pl, best,
      pl2, s1, s2, tst, d, hf, t0, kd, tq, tslow, nafter);
@@ -3271,10 +3415,17 @@ knhexinit(r) = {
      der Pentation. Ziel nach den Stellen der unteren Stufe. */
   if (!r, r = 6);
   knrank = r; knslow = 1;
+  my(kmax = if (knmode, knmaxki, knmaxk));
+  /* exp-095: die schnelle Planung (16 Probepunkte, Mittelpunkte von rechts, frueher
+     Schluss) auch fuer Rang 6 in der Wiederholung ab precis > 100 -- b = 2, dps 200:
+     Planung 264 von 1033 s, dps 100: 35 von 94 s; gewaehlt wurde der rechteste
+     Mittelpunkt */
+  knfast = (r > 6) || (knmode && (precis > 100));
   if (r > 6,
     target = max(8, min(precis - 3, floor(hydig[r-1]) - 3));
     eps = 10.0^(-target - 8));
   if (r == 6, hexreg = 0); knRmeas = 0;
+  kntarget = target;
   if (imag(sexp(1)) != 0, error("knhexinit: nur reelle Basen"));
   t0 = getabstime();
   /* komplexer Fixpunkt der Pentation: fuer ipent anziehend */
@@ -3302,6 +3453,8 @@ knhexinit(r) = {
   if (abs(polcoeff(ksig, poldegree(ksig)))*krs^poldegree(ksig) > eps,
     error("knhexinit: Schroeder-Reihe an p konvergiert bei r = ", precision(krs,5), " nicht"));
   ksig = pentclean(ksig, krs, eps, "sigma_p");
+  /* exp-095: Poincare-Funktion psi = sigma^-1 fuer alpha_p^-1 (knainv), gueltig bis |u| = R/4 */
+  kpsi = Pol(ps[1]); kur = R/4;
   klog = log(klam); kper = 2*Pi*I/klog;
   if (kndebug, print("kn: sigma_p fertig  ", getabstime() - t0, " ms"));
   knc = real(kp); knr = imag(kp);
@@ -3311,7 +3464,13 @@ knhexinit(r) = {
   /* exp-089: die Zeitgrenzen der Planung (alarm, 400 ms je Kandidat) sind fuer
      Rang 6 gemessen, wo ein pent ~0.5 ms kostet; hoehere Raenge skalieren sie
      mit den gemessenen Kosten der unteren Stufe */
-  if (r > 6,
+  /* exp-095: auch fuer Rang 6 messen -- bei dps 200 kostet ein pent ein
+     Vielfaches, alle Kandidaten liefen in alarm/400 ms ("kein brauchbares
+     Bogenpaar"); und schon bei dps 100 hing die Wahl an der Last: unter Last
+     fielen die rechten Mittelpunkte (lange ipent-Ketten) durch die 400 ms, und
+     b = 2 bekam c = Re p + 0.5 Im p mit K 526 statt Re p + 1.5 Im p. Das
+     Verhaeltnis der Messung gleicht die Last aus; bei dps 45 bleibt knslow ~1. */
+  if (1,
     tq = getabstime();
     for (j = 1, 6,
       iferr(knf(knc + 0.8*knr*exp(I*Pi*j/7)), E, 0);
@@ -3349,14 +3508,14 @@ knhexinit(r) = {
        einen Mittelpunkt nach dem ersten mit brauchbarem Paar -- gewaehlt wurde
        bisher immer Versatz 1.5 oder 1.25 (Raenge 6, 8, 10, 12 bei b = 2), und
        die Planung trug 74-87 % aller Aufrufe der unteren Stufen */
-    if ((knrank > 6) && (nafter >= 1), break);
-    knc = real(kp) + [0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5][if (knrank > 6, 8 - ic, ic)]*knr;
+    if (knfast && (nafter >= 1), break);
+    knc = real(kp) + [0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5][if (knfast, 8 - ic, ic)]*knr;
     P = vector(#rads); tslow = 0;
     for (j = 1, #rads,
       /* exp-089: ab Rang 8 nach dem ersten zu langsamen Radius den Rest dieses
          Mittelpunkts auslassen -- groessere Radien haben laengere Ketten (b = 2,
          r = 8, dps 16: 11 Kandidaten liefen in alarm, 31 von 43 s) */
-      if (tslow && (knrank > 6), P[j] = [oo]; next);
+      if (tslow && knfast, P[j] = [oo]; next);
       /* alarm: ein haengender Kandidat kostet hoechstens 1 s, ein normaler
          braucht 15-50 ms (alarm gibt dabei ein t_ERROR zurueck statt zu werfen) */
       if (kndebug, print1("kn: plan c = ", precision(knc, 5), " rad = ", rads[j], " ... "));
@@ -3409,8 +3568,8 @@ knhexinit(r) = {
        und liegt oft doppelt zu hoch (b = 28: Plan 575, K0 = 287 genuegte); die
        Vorab-Loesung mit K0 = Plan/2 <= knmaxk misst den wirklichen Bedarf
        (b = 100, dps 20: Plan 1094) */
-    if (best[2] > 2*knmaxk,
-      if (ip == 1, error("knhexinit: zu teuer (K = ", best[2], " > 2 knmaxk = ", 2*knmaxk, ")"));
+    if (best[2] > 2*kmax,
+      if (ip == 1, error("knhexinit: zu teuer (K = ", best[2], " > 2 knmaxk = ", 2*kmax, ")"));
       next);
     hf =if (type(knforce) == "t_VEC" && knforce[2], knforce[2], 0.6);
     if (kndebug, print("kn: Plan K = ", best[2], " N = ", best[3], " rad = ", precision(best[4]/knr, 3), " c = ", precision(best[8], 5), "  ", getabstime() - t0, " ms, Aufrufe ", hyncalls()));
@@ -3441,7 +3600,7 @@ knhexinit(r) = {
   /* der Plan lag unter knmaxk, die Vorab-Loesung lief: dann mit knmaxk
      weiterrechnen statt auf Sheldons Naeherung zu fallen (b = 50, dps 20:
      Fit K = 603; die Naeherung gibt dort 0.2 Stellen) */
-  Kn = min(Kn, max(K0, knmaxk));
+  Kn = min(Kn, max(K0, kmax));
   best[2] = Kn;
   s1 = if (Kn == K0, s0, knsolve(best[4], Kn, best[3], hc1, hc2));
   /* grosses K kann die Ausgleichsrechnung verderben: Bogenpunkte bei
@@ -3451,6 +3610,15 @@ knhexinit(r) = {
     if (kndebug, print("kn: K = ", Kn, " Rest ", precision(s1[5], 3), " schlechter als K0 = ", K0, " -> K0"));
     s1 = s0; Kn = K0; best[2] = K0);
   if (kndebug, print("kn: erste Loesung  ", getabstime() - t0, " ms, Aufrufe ", hyncalls()));
+  /* exp-095: in der Wiederholung zuerst den Geschwisterkreis (gleicher Radius,
+     Mittelpunkt + 0.125 Im p) als zweite Loesung -- der groessere Nachbarradius
+     braucht mehr Glieder (b = 2, dps 100 und 200: Rest 1.5e-98 bzw. 9e-179,
+     danach rechnete doch der Geschwisterkreis) */
+  if (knmode,
+    knc = best[8] + 0.125*knr;
+    pl3 = iferr(alarm(2*ceil(knslow), knplan(best[4], target)), E, [oo]);
+    if ((type(pl3) != "t_ERROR") && (pl3[1] != oo), pl2 = pl3);
+    knc = best[8]);
   knc = pl2[8];
   /* exp-089: scheitert der zweite Bogen (ab Rang 8: Punkte nahe dem komplexen
      Fixpunkt der Stufe darunter lassen sich dort nicht umkehren), gilt er als
@@ -3481,7 +3649,8 @@ knhexinit(r) = {
   c0 = s1[8];
   for (io = 1, 3,
     if (s2[5] <= 100*s1[5], break);
-    knc = c0 + [0.125, 0.25, -0.125][io]*knr;
+    /* exp-095: +0.125 hat die Wiederholung schon als zweiten Kreis gerechnet */
+    knc = c0 + if (knmode, [0.25, -0.125, -0.25], [0.125, 0.25, -0.125])[io]*knr;
     pl3 = iferr(alarm(2*ceil(knslow), knplan(best[4], target)), E, [oo]);
     if (type(pl3) == "t_ERROR" || pl3[1] == oo, next);
     s3 = iferr(knsolve(pl3[4], best[2], best[3], pl3[5] + hf*(pl3[6] - pl3[5]), pl3[5] + max(0.85, hf + 0.1)*(pl3[6] - pl3[5])),
@@ -3501,7 +3670,7 @@ knhexinit(r) = {
     tsw = 0;
     if (s2[4] <= 1.05*pl2[4],
       ft = knfit(s2[1], poldegree(s2[1]));
-      if (ft[2] < 0, tsw = min(ceil(1.1*knkfor(ft, -(target + 5)*log(10), Kn)), max(Kn, knmaxk)));
+      if (ft[2] < 0, tsw = min(ceil(1.1*knkfor(ft, -(target + 5)*log(10), Kn)), max(Kn, kmax)));
       if (tsw <= Kn, tsw = 0),
       tsw = max(60, Kn\2));
     if (tsw,

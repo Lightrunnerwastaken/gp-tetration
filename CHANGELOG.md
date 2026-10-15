@@ -143,6 +143,55 @@
   4e-49 that come from the engine's sexp (1e-52..1e-55, spikes at particular
   fractional parts of x). More hexation digits need a more accurate sexp.
 
+### Kneser by iteration, as `loop()` does it for tetration (exp-095)
+
+- **`knisolve` replaces the least squares per arc (`knmode = 1`, default).**
+  The Abel function A(u) = sum a_k u^k, u = (z - c)/R, is improved by a
+  fixed-point step modelled on `loop()`/`staylor()`/`thtaylor()`: theta from A
+  at Mt points of ONE period on a horizontal line w = wre + j/Mt + i s h
+  inside the circle (z = alpha_p^-1(w) via the Poincare series psi and forward
+  steps of H_{r-1}; only frequencies n >= 0 kept), then values on the upper
+  half circle -- A(g) +- 1 where the image g = H_{r-1}^(+-1)(z) lies inside
+  (|g - c| <= 0.92 R), W + theta(W) elsewhere -- and the coefficients by DFT
+  (lower half conjugate), then A(1) = 0. Everything that does not depend on A
+  is built once; a step is polynomial values and two matrix-vector products.
+- **Anderson acceleration** (depth 20; for an affine map this is GMRES): b = 2,
+  dps 40, 20 steps instead of 101 for the same 51 digits.
+- **PARI precision trap:** the tiny high coefficients come back with fewer
+  words, and the next step inherits it (measured 57 -> 38 -> 19 digits, a
+  floor at 3e-22 instead of 1e-51). The series is set back to `precis` after
+  every step, as `loop()` does with `ct`.
+- **Automatic choices:** circle points S = 0.7 (K+1); the theta line just below
+  the theta part of the circle, accepted only when all Mt pre-images exist and
+  lie in |u| <= 0.9 (else another window or 0.1 lower); Mt from the decay
+  e^(-2 pi n (h - hmin + 0.25)). If the iteration fails on an arc, that arc
+  falls back to the least squares (`knsolvelsq`). The second solution for the
+  error vector is the sibling circle (centre + 0.125 Im p, same radius) -- the
+  larger neighbouring radius needed more terms.
+- **Planning:** the time limits now always scale with the measured cost of
+  H_{r-1}, also for rank 6 (at dps 200 every candidate hit the 1 s alarm,
+  "kein brauchbares Bogenpaar"; at dps 100 the choice depended on the load --
+  under load b = 2 got another centre with K 526 instead of 484). From
+  precis > 100 the planning runs centres from the right and stops one centre
+  after the first usable pair (b = 2, dps 100: 2040 instead of 8314 calls).
+
+  | b = 2, Kneser hexation | least squares | iteration |
+  |---|---|---|
+  | dps 45 (b = 2 / e / 10) | 52.8 / 63.3 / 37.3 s | 16.7 / 16.8 / 11.8 s |
+  | digits at dps 45 | 51.0 / 53.2 / 53.5 | 50.9 / 53.1 / 53.4 |
+  | dps 100 | 150-206 s, 110.4 digits | 76 s, 110.1 digits |
+  | dps 200 | (hours) | 496 s, 203.7 digits |
+
+  Times without building the engine (sexp + pentation: 10-17 s at dps 100,
+  95-150 s at dps 200). hex(1/2) of the dps-200 build agrees with the dps-130
+  least-squares build to 1e-128. Single solves are now cheap (b = 2, dps 100:
+  30 steps in ~4 s, dps 200: 41 steps in ~50-80 s); the time goes into
+  evaluations of H_{r-1}: planning, alpha_p on the circle, and the theta
+  pre-images (forward chains, ~0.3-0.4 s each at dps 200).
+- Octation b = 2 (dps 20): 29.9 digits in 68 s (least squares 29.5).
+- Tests: full suite 133 passed / 10 skipped; slow hexation and hyper tests
+  22 passed (ranks 8 to 12 with the iteration).
+
 ### Kneser least squares: one Gram-Schmidt pass -- hexation to 110 digits (exp-093/094)
 
 - **The "double solve precision" never acted.** PARI computes with the
