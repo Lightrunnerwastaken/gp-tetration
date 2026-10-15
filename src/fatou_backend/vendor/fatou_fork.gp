@@ -2315,7 +2315,11 @@ pentcauchy(fn, w, r, samples) = {
     p = p + c*x^s;
     v = vector(samples, t, v[t]*conj(tc[t]));
   );
-  return(p);
+  /* exp-096: die hohen Glieder kommen nach der Kuerzung mit weniger Woertern
+     zurueck; im Horner-Schema reichte ein 19-stelliges Glied die kurze
+     Genauigkeit bis zum Ergebnis durch (b = 1.5, Rang 7, dps 30: Fehler
+     4e-20 statt 1e-32). Auf precis setzen. */
+  return(precision(p, precis));
 }
 
 /* Taylorreihe von f um einen Fixpunkt nahe t0 (|t0 - L| << sr). Die
@@ -2330,6 +2334,11 @@ pentfixser(fn, t0, sr, isreal, eps, name) = {
     samples = ceil((precis+25)*log(10)/log(R/sr));
     S = pentcauchy(fn, t0, sr, samples);
     if (isreal, S=real(S));
+    /* exp-096: die winzigen hohen Glieder kommen aus der Kuerzung mit weniger
+       Woertern zurueck (absolut genau, relativ kurz); pentpsi multipliziert sie
+       weiter, und der Verlust wuchs bis "Psi-Glied 32 traegt nur 19 Stellen"
+       (b = 1.5, Rang 7, dps 45). Wie ct in loop(): auf precis setzen. */
+    S = precision(S, precis);
     s = max(8, samples\4);
     R = min(abs(polcoeff(S, s))^(-1/s), abs(polcoeff(S, s\2))^(-2/s));
     if (R <= 1.25*sr, error(name, ": Reihe hat um den Fixpunkt nur Radius ", precision(R,5), " -- sr kleiner waehlen"));
@@ -2806,7 +2815,120 @@ hylo(r, z) = { hycall[r][1]++; return(if (r == 4, sexp(z), if (r == 5, pent(z), 
 hyloinv(r, y) = { hycall[r][2]++; return(if (r == 4, slog(y), if (r == 5, ipent(y), if (r == 6, ihex(y), hyinv(r, y))))); }
 knf(z) = hylo(knrank - 1, z);
 knfi(y) = hyloinv(knrank - 1, y);
+/* exp-096: Fenster-Reihe je regulaerem Rang. Die Kette vom Fixpunkt aus
+   (hyval0/hyinv0) verschachtelt sich: ein Wert von H_r braucht k Werte von
+   H_{r-1}, jeder wieder eine Kette -- b = 1.5, dps 30: hyper(9, 1/2) rief
+   8x H_8, 35x H_7^-1, 169x H_6^-1 (1.5 s); dps 100: Rang 7/8/9 bauen in
+   8/13/149 s. Deshalb bekommt jeder regulaere Rang eine Taylorreihe T von H_r
+   um die Mitte xc einer Periode (Cauchy-Abtastung von hyval0, einmal):
+   H_r(z) = T(z - k) und k Schritte von H_{r-1}, H_r^-1(y) = Newton auf T nach
+   Schritten von H_{r-1}^(+-1) ins Fenster. Die Reihe der Umkehrung (wie knS)
+   scheiterte: deren Singularitaet am Fixpunkt liegt oft nahe der Periode
+   (b = 1.5, Rang 8: p = 1.565, Periode [1, 1.5]). Scheitert das Fenster an
+   einem Punkt, rechnet die alte Kette.
+   W = [T(u), T'(u), xc, rho, good, yl, yr, r], u = (x - xc)/rho
+   ERGEBNIS (exp-096): genauer (b = 1.5, dps 30: Rang 9 32.7 statt 30.4 Stellen,
+   dps 100: 107.9 statt 105.2), aber kaum schneller -- die teuren Auswertungen
+   liegen NICHT im Fenster: hyinit(r) tastet H_{r-1} um den Fixpunkt p_r ab, und
+   die Kette von H_r laeuft von p_r aus (b = 1.5: p_9 = -5.56, das Fenster von H_8
+   liegt um 1/2; jede ganzzahlige Verschiebung kostet einen Wert von H_{r-1}).
+   dps 100: Rang 8 51 s statt 13 s (Fenster von H_7 49 s), Rang 9 127 s statt
+   149 s, Rang 10: Fenster von H_9 nach 20 min abgebrochen. Daher aus (hywinon = 0);
+   fuer hoehere Raenge braeuchte es Reihen entlang der ganzen Bahnen. */
+hywinon = 0; hywin = vector(hymax); hywind = vector(hymax);
 hyval(r, z, extra) = {
+  if (hykind[r] == 2, return(knhexS(knS[r], z)));
+  if (extra || !hywinon || (type(hywin[r]) != "t_VEC"), return(hyval0(r, z, extra)));
+  return(iferr(hywinval(hywin[r], z), E, hyval0(r, z), errname(E) != "e_ALARM"));
+}
+hyinv(r, y) = {
+  if (hykind[r] == 2, return(knihexS(knS[r], y)));
+  if (!hywinon || (type(hywin[r]) != "t_VEC"), return(hyinv0(r, y)));
+  return(iferr(hywininv(hywin[r], y), E, hyinv0(r, y), errname(E) != "e_ALARM"));
+}
+hywinval(W, z) = {
+  my(k = round(real(z) - W[3]), t, y, r1 = W[8] - 1);
+  t = z - k;
+  if ((abs(t - W[3]) > W[5]) || (abs(k) > 200), error("hywin: Punkt nicht im Fenster"));
+  y = subst(W[1], x, (t - W[3])/W[4]);
+  if (k > 0, for (i = 1, k, y = hylo(r1, y)), for (i = 1, -k, y = hyloinv(r1, y)));
+  return(y);
+}
+/* ins Fenster [yl, yr] mit H_{r-1}^(+-1); Abbruch, sobald ein Schritt nicht naeher
+   heranfuehrt (gerade Raenge oberhalb des anziehenden Fixpunkts, ungerade links vom
+   abstossenden: dort gibt es keinen reellen Weg, die alte Kette rechnet komplex) */
+hywininv(W, y) = {
+  my(k = 0, d, dn, r1 = W[8] - 1, t, dt, f, tol = 10.0^(-precis + 2), ym = (W[6] + W[7])/2);
+  d = abs(y - ym);
+  while ((real(y) > W[7]) || (real(y) < W[6]),
+    if (real(y) > W[7], y = hyloinv(r1, y); k++, y = hylo(r1, y); k--);
+    dn = abs(y - ym);
+    if ((dn >= d) || (abs(k) > 200), error("hywin: Punkt nicht im Fenster"));
+    d = dn);
+  /* Newton auf T, Start linear zwischen yl und yr */
+  t = W[3] - W[5] + 2*W[5]*(real(y) - W[6])/(W[7] - W[6]);
+  for (it = 1, 200,
+    f = subst(W[1], x, (t - W[3])/W[4]) - y;
+    dt = f/(subst(W[2], x, (t - W[3])/W[4])/W[4]);
+    t -= dt;
+    if (abs(t - W[3]) > 1.2*W[5], error("hywin: Newton verlaesst das Fenster"));
+    if (abs(dt) < tol, break));
+  return(t + k);
+}
+/* Reihe von H_r um xc auf dem Kreis vom Radius rho, Glieder in u = (x - xc)/rho
+   per FFT aus N = 2^j Kreiswerten. Verdoppeln behaelt die alten Werte (sie
+   liegen auf dem feineren Gitter), bis die obersten 20 % der Glieder unter
+   100 eps liegen (eps = 10^-(Stellen der Kette + 3); die Abtastwerte rauschen
+   bei ~10^-(precis - 3)). Die Zweipunkt-Schaetzung von pentfixser war hier zu
+   optimistisch (b = 1.5, Rang 7 um 1/2: 105 Punkte, Fenster nur 4e-29).
+   Rueckgabe [T(u), Kreiswerte] oder Fehler. */
+hywinpts(r, xc, rho, N, v) = {
+  my(vn);
+  if (!v, return(vector(N, t, hyval0(r, xc + rho*exp(2*Pi*I*(t - 1)/N)))));
+  vn = vector(N);
+  for (t = 1, N/2, vn[2*t - 1] = v[t]; vn[2*t] = hyval0(r, xc + rho*exp(2*Pi*I*(2*t - 1)/N)));
+  return(vn);
+}
+hywincoef(v) = {
+  my(N = #v, G = fft(geopow(exp(-2*Pi*I/N), N - 1), v));
+  return(precision(Polrev(vector(N, k, real(G[k])/N)), precis));
+}
+hywintail(T, N) = vecmax(vector(N - floor(0.8*N), j, abs(polcoeff(T, floor(0.8*N) + j - 1))));
+hywinser(r, xc, rho, eps, v0) = {
+  my(v = v0, N, T, nmax = 8*(precis + 25));
+  N = if (v, #v, 64);
+  if (!v, v = hywinpts(r, xc, rho, N, 0));
+  while (1,
+    T = hywincoef(v);
+    if (hywintail(T, N) < 100*eps, return([T, v]));
+    if (2*N > nmax, error("hywin: mehr als ", nmax, " Punkte noetig"));
+    N = 2*N; v = hywinpts(r, xc, rho, N, v));
+}
+hywinbuild(r) = {
+  my(xcs = [1/2, 0, 1, -1/2], xc, good = 0.6, rho = 0.62, T, W, d, tgt = hydig[r], eps, tst, yl, yr, res);
+  eps = 10.0^(-tgt - 3);
+  /* Reihenfolge fest: eine Probe mit 32 Punkten waehlte nach dem fruehen Abfall
+     die Mitte 1, deren Fenster spaeter schlechter hielt (b = 1.5, dps 30: Rang 9
+     30.5 statt 32.7 Stellen) */
+  for (i = 1, #xcs,
+    xc = xcs[i];
+    res = iferr(hywinser(r, xc, rho, eps, 0), E, Str(E), errname(E) != "e_ALARM");
+    if (type(res) != "t_VEC", if (kndebug, print("hy:   Fenster um ", xc, ": ", res)); next);
+    T = res[1];
+    yl = subst(T, x, -good/rho); yr = subst(T, x, good/rho);
+    if ((abs(imag(yl)) > 1e-20) || (abs(imag(yr)) > 1e-20) || (real(yr) <= real(yl)), next);
+    W = [T, deriv(T), xc, rho, good, real(yl), real(yr), r];
+    /* gegen die alte Kette: reell, komplex, Umkehrung */
+    tst = [[xc + 0.3, 0], [xc - 0.4 + 0.2*I, 0], [(real(yl) + real(yr))/2 + 0.1, 1]];
+    d = 0;
+    for (j = 1, #tst,
+      d = max(d, iferr(abs(if (tst[j][2], hywininv(W, tst[j][1]) - hyinv0(r, tst[j][1]),
+                                          hywinval(W, tst[j][1]) - hyval0(r, tst[j][1]))), E, oo, errname(E) != "e_ALARM")));
+    if (d < 10.0^(2 - tgt), hywind[r] = d; return(W));
+    if (kndebug, print("hy:   Fenster um ", xc, ": Abweichung ", precision(d, 3))));
+  return(0);
+}
+hyval0(r, z, extra) = {
   my(la = hylam[r], w, k = 0, y, up = (abs(hylam[r]) > 1));
   if (hykind[r] == 2, return(knhexS(knS[r], z)));
   w = hyc[r]*la^z;
@@ -2818,7 +2940,7 @@ hyval(r, z, extra) = {
   if (up, for (j = 1, k, y = hylo(r-1, y)), for (j = 1, k, y = hyloinv(r-1, y)));
   return(y);
 }
-hyinv(r, y) = {
+hyinv0(r, y) = {
   my(la = hylam[r], k = 0, up = (abs(hylam[r]) > 1));
   if (hykind[r] == 2, return(knihexS(knS[r], y)));
   while (abs(y - hyp[r]) > hyr[r],
@@ -2908,6 +3030,16 @@ hyensure(r) = {
   if (r > hymax, error("hyper: Rang ", r, " > hymax = ", hymax));
   if (hystate[r] != [sexp(1), precis],
     hyensure(r - 1);
+    /* exp-096: das Fenster der unteren Stufe erst bauen, wenn Rang r sie braucht
+       -- der oberste Rang wird nur an wenigen Punkten ausgewertet, sein Fenster
+       lohnt nicht (b = 1.5, Rang 9: 413 s Aufbau gegen 11 s fuer den Rang) */
+    if ((r - 1 >= 7) && (hykind[r-1] == 1) && hywinon && (hywin[r-1] == 0),
+      my(tw = getabstime());
+      hywin[r-1] = hywinbuild(r - 1);
+      if (hywin[r-1] == 0, hywin[r-1] = -1);
+      if (kndebug, print("hy: Rang ", r - 1, " Fenster ", if (type(hywin[r-1]) == "t_VEC",
+        Str("um ", hywin[r-1][3], ", Grad ", poldegree(hywin[r-1][1]), ", Abweichung ", precision(hywind[r-1], 3)), "keins"), "  ", getabstime() - tw, " ms")));
+    hywin[r] = 0;
     hydig[r] = hyinit(r);
     hystate[r] = [sexp(1), precis]);
   return(hydig[r]);

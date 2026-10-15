@@ -143,6 +143,39 @@
   4e-49 that come from the engine's sexp (1e-52..1e-55, spikes at particular
   fractional parts of x). More hexation digits need a more accurate sexp.
 
+### Regular ranks at high precision: measured, one precision fix (exp-096)
+
+- **The regular levels hold full precision.** Pentation b = 2: the dps-200
+  and dps-300 builds agree to 10^-205.6 (internal estimate 203.8). Building
+  the pentation takes 5 s / 12 s at dps 200 / 300, the tetration engine under
+  it 99 s / 307 s -- for regular levels the time is in the tetration.
+- **Cost grows by rank, not by digits.** b = 1.5, dps 100: H_5/H_6 110.8,
+  H_7 108.9, H_8 108.0, H_9 105.2 digits; build 0.6 / 6.2 / 7.9 / 13.2 /
+  149 s. Every value of H_r walks a chain of H_{r-1} values from the fixed
+  point, and each of those a chain again: H_9(1/2) (dps 30) calls H_8 8 times,
+  H_7^-1 35 times, H_6^-1 169 times.
+- **Fix: sampled series at full precision.** `pentcauchy` sets its result to
+  `precis` (and `pentfixser` after `real()`). The tiny high coefficients came
+  back with fewer words; `pentpsi` multiplied them on, and in Horner a short
+  coefficient carried its short precision through to the result. b = 1.5,
+  dps 45: ranks 7 and 8 failed ("Psi-Glied 32 traegt nur 19 Stellen"), now
+  51.7 / 51.4 digits.
+- **Experiment, off by default (`hywinon = 0`): a window series per regular
+  rank** -- a Taylor series of H_r around the middle of one period (FFT of
+  N = 2^j circle values of the chain, refined until the top 20 % of the
+  coefficients are below the chain's accuracy), H_r(z) = T(z - k) plus k
+  steps of H_{r-1}, H_r^-1 by Newton. It is more accurate (b = 1.5: rank 9
+  32.7 instead of 30.4 digits at dps 30, 107.9 instead of 105.2 at dps 100)
+  but hardly faster: the expensive evaluations do not lie in the window.
+  `hyinit(r)` samples H_{r-1} around the fixed point p_r, and the chain of
+  H_r starts there (b = 1.5: p_9 = -5.56, while the window of H_8 sits around
+  1/2; every integer shift costs a value of H_{r-1}). dps 100: rank 8 51 s
+  instead of 13 s, rank 9 127 s instead of 149 s, rank 10 stopped after the
+  window of H_9 had run 20 min. Making higher ranks cheap needs expansions
+  along the whole orbits, not one window.
+- Tests: full suite 133 passed / 10 skipped; slow hexation and hyper tests
+  22 passed.
+
 ### Kneser by iteration, as `loop()` does it for tetration (exp-095)
 
 - **`knisolve` replaces the least squares per arc (`knmode = 1`, default).**
