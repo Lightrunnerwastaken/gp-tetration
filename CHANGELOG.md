@@ -143,6 +143,58 @@
   4e-49 that come from the engine's sexp (1e-52..1e-55, spikes at particular
   fractional parts of x). More hexation digits need a more accurate sexp.
 
+### An atlas per rank: Taylor patches along the orbits (exp-097)
+
+- **Why.** A value of H_r is a chain of H_{r-1} values along the orbit from
+  the fixed point p_r, each of them a chain again, so the cost grows by a
+  factor per rank (b = 1.5, dps 30: rank 9/10/11 9 / 58 / ~480 s). A single
+  window around 1/2 (exp-096) did not help: the work lies on the orbits
+  (b = 1.5: p_9 = -5.56).
+- **Atlas.** Circles on the real axis (centres 1/2 + i/2, radius 0.6, used up
+  to 0.9 of it), each with a Taylor series of H_r (FFT of N = 2^j values,
+  doubling keeps the old ones, tail check, fail-fast estimate after 64
+  points, check between the sample points). `hylo`/`hyloinv` ask the atlas
+  first (Horner; inverse by Newton), else the chain.
+- **Propagation ("Verkettung").** The circles of a regular rank are not
+  sampled through the chain but through the functional equation from the
+  neighbouring circle at distance 1: H_r(z) = H_{r-1}(H_r(z - 1)) (odd r, from
+  the left) or H_{r-1}^-1(H_r(z + 1)) (even r, from the right) -- Horner in
+  the neighbour and in a circle of H_{r-1}. The start is where
+  H_r = p + psi(c lambda^z) holds without a chain. The radius may shrink on
+  the way (down to 0.26), not grow. Built bottom-up for all regular ranks
+  below once a rank >= 11 is requested (`hyatfromr`); circles also appear
+  adaptively where N chain values have already been computed in a cell.
+- **Fixes found on the way.**
+  - PARI's `subst` evaluates a real polynomial at a complex point by a route
+    that loses digits near |u| = 1 (degree 127, dps 30: 1e-27 instead of
+    1e-38 at |u| = 0.99). `cpe()` takes the dot product with the powers of u
+    (`geopowv`, the doubling of `geopow` as vector operations) from
+    |u| >= 0.85; used only in the atlas -- in the Kneser code it made H_7
+    (b = 2, dps 16) 0.8 digits worse, so `subst` stays there.
+  - Around the fixed point p_{r+1} that the next rank's chain starts from,
+    every step amplifies absolute errors by 1/lambda (b = 6/5, rank 8:
+    lambda = 0.0065); circles are only as accurate as the chain overall, the
+    chain there to the last digit. The atlas is not used within 0.25 of it
+    (rank 8: 24.4 -> 31.2 digits, chain alone 31.4).
+  - Even ranks propagated to the left lose 1/lambda per step as well;
+    circles are accepted at their noise floor, at most tgt/6 (1 to 5) digits
+    below the chain; at dps 16 a fixed 5 cost rank 12 (b = 2). The atlas is
+    off below 30 working digits.
+- **Results** (atlas from rank 11; without it rescaled to today's machine):
+
+  | | without atlas | with atlas |
+  |---|---|---|
+  | b = 1.5, dps 30, rank 11 | ~480 s, 28.7 digits | 243 s, 28.0 digits |
+  | b = 2, dps 20, rank 12 | ~49 s, 25.3 digits | 10.5 s, 29.4 digits |
+  | b = 2, dps 20, rank 13 | ~30 s, 22.9 digits | 7.7 s, 26.9 digits |
+
+  Up to rank 10 nothing changes. The atlas build itself is the cost now
+  (b = 1.5: 240 s for ranks 7 to 10); the inverse lookups scan the circles
+  linearly and Newton starts at the linear guess -- room left.
+- The window experiment of exp-096 (`hywin*`) is removed; the atlas replaces it.
+- Tests: full suite 133 passed / 10 skipped; slow hexation and hyper tests
+  22 passed.
+
 ### Regular ranks at high precision: measured, one precision fix (exp-096)
 
 - **The regular levels hold full precision.** Pentation b = 2: the dps-200
