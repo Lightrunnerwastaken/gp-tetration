@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 import unittest
 from pathlib import Path
 
@@ -223,6 +224,54 @@ class ComplexHeightTests(unittest.TestCase):
         for z, u, v in zip(zs, a, b):
             with self.subTest(z=str(z)):
                 self.assertLess(abs(u - v), mp.mpf("1e-70"))
+
+
+class LargeImaginaryPartTests(unittest.TestCase):
+    """exp-098: sexp(z) for large Im z at low precision.
+
+    At dps 30 (base e) sexp(2.5i) and sexp(0.3 + 2.5i) never returned.
+    betterest's secant handed abel() a point near L (0.324 + 1.247i, 0.93 circr),
+    abel passed it to thest, and thest picks the fixed point from the sign of
+    Im abelest(z, ct). At dps 30 the high coefficients of ct are noise there
+    (|a_k| circr^k grows to 1e14 at k = 256), abelest came out 4.8e6 - 2.0e6i
+    instead of -0.296 + 2.350i, thest took the mirror path, and isuperf iterated
+    log from a point near L2 towards L -- forever. dps 40 was fine.
+    Measured after the fix: dps 30 against dps 45 agrees to ~3e-33.
+    """
+
+    TIME_LIMIT = 30.0
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        mp.mp.dps = 80
+        cls.f30 = FatouGP(gp_exe=find_default_gp_exe(), fatou_gp="fork", dps=30,
+                          state_cache=False, eval_timeout=cls.TIME_LIMIT)
+        cls.f45 = FatouGP(gp_exe=find_default_gp_exe(), fatou_gp="fork", dps=45,
+                          state_cache=False)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.f30.close()
+        cls.f45.close()
+
+    def test_sexp_large_imaginary_part_at_dps_30(self) -> None:
+        zs = [mp.mpc("0", "2.5"), mp.mpc("0.3", "2.5")]
+        start = time.perf_counter()
+        a = self.f30.sexp_batch("e", zs)
+        elapsed = time.perf_counter() - start
+        self.assertLess(elapsed, self.TIME_LIMIT, "sexp at dps 30 hangs again")
+        b = self.f45.sexp_batch("e", zs)
+        for z, u, v in zip(zs, a, b):
+            with self.subTest(z=str(z)):
+                self.assertLess(abs(u - v), mp.mpf("1e-27"))
+
+    def test_isuperf_outside_its_basin_fails_loudly(self) -> None:
+        # L2 + 1/100 lies in the basin of the lower fixed point: its log orbit
+        # settles at L2 and |u| = |L2 - L| never shrinks. isuperf (built for L)
+        # used to loop forever there; now it raises a user error.
+        r = self.f30.eval_batch(
+            "e", ['iferr(isuperf(L2 + 1/100), E, if (errname(E) == "e_USER", -1, -2))'])
+        self.assertEqual(r[0], -1)
 
 
 if __name__ == "__main__":

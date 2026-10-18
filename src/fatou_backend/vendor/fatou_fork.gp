@@ -420,6 +420,19 @@ formalschroder(fx,n) = {
   );
   return(Pol(f1t));
 }
+/* exp-098: Schranke fuer die Wege in isuperf/isuperf2. Die Schleife lief bis
+   |u| < isuperfr ohne Obergrenze. Liegt z im Becken des ANDEREN Fixpunkts
+   (Basis e, Im z < 0 in isuperf), bleibt u bei L2 - L stehen und die Schleife
+   endet nie: sexp(2.5*I) bei dps 30 hing so (Weg ueber betterest -> abel ->
+   thest). Ein Schritt verkuerzt |u| nahe L um den Faktor |lambda|; erwartet
+   sind log(|u0|/r)/|log|lambda|| Schritte (Basis e, dps 30: ~15; b = 1.45:
+   ~500). Schranke: das Zwanzigfache plus 100 -- greift nur dort, wo die
+   Schleife sonst nie endet, und bricht dann laut ab statt zu haengen. */
+isupcap(lam, u0, r) = 100 + ceil(20*log(max(abs(u0), 1)/r)/max(abs(log(abs(lam))), 1e-6));
+isupstuck(nm, z, u) = {
+  error(nm, "(): Bahn von z = ", precision(z, 10), " erreicht den Fixpunkt nicht (u = ",
+        precision(u, 10), "), z liegt im Becken eines anderen Fixpunkts");
+}
 isuperf(z) = {
   local(n,y,y1,u,u1);
   /* exp-057: iterate the OFFSET u = y - L instead of y. The old form walked y
@@ -433,8 +446,10 @@ isuperf(z) = {
   if (x2mode==0,
     u = z - L;
     n = 0;
+    my(nmax = isupcap(lambda1, u, isuperfr));
     if (repelling,
       while (abs(u)>isuperfr,
+        if (n >= nmax, isupstuck("isuperf", z, u));
         /* review fix: finv() guards its log with abs(z-k+1)>1e-6 and returns
            1E10 otherwise. In u-coordinates z-k+1 is lambda1+u, so the same
            guard belongs here -- log1p(u/lambda1) returns -oo exactly where the
@@ -447,6 +462,7 @@ isuperf(z) = {
       );
     ,
       while (abs(u)>isuperfr,
+        if (-n >= nmax, isupstuck("isuperf", z, u));
         u = lambda1*expm1(u);
         n--;
       );
@@ -480,7 +496,9 @@ isuperf2(z) = {
   if (x2mode==0,
     u = z - L2;
     n = 0;
+    my(nmax = isupcap(lambda2, u, isuperfr2));
     while (abs(u)>isuperfr2,
+      if (n >= nmax, isupstuck("isuperf2", z, u));
       /* review fix: same sentinel as in isuperf, at the lower fixed point */
       u = if (abs(lambda2+u) > 0.000001, log1p(u/lambda2), 1E10-L2);
       n++;
@@ -909,7 +927,7 @@ matrix_ir(B,lctr,ltht,myctr,myir) = {
 thest(z) = {
   local(y,y1,y2,zc,k0);
   if (abs(z-circc)<circr,
-    y2 = abelest(z,ct);
+    y2 = ctdecide(z);
     if (imag(y2) > 0,
       y1 = isuperf(z);
       y1 = y1+polcoeff(tht,0);
@@ -1372,6 +1390,22 @@ betterest(z,est,n) = {
    gefunden von der Wissensgraph-Sitzung). Ist der Schwanz klein, wie bisher die
    volle Summe; sonst die Summe bis zum kleinsten Glied der Huellkurve
    (optimale Abbruchstelle einer Reihe am Rand ihres Kreises). */
+/* exp-098: abelest(z, ct) fuer Entscheidungen. thest braucht y2 nur, um den
+   Zweig (oberer/unterer Fixpunkt) und das Vielfache der Periode zu waehlen;
+   der Wert selbst kommt aus isuperf + theta. Zwischen ctr*circr und circr
+   rechnet ct aber mit verrauschten hohen Gliedern (siehe ctedge): Basis e,
+   dps 30, Grad 256, |a_k| circr^k ~ 1e-38 * 1.6^k, also 1e14 bei k = 256.
+   An z = 0.324 + 1.247i (0.93 circr, nahe L) kam abelest = 4.8e6 - 2.0e6i
+   statt -0.296 + 2.350i heraus, Im y2 < 0 schickte thest auf den Spiegelweg,
+   und isuperf suchte L von einem Punkt nahe L2 aus -- ohne Ende. Ist der
+   Schwanz klein (dieselbe Regel wie ctedge), bleibt alles wie bisher, bitgleich;
+   sonst die Summe bis zum kleinsten Glied (bei dps 30 dort auf ~1e-14 genau). */
+ctdecide(z) = {
+  my(w = z - circc, n = poldegree(ct), aw = abs(w), tail);
+  tail = vecmax(vector(min(10, n + 1), j, abs(polcoeff(ct, n + 1 - j))*aw^(n + 1 - j)));
+  if (tail < 1e-3, return(abelest(z, ct)));
+  return(abelest(z, 0) + ctedge(w));
+}
 ctedge(w) = {
   my(n = poldegree(ct), t, tail, env, jmin);
   t = vector(n + 1, j, polcoeff(ct, j - 1)*w^(j - 1));

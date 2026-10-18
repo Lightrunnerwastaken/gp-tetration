@@ -143,6 +143,51 @@
   4e-49 that come from the engine's sexp (1e-52..1e-55, spikes at particular
   fractional parts of x). More hexation digits need a more accurate sexp.
 
+### sexp no longer hangs at large Im z (exp-098)
+
+- **Bug (fork only, already at 3016ad5 and 94da51f, reported by the
+  tetration-graph session):** at dps 30, base e, `sexp(2.5i)` and
+  `sexp(0.3 + 2.5i)` never returned. A scan (grid 0.5 <= |Im z| <= 4,
+  -4 <= Re z <= 3, plus points on and next to the cut (-oo, -2]) found
+  136 of 266 points hanging at dps 20, 136 at dps 30, 121 at dps 60, none at
+  dps 40 -- practically every point with |Im z| >= 2, above and below the
+  cut too (-2 + 2.5i, -10 - 4i). Points on the cut itself returned.
+- **Cause:** `betterest`'s secant handed `abel()` a point near L
+  (0.324 + 1.247i, 0.93 circr); `abel` passed it to `thest`, which picks the
+  fixed point -- and the multiple of the period -- from `y2 = abelest(z, ct)`.
+  The fork's `ct` carries noisy high coefficients (exp-027/048, see exp-092):
+  at dps 30, degree 256, |c_k| circr^k ~ 1e-38 * 1.6^k, up to 1e14 at
+  k = 256 (the original: degree 244, tail 1e-13). There abelest came out
+  4.8e6 - 2.0e6i instead of -0.296 + 2.350i, Im y2 < 0 sent `thest` down the
+  mirror path, and `isuperf` iterated log from a point near L2 towards L:
+  u settles at L2 - L and `while (abs(u) > isuperfr, ...)` never ends.
+- **Fix:** (1) `ctdecide(z)` gives `thest` its decision value: if the tail
+  of `ct` at z is small (< 1e-3, the rule of `ctedge`) exactly
+  `abelest(z, ct)` as before, otherwise `abelest(z, 0) + ctedge(z - circc)`,
+  the sum up to its smallest term (~1e-14 accurate there). y2 only feeds
+  discrete decisions; the value still comes from `isuperf` + theta.
+  (2) The walks in `isuperf` and `isuperf2` are bounded (`isupcap`: 20x the
+  expected step count log(|u0|/r)/|log|lambda|| plus 100); past it they
+  raise a user error instead of looping.
+- After the fix the same scan has no hang and no error for base e at dps
+  20/30/40/60/80, base 2 at dps 20/30, base 10 and 1+i at dps 30; slowest
+  call 172 ms. dps 30 against dps 45 at 12 formerly hanging points: <= 4e-34
+  for bases e, 2, 10; `sexp(slog(w)) - w` <= 5e-30. `sexp(2.5i)` at dps 30 =
+  0.41826669359399960196308609419250929 + 1.31914377088871679767966641886129529i,
+  the original's value.
+- Gate unchanged, bit for bit: over all gate evaluations (init included)
+  `thest` decided 7 times (base 0.8+0.4i), always on the unchanged branch;
+  the truncated branch and the `isuperf` bound never fired. The 152 values
+  (gate cases at dps 80/200, roundtrips, 42 off-axis points) are identical to
+  the previous fork. Suite 134 passed / 8 skipped (gate not run); slow level
+  tests (hyper, hexation, pentation, levels, fork engine) 50 passed. New tests:
+  `test_fork_engine.py::LargeImaginaryPartTests` (both hung before the fix).
+- Not changed, found on the way: on the cut, `finv`'s guard
+  (|z - k + 1| <= 1e-6 -> 1E10) turns into values: `sexp(-2) = 1e10`,
+  `sexp(-3) = 23.03`, `sexp(-4) = 3.137`, also within ~1e-6 of these
+  integers (`sexp(-2 + 1e-8i) = 1e10`), and `sexp(-10 - 1e-30i)` gets the
+  imaginary part of `sexp(-10 + 1e-30i)`.
+
 ### Atlas: innermost circle, neighbour samples reused; accuracy settings tried (exp-099)
 
 - **Innermost circle:** of the neighbouring cells, a lookup takes the circle
