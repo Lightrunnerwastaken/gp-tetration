@@ -143,6 +143,33 @@
   4e-49 that come from the engine's sexp (1e-52..1e-55, spikes at particular
   fractional parts of x). More hexation digits need a more accurate sexp.
 
+### Atlas: innermost circle, neighbour samples reused; accuracy settings tried (exp-099)
+
+- **Innermost circle:** of the neighbouring cells, a lookup takes the circle
+  in which the point lies furthest inside (smaller |u|: `subst` instead of
+  `cpe`, further from the rim). b = 1.5, dps 30: rank 11 29.4 instead of
+  28.0 digits.
+- **Neighbour samples reused:** in the propagation the points of the new
+  circle are those of its neighbour shifted by 1, so the neighbour's stored
+  sample values replace Horner at its rim (`cpe`: ~300 us at degree 511
+  against ~40 us for `subst`). The circle still starts at 64 points and
+  doubles; the values come from the neighbour's grid while it reaches. A
+  failing lookup there falls back to the old way (a Kneser `knhex` error had
+  stopped rank 11 at b = 2).
+- **Tried and left off:**
+  - circles accurate to the round-off (`hyatacc = 2`): b = 1.5 with the atlas
+    from rank 9 gave rank 11 30.4 digits, but the propagation mostly fails
+    (b = 2: H_11 2 instead of 11 circles, ranks 11-13 fall back to the chain;
+    b = 1.5 rank 11 1896 s);
+  - no atlas near the fixed point the next rank's chain starts from
+    (`hyatprotr`, now 0): b = 6/5 rank 8 with the H_7 atlas 31.2 instead of
+    30.6 digits (chain 31.4), but b = 1.5 rank 11 27.5 instead of 30.4.
+  Profile: during a propagation 45-59 % of the lower-rank lookups missed the
+  atlas (protected zones, failed cells), each costing a chain.
+- b = 2, dps 20: ranks 9-12 29.9, rank 13 26.9 digits, as exp-097.
+- Tests: 135 passed / 10 skipped (with exp-098's tests), slow hexation and
+  hyper tests 22 passed.
+
 ### An atlas per rank: Taylor patches along the orbits (exp-097)
 
 - **Why.** A value of H_r is a chain of H_{r-1} values along the orbit from

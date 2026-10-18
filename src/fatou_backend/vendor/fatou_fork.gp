@@ -2870,14 +2870,26 @@ hyat = vector(hymax, j, Map()); hyathit = vector(hymax, j, Map()); hyatlist = ve
    lambda = 0.0065, Kreise von H_7 auf 1e-35 statt 1e-38 -> 24.4 statt 31.4
    Stellen). Dort rechnet die Kette. */
 hyatprot = vector(hymax, j, List());
-hyatnear(r, z) = { for (j = 1, #hyatprot[r], if (abs(z - hyatprot[r][j][1]) < hyatprot[r][j][2], return(1))); return(0); }
+/* Schutzradius, Vorgabe aus: mit Kreisen auf Rundungsgenauigkeit (hyatacc = 2)
+   war b = 1.5 ohne Schutz am besten (Rang 11 30.4 Stellen, mit Schutz 27.5,
+   Kette allein 28.7); b = 6/5 verliert ohne Schutz an Rang 8 0.8 Stellen, baut
+   dort aber im Normalbetrieb (Atlas ab Rang 11) keinen Atlas */
+hyatprotr = 0;
+hyatnear(r, z) = { if (!hyatprotr, return(0)); for (j = 1, #hyatprot[r], if (abs(z - hyatprot[r][j][1]) < hyatprotr, return(1))); return(0); }
 hyatbusy = vector(hymax); hyatN = vector(hymax); hyatuse = vector(hymax, j, [0, 0, 0]);
 hyatclear(r0) = {
   for (j = max(1, r0), hymax,
     hyat[j] = Map(); hyathit[j] = Map(); hyatlist[j] = List(); hyatfixl[j] = List(); hyatprot[j] = List(); hyatN[j] = 0; hyatbusy[j] = 0; hyatdone[j] = 0);
 }
 hyatcell(z) = round((real(z) - hyatx0)/hyath);
-hyatdig(r) = if (r == 5, pentdigits, if (r == 6, hexdigits, hydig[r]));
+hyatdig0(r) = if (r == 5, pentdigits, if (r == 6, hexdigits, hydig[r]));
+/* hyatacc = 1 (Vorgabe): Kreise so genau wie die Stellen des Rangs; 2: so genau
+   wie die Rundung (precis - 1). Mit 2 half es einmal (b = 1.5, dps 30, Atlas ab
+   Rang 9: Rang 11 30.4 statt 28.0 Stellen), aber meist scheitert dann die
+   Fortpflanzung (b = 2, dps 20: H_11 2 statt 11 Kreise, Raenge 11-13 fallen auf
+   die Kette zurueck; b = 1.5 Rang 11 1896 s statt 243 s) */
+hyatacc = 1;
+hyatdig(r) = if (hyatacc == 2, precis - 1, hyatdig0(r));
 hybase(r, z) = if (r == 4, sexp(z), if (r == 5, pent(z), if (r == 6, hex(z), hyval(r, z))));
 hybaseinv(r, y) = if (r == 4, slog(y), if (r == 5, ipent(y), if (r == 6, ihex(y), hyinv(r, y))));
 hyatget(r, z) = {
@@ -2885,9 +2897,14 @@ hyatget(r, z) = {
   for (j = 1, #hyatfixl[r], P = hyatfixl[r][j]; if (abs(z - P[1]) <= P[3], return(P)));
   if (abs(imag(z)) > 0.6, return(0));
   i = hyatcell(z);
+  /* von den Nachbarzellen die, in der z am weitesten innen liegt (kleines |u|:
+     subst statt cpe, und weiter weg vom Rand) */
+  my(best = 0, bu = oo, uu);
   foreach ([i, i + 1, i - 1], j,
-    if (mapisdefined(hyat[r], j, &P) && (type(P) == "t_VEC") && (abs(z - P[1]) <= P[3]), return(P)));
-  return(0);
+    if (mapisdefined(hyat[r], j, &P) && (type(P) == "t_VEC"),
+      uu = abs(z - P[1])/P[2];
+      if ((abs(z - P[1]) <= P[3]) && (uu < bu), bu = uu; best = P)));
+  return(best);
 }
 /* Umkehrung: Newton im Kreis, dessen reeller Wertebereich Re y enthaelt */
 hyatnewton(P, y) = {
@@ -3024,13 +3041,17 @@ hyatptsf(f, xc, rho, N, v) = {
   return(vn);
 }
 /* Kreis aus einer Wertefunktion f auf dem Kreis um xc; Probe gegen die Kette */
-hyatfrom(r, f, xc, rho, probe) = {
+hyatfrom(r, f, xc, rho, probe, v0) = {
   my(good = 0.9*rho, N = 64, v, T, tgt = hyatdig(r), eps, nmax = 8*(precis + 25), yl, yr, d, lo, hi, q, nest);
   eps = 10.0^(-tgt - 3);
-  v = hyatptsf(f, xc, rho, N, 0);
+  /* v0: Abtastwerte auf denselben Winkeln, schon bekannt (Fortpflanzung). Wie
+     ohne sie bei 64 Punkten beginnen und verdoppeln; die Werte kommen aus v0,
+     solange dessen Gitter reicht (Startwert #v0 liess jeden Kreis mit 256-512
+     Punkten beginnen, b = 1.5 Rang 11 dann 1690 s) */
+  if (v0 && (#v0 >= N), v = hyatsub(v0, N), v = hyatptsf(f, xc, rho, N, 0));
   T = hyatcoef(v);
   lo = vecmax(vector(8, j, abs(polcoeff(T, 7 + j)))); hi = vecmax(vector(12, j, abs(polcoeff(T, 39 + j))));
-  if (hi >= 100*eps,
+  if ((N >= 64) && (hi >= 100*eps),
     q = (hi/lo)^(1/36);
     if (q >= 0.97, error("Atlas: Glieder fallen nicht"));
     nest = 51 + 1.25*log(100*eps/hi)/log(q);
@@ -3051,7 +3072,7 @@ hyatfrom(r, f, xc, rho, probe) = {
          Rang 12 (braucht 8) ging nicht mehr. */
       if ((4*tl <= tlast) && (2*N <= nmax),
         tlast = tl;
-        N = 2*N; v = hyatptsf(f, xc, rho, N, v); T = hyatcoef(v); tl = hyattail(T, N);
+        N = 2*N; v = if (v0 && (#v0 >= N), hyatsub(v0, N), hyatptsf(f, xc, rho, N, v)); T = hyatcoef(v); tl = hyattail(T, N);
         next);
       if (tl >= 10.0^(hyattol*min(5, max(1, tgt/6)) - tgt), error("Atlas: Schwanz ", precision(tl, 3), " bei ", N, " Punkten")));
     /* Zwischen den Abtastpunkten pruefen: der Schwanz kann bei Unterabtastung
@@ -3061,19 +3082,22 @@ hyatfrom(r, f, xc, rho, probe) = {
                          abs(cpe(T, exp(I*th)) - f(xc + rho*exp(I*th)))));
     if (off <= 100*max(tl, eps), break);
     if (2*N > nmax, error("Atlas: zwischen den Punkten ", precision(off, 3), " daneben"));
-    N = 2*N; v = hyatptsf(f, xc, rho, N, v); T = hyatcoef(v); tl = hyattail(T, N); tlast = oo);
+    N = 2*N; v = if (v0 && (#v0 >= N), hyatsub(v0, N), hyatptsf(f, xc, rho, N, v)); T = hyatcoef(v); tl = hyattail(T, N); tlast = oo);
   yl = cpe(T, -good/rho); yr = cpe(T, good/rho);
   if ((abs(imag(yl)) > 1e-20) || (abs(imag(yr)) > 1e-20) || (real(yr) <= real(yl)), error("Atlas: nicht reell steigend"));
   if (probe,
     d = abs(cpe(T, 0.3) - hyval(r, xc + 0.3*rho));
     if (d > max(10.0^(2 - tgt), 100*tl), error("Atlas: Probe ", precision(d, 3))));
   hyatN[r] = max(hyatN[r], N);
-  return([xc, rho, good, T, deriv(T), real(yl), real(yr), max(tl, eps)]);
+  return([xc, rho, good, T, deriv(T), real(yl), real(yr), max(tl, eps), v]);
 }
+/* N Punkte aus einem feineren Kreisgitter (N teilt #w) */
+hyatsub(w, N) = { my(st = #w/N); return(vector(N, t, w[(t - 1)*st + 1])); }
 hyattail(T, N) = vecmax(vector(N - floor(0.8*N), j, abs(polcoeff(T, floor(0.8*N) + j - 1))));
 hyatput(r, i, P) = { mapput(hyat[r], i, if (P, P, -1)); if (P, listput(hyatlist[r], P)); }
 hyatprop(r) = {
-  my(la = hylam[r], up, c = hyc[r], zs, z0, i0, dir, rho = 0.6, n0 = #hyatlist[r], tb = getabstime(), P, Pn, i, j, xcj, f, nfail = 0);
+  my(la = hylam[r], up, c = hyc[r], zs, z0, i0, dir, rho = 0.6, n0 = #hyatlist[r], tb = getabstime(), P, Pn, i, j, xcj, f, nfail = 0,
+     c0 = hycall[r-1], u0 = hyatuse[r-1], npts = 0);
   if (!hyaton || (hykind[r] != 1) || (precis < 30), return(0));
   up = (abs(la) > 1); dir = if (up, 1, -1);
   zs = log(hyr[r]/(2*abs(c)))/log(abs(la));
@@ -3097,13 +3121,19 @@ hyatprop(r) = {
          alten), nicht wachsen: bei zu langsamem Abfall 2/3 davon, bis 0.26 */
       my(rr2 = min(rho, P[2]));
       Pn = 0;
+      /* gleicher Radius: die Punkte des neuen Kreises liegen um 1 verschoben genau
+         auf denen des Nachbarn -- dessen Abtastwerte statt Horner am Rand (cpe) */
+      my(v0 = 0);
+      if ((rr2 == P[2]) && (#P >= 9),
+        v0 = iferr(vector(#P[9], t, if (up, hylo(r - 1, P[9][t]), hyloinv(r - 1, P[9][t]))), E, 0, errname(E) != "e_ALARM"));
       while (!Pn && (rr2 >= 0.26),
-        Pn = iferr(hyatfrom(r, f, xcj, rr2, (step % 4 == 0)), E, if (kndebug >= 2, print("hy:   Rang ", r, " Kreis ", xcj, " rho ", precision(rr2, 3), ": ", E)); 0, errname(E) != "e_ALARM");
-        if (!Pn, rr2 = 2*rr2/3));
+        Pn = iferr(hyatfrom(r, f, xcj, rr2, (step % 4 == 0), v0), E, if (kndebug >= 2, print("hy:   Rang ", r, " Kreis ", xcj, " rho ", precision(rr2, 3), ": ", E)); 0, errname(E) != "e_ALARM");
+        if (!Pn, rr2 = 2*rr2/3; v0 = 0));
       if (!Pn, nfail++; break);
       if (!mapisdefined(hyat[r], j), hyatput(r, j, Pn));
       P = Pn; i = j));
   hyatbusy[r] = 0;
+  if (kndebug >= 2, print("hy:   Rang ", r - 1, " waehrend der Fortpflanzung: Aufrufe ", hycall[r-1] - c0, ", Atlas-Treffer ", hyatuse[r-1] - u0));
   if (kndebug, print("hy: Atlas Rang ", r, " fortgepflanzt: ", #hyatlist[r] - n0, " Kreise (", nfail, " Abbrueche), Mitten ",
                      precision(vecmin(vector(#hyatlist[r], k, real(hyatlist[r][k][1]))), 3), "..",
                      precision(vecmax(vector(#hyatlist[r], k, real(hyatlist[r][k][1]))), 3), ", ", getabstime() - tb, " ms"));
@@ -3179,7 +3209,13 @@ hyinit(r) = {
     return(precision(min(knSd[r], lowd), 9)));
   isreal = (imag(b) == 0) && (abs(imag(y)) < 1e-10);
   if (isreal, y = real(y));
-  if (hyaton, listput(hyatprot[r-1], [y, 0.25]));
+  /* Schutz nur bei extremem Multiplikator an p_r (zwei Kettenwerte): b = 6/5,
+     Rang 8, lambda 0.0065: ohne Schutz 30.6 statt 31.4 Stellen; b = 1.5
+     (lambda 0.057 / 16.8): mit Schutz Rang 11 27.5 statt 30.4 -- dort rechnet
+     die Kette nahe den Singularitaeten ungenauer als die Kreise */
+  if (hyaton && hyatprotr && (precis >= 30),
+    my(hh = 10.0^(-precis/3), la0 = iferr((hybase(r-1, y + hh) - hybase(r-1, y - hh))/(2*hh), E, 1, errname(E) != "e_ALARM"));
+    if ((abs(la0) < 0.02) || (abs(la0) > 50), listput(hyatprot[r-1], [y, hyatprotr])));
   /* exp-097: ab Rang hyatcov den Atlas der unteren Stufen auf ihren Bahnen
      vollstaendig belegen, von unten nach oben -- dann kostet jeder Kettenwert
      von H_{r-1} nur Horner-Schritte */
